@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -38,11 +37,9 @@ import androidx.glance.text.TextAlign
 
 // ---- W3 Training load (4x2, 4x3) ----
 
-private val LoadWide = DpSize(250.dp, 100.dp)
-private val LoadTall = DpSize(250.dp, 170.dp)
 
 class TrainingLoadWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(LoadWide, LoadTall))
+    override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
@@ -112,11 +109,9 @@ private fun LoadBars(bars: List<LoadBar>, width: androidx.compose.ui.unit.Dp, he
 
 // ---- W5 Sleep (2x2, 4x2) ----
 
-private val SleepSquare = DpSize(110.dp, 110.dp)
-private val SleepWide = DpSize(250.dp, 110.dp)
 
 class SleepWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(SleepSquare, SleepWide))
+    override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
@@ -154,33 +149,34 @@ private fun SleepBody(ui: WidgetUi.Content<SleepUi>) {
     val size = LocalSize.current
     val scale = LocalFontScale
     val b = ui.body
-    val wide = size.width >= 200.dp
+    val layout = SizeRules.sleep(size.width.value, size.height.value, scale)
+    val wide = layout.wide
     val sub = GlanceTheme.colors.onSurfaceVariant
-    WidgetFrame(ui.description, bodyTap(context, WidgetKind.Sleep), footer = { FooterView(ui.footer, ui.screen, compact = !wide) }, padding = if (wide) 14.dp else 10.dp) {
-        if (!wide) {
-            Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                Txt("Sleep", 11f, color = sub)
-                Txt(b.durationText, SizeRules.cappedSp(28f, scale, 1.15f), FontWeight.Medium)
-                b.scoreText?.let { Txt(it, 12f, FontWeight.Medium) }
-                b.window?.let { Txt(it, 12f, color = sub) }
-            }
-        } else {
-            Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+    val stages = b.stages
+    WidgetFrame(ui.description, bodyTap(context, WidgetKind.Sleep), footer = { FooterView(ui.footer, ui.screen, compact = size.width < 150.dp) }, padding = if (wide) 14.dp else 10.dp) {
+        Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            if (wide) {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                     Txt(b.durationText, SizeRules.cappedSp(28f, scale, 1.15f), FontWeight.Medium, modifier = GlanceModifier.defaultWeight())
                     Column(horizontalAlignment = Alignment.End) {
-                        b.scoreText?.let { Txt(it, 12f, FontWeight.Medium) }
-                        b.window?.let { Txt(it, 12f, color = sub) }
+                        if (layout.score) b.scoreText?.let { Txt(it, 12f, FontWeight.Medium) }
+                        if (layout.window) b.window?.let { Txt(it, 12f, color = sub) }
                     }
                 }
-                val stages = b.stages
-                if (stages != null) {
-                    Spacer(GlanceModifier.height(6.dp))
-                    val density = context.resources.displayMetrics.density
-                    val w = (size.width.value - 28f).coerceAtLeast(60f)
-                    val colors = stages.map { stageColor(it.stage).toArgb() }
-                    val bmp = ChartBitmaps.stageBar((w * density).toInt(), (8 * density).toInt(), stages.map { it.minutes }, colors)
-                    Image(ImageProvider(bmp), contentDescription = null, modifier = GlanceModifier.size(w.dp, 8.dp))
+            } else {
+                Txt("Sleep", 11f, color = sub)
+                Txt(b.durationText, SizeRules.cappedSp(28f, scale, 1.15f), FontWeight.Medium)
+                if (layout.score) b.scoreText?.let { Txt(it, 12f, FontWeight.Medium) }
+            }
+            if (stages != null && layout.bar) {
+                Spacer(GlanceModifier.height(6.dp))
+                val density = context.resources.displayMetrics.density
+                val pad = if (wide) 28f else 20f
+                val w = (size.width.value - pad).coerceAtLeast(60f)
+                val colors = stages.map { stageColor(it.stage).toArgb() }
+                val bmp = ChartBitmaps.stageBar((w * density).toInt(), (8 * density).toInt(), stages.map { it.minutes }, colors)
+                Image(ImageProvider(bmp), contentDescription = null, modifier = GlanceModifier.size(w.dp, 8.dp))
+                if (layout.legend) {
                     Spacer(GlanceModifier.height(4.dp))
                     Row(GlanceModifier.fillMaxWidth()) {
                         stages.forEach { s ->
@@ -191,11 +187,10 @@ private fun SleepBody(ui: WidgetUi.Content<SleepUi>) {
                             }
                         }
                     }
-                    b.stageNote?.let { Txt(it, 10f, color = sub, maxLines = 1) }
-                } else {
-                    Txt("No stage breakdown", 11f, color = sub)
+                    if (layout.note) b.stageNote?.let { Txt(it, 10f, color = sub, maxLines = 1) }
                 }
             }
+            if (!wide && layout.window) b.window?.let { Txt(it, 12f, color = sub) }
         }
     }
 }
@@ -204,10 +199,9 @@ private fun ColorProviderOf(c: Color) = androidx.glance.unit.ColorProvider(c)
 
 // ---- W6 Fitness / race (4x2) ----
 
-private val FitnessWide = DpSize(250.dp, 110.dp)
 
 class FitnessWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(FitnessWide))
+    override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {

@@ -101,8 +101,8 @@ fun TodayContent(state: TodayState, onOpenAccount: () -> Unit) {
                 state.sparks.forEach { sp ->
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(sp.title, style = MaterialTheme.typography.bodyLarge)
-                            Text(sp.latest ?: "No data", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(sp.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                            Text(sp.latest ?: "No data", Modifier.weight(1f, fill = false), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End)
                         }
                         Sparkline(sp.values, sp.description)
                     }

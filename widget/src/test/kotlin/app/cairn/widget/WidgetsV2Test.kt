@@ -41,12 +41,12 @@ class WidgetsV2Test {
         assertEquals(1f, c.body.bars[5].fraction, 0.001f)
         assertEquals(0f, c.body.bars[1].fraction, 0f)
         assertEquals(0.5f, c.body.bars[0].fraction, 0.001f) // 100/200
-        assertEquals("1.1", c.body.ratioText)
+        assertEquals("1.14", c.body.ratioText)
         assertEquals("Optimal", c.body.comment)
         assertEquals("VO2max 52", c.body.vo2Text)
         assertEquals("+1", c.body.vo2Trend)
         assertEquals(Screen.Fitness, c.screen)
-        assertTrue(c.description.contains("Load ratio 1.1"))
+        assertTrue(c.description.contains("Load ratio 1.14"))
     }
 
     @Test fun loadFallbackLabelAndNoTrend() {

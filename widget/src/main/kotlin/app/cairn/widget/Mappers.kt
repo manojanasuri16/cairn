@@ -27,7 +27,8 @@ object WidgetMapper {
         val tier = Freshness.fromAge(age, prefs.freshLimit, prefs.agingLimit)
         val rel = RelativeAge.format(age)
         val text = if (tier == Freshness.Stale) "Stale, last synced ${rel.removePrefix("Updated ")}" else rel
-        return FooterUi(text, tier)
+        val short = rel.removePrefix("Updated ").let { if (tier == Freshness.Stale) "Stale $it" else it }
+        return FooterUi(text, tier, short)
     }
 
     fun today(
@@ -147,7 +148,7 @@ object WidgetMapper {
         val ratio = latest?.loadRatio?.takeIf { it > 0 }
         val comment = latest?.comment?.takeIf { it.isNotBlank() }?.let(Fmt::sport) ?: ratio?.let(::ratioLabel) ?: "No ratio yet"
         val trend = if (vo2 != null && previousVo2max != null && previousVo2max > 0) Fmt.trend(vo2 - previousVo2max) else null
-        val body = TrainingLoadUi(bars, ratio?.let { String.format(locale, "%.1f", it) } ?: "\u2013", comment, vo2?.let { "VO2max $it" }, trend)
+        val body = TrainingLoadUi(bars, ratio?.let { String.format(locale, "%.2f", it) } ?: "\u2013", comment, vo2?.let { "VO2max $it" }, trend)
         val stamps = listOfNotNull(latest?.stamp?.sourceUpdatedAt, fitness?.takeIf { vo2 != null }?.stamp?.sourceUpdatedAt)
         val footer = footer(stamps, now, prefs)
         val desc = listOfNotNull(

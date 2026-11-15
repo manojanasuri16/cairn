@@ -3,7 +3,6 @@ package app.cairn.widget
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -23,11 +22,9 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.TextAlign
 
-private val Square = DpSize(100.dp, 100.dp)
-private val Wide = DpSize(180.dp, 100.dp)
 
 class RecoveryWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(Square, Wide))
+    override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {

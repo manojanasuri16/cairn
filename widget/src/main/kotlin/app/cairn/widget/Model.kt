@@ -11,7 +11,7 @@ enum class Screen { Today, Activities, Fitness, Account, Freshness }
 enum class MessageKind { Empty, SignedOut, NeedsSignIn }
 
 /** Shared footer: data age with a freshness tier. Stale wording is explicit, never colour alone. */
-data class FooterUi(val text: String, val tier: Freshness) {
+data class FooterUi(val text: String, val tier: Freshness, val shortText: String = text) {
     val opensCoros: Boolean get() = tier == Freshness.Stale
 }
 
@@ -56,7 +56,7 @@ data class LoadBar(val letter: String, val fraction: Float, val isToday: Boolean
 
 data class TrainingLoadUi(
     val bars: List<LoadBar>,
-    /** "1.2", or an en dash when no ratio is cached. */
+    /** Two decimals ("1.20") to match the app, or an en dash when no ratio is cached. */
     val ratioText: String,
     val comment: String,
     val vo2Text: String?,

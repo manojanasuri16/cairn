@@ -77,7 +77,7 @@ fun WidgetFrame(
             .cornerRadius(android.R.dimen.system_app_widget_background_radius)
             .semantics { contentDescription = description },
     ) {
-        Box(modifier = GlanceModifier.defaultWeight().fillMaxWidth().padding(start = padding, end = padding, top = padding, bottom = if (footer == null) padding else 2.dp).clickable(bodyAction)) { body() }
+        Box(modifier = GlanceModifier.defaultWeight().fillMaxWidth().padding(start = padding, end = padding, top = padding, bottom = if (footer == null) padding else 0.dp).clickable(bodyAction)) { body() }
         if (footer != null) footer()
     }
 }
@@ -93,10 +93,12 @@ fun FooterView(footer: FooterUi, screen: Screen, compact: Boolean = false) {
         Freshness.Stale -> GlanceTheme.colors.error
     }
     Box(
-        modifier = GlanceModifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = if (compact) 6.dp else 8.dp)
+        modifier = GlanceModifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = if (compact) 8.dp else 10.dp)
+            .semantics { contentDescription = footer.text + if (footer.opensCoros) ". Opens COROS to sync" else ". Opens Cairn" }
             .clickable(actionStartActivity(footerIntent(context, footer, screen))),
     ) {
-        Txt(footer.text, if (compact) 10f else 11f, if (stale) FontWeight.Bold else FontWeight.Normal, color)
+        // The full text is in the content description; compact cells show the short form so it never wraps or clips.
+        Txt(if (compact) footer.shortText else footer.text, if (compact) 10f else 11f, if (stale) FontWeight.Bold else FontWeight.Normal, color)
     }
 }
 

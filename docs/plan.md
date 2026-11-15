@@ -293,7 +293,7 @@ Room stores raw per-source rows; repositories merge on read and stamp `sourceUpd
 
 ## 5. Widget set
 
-All widgets use `SizeMode.Responsive` with 2 or 3 breakpoints. They render from Room only and share one footer component: data age plus source glyph. Tap on the body opens the matching Cairn screen. Tap on the footer when stale opens COROS.
+All widgets use `SizeMode.Exact` (M9; `Responsive` snapped a typical launcher cell to the smallest declared size and wasted space). Layout thresholds live in `SizeRules` (`widget/Format.kt`) and key off the real dp size and the font scale, so bigger cells show more and 200% font drops low-priority rows. They render from Room only and share one footer component: data age plus source glyph. Tap on the body opens the matching Cairn screen. Tap on the footer when stale opens COROS.
 
 | # | Widget | Sizes (cells) | Content | Source |
 |---|---|---|---|---|
@@ -446,3 +446,22 @@ Notes on verification:
 - COROS support pages returned HTTP 403 to direct fetches. Claims attributed to them come from search-result summaries and should be re-checked in a browser.
 - The Health Connect type list is unconfirmed until M1.
 - MCP redirect-URI acceptance and response formats are unconfirmed until M2.
+
+---
+
+## 12. Release build and signing (M9)
+
+- **Version**: `cairn.versionName` and `cairn.versionCode` in the root `gradle.properties` (currently 1.0.0 / 100). Bump them there only.
+- **R8**: release has `isMinifyEnabled` and `isShrinkResources` on. Rules are in `app/proguard-rules.pro` (kotlinx.serialization, WorkManager workers, Glance receivers and callbacks, the activities the widgets start by name, Room, Health Connect). The R8 mapping file is at `app/build/outputs/mapping/release/mapping.txt`; keep it with any build you distribute.
+- **Signing**: if `local.properties` has all four keys below and the file exists, the release variant is signed with that keystore. Otherwise it is signed with the local debug keystore (`~/.android/debug.keystore`) so it can be sideloaded; such an APK is not for distribution.
+
+```properties
+# local.properties (gitignored; never commit)
+release.storeFile=/absolute/path/to/cairn-release.jks
+release.storePassword=...
+release.keyAlias=cairn
+release.keyPassword=...
+```
+
+Create a keystore once with `keytool -genkeypair -v -keystore cairn-release.jks -alias cairn -keyalg RSA -keysize 4096 -validity 10000`, keep it and its passwords outside the repo (`*.jks` and `*.keystore` are gitignored), and back it up: losing it means users must uninstall to update.
+

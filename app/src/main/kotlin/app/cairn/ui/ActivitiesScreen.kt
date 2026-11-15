@@ -5,11 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -83,7 +83,7 @@ fun ActivitiesContent(state: ActivitiesState, onOpenAccount: () -> Unit, modifie
 private fun ActivityRow(row: ActivityRowUi, onClick: () -> Unit) {
     Card(Modifier.fillMaxWidth().clickable(onClickLabel = "Show details", onClick = onClick).semantics(mergeDescendants = true) { contentDescription = row.description }) {
         Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
-            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(40.dp).clearAndSetSemantics { }) {
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.defaultMinSize(minWidth = 40.dp, minHeight = 40.dp).clearAndSetSemantics { }) {
                 Box(contentAlignment = Alignment.Center) { Text(row.glyph, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer) }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {

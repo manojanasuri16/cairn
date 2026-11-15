@@ -59,7 +59,7 @@ fun SectionCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) 
 fun MetricRow(m: MetricUi, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
         Text(m.label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(m.value, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.End)
+        Text(m.value, Modifier.weight(1f, fill = false), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.End)
     }
 }
 

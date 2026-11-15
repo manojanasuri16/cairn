@@ -3,7 +3,6 @@ package app.cairn.widget
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -21,11 +20,8 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.text.FontWeight
 
-private val Line = DpSize(240.dp, 40.dp)
-private val Card = DpSize(240.dp, 100.dp)
-
 class LastActivityWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(Line, Card))
+    override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
@@ -49,26 +45,31 @@ class LastActivityWidgetReceiver : GlanceAppWidgetReceiver() {
 private fun ActivityBody(ui: WidgetUi.Content<ActivityUi>) {
     val context = LocalContext.current
     val size = LocalSize.current
+    val scale = LocalFontScale
     val b = ui.body
-    val oneLine = size.height < 80.dp
+    val layout = SizeRules.lastActivity(size.width.value, size.height.value, scale)
+    val oneLine = layout.mode == SizeRules.ActivityMode.OneLine
     val sub = GlanceTheme.colors.onSurfaceVariant
     WidgetFrame(
         ui.description, bodyTap(context, WidgetKind.LastActivity),
-        footer = { FooterView(ui.footer, ui.screen, compact = oneLine) },
+        footer = { FooterView(ui.footer, ui.screen, compact = oneLine || size.width < 150.dp) },
         padding = if (oneLine) 8.dp else 14.dp,
     ) {
         if (oneLine) {
             Row(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                Txt("${b.sport} · ${b.date}", 13f, FontWeight.Medium, modifier = GlanceModifier.defaultWeight())
-                Txt(listOfNotNull(b.distance, b.duration).joinToString(" · "), 13f, color = sub)
+                Txt("${b.sport} \u00b7 ${b.date}", 13f, FontWeight.Medium, modifier = GlanceModifier.defaultWeight())
+                Txt(listOfNotNull(b.distance, b.duration).joinToString(" \u00b7 "), 13f, color = sub)
             }
         } else {
             Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                Txt("${b.sport} · ${b.date}", 12f, color = sub)
-                Txt(b.distance ?: b.duration ?: "–", SizeRules.cappedSp(32f, LocalFontScale, 1.15f), FontWeight.Medium)
-                Row(GlanceModifier.fillMaxWidth()) {
-                    val rest = listOfNotNull(b.distance?.let { b.duration }, b.pace, b.avgHr)
-                    rest.forEach { Txt(it, 13f, modifier = GlanceModifier.defaultWeight()) }
+                Txt("${b.sport} \u00b7 ${b.date}", 12f, color = sub)
+                Txt(b.distance ?: b.duration ?: "\u2013", SizeRules.cappedSp(30f, scale, 1.15f), FontWeight.Medium)
+                // Priority: duration (when distance is the hero), pace, average heart rate.
+                val stats = listOfNotNull(b.distance?.let { b.duration }, b.pace, b.avgHr).take(layout.maxStats)
+                stats.chunked(layout.statsPerRow).forEach { row ->
+                    Row(GlanceModifier.fillMaxWidth()) {
+                        row.forEach { Txt(it, 13f, modifier = GlanceModifier.defaultWeight()) }
+                    }
                 }
             }
         }
