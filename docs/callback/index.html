@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Cairn sign-in</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f7f7f5; --fg:#1a1b1e; --muted:#5e6068; --accent:#4c55c7; --card:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f1012; --fg:#e4e4e8; --muted:#aaadb6; --accent:#b4baff; --card:#191a1e; } }
+  html, body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width:28rem; margin:0 auto; padding:12vh 24px 24px; text-align:center; }
+  .card { background:var(--card); border-radius:20px; padding:28px 22px; }
+  h1 { font-size:1.35rem; margin:0 0 .5rem; }
+  p { margin:.4rem 0; color:var(--muted); }
+  a.btn { display:inline-block; margin-top:1.2rem; padding:.8rem 1.6rem; border-radius:999px; background:var(--accent); color:var(--bg); text-decoration:none; font-weight:600; }
+  small { display:block; margin-top:1.4rem; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1 id="title">Returning to Cairn…</h1>
+    <p id="msg">If Cairn does not open by itself, tap the button.</p>
+    <a id="open" class="btn" href="#">Open Cairn</a>
+    <small>This page only passes your sign-in result to the Cairn app on this phone. It stores nothing and sends nothing anywhere.</small>
+  </div>
+</main>
+<script>
+(function () {
+  var search = window.location.search || "";
+  var params = new URLSearchParams(search);
+  var failed = params.has("error");
+  var scheme = "app.cairn.oauth";
+  var direct = scheme + "://callback" + search;
+  var intentUrl = "intent://callback" + search + "#Intent;scheme=" + scheme + ";package=app.cairn;end";
+  var isAndroid = /Android/i.test(navigator.userAgent);
+  var btn = document.getElementById("open");
+  btn.setAttribute("href", isAndroid ? intentUrl : direct);
+  if (failed) {
+    document.getElementById("title").textContent = "Sign-in was not completed";
+    document.getElementById("msg").textContent = "Tap the button to go back to Cairn and try again.";
+  }
+  if (!params.has("code") && !failed) {
+    document.getElementById("title").textContent = "Nothing to hand over";
+    document.getElementById("msg").textContent = "Open Cairn and start the sign-in from there.";
+    btn.style.display = "none";
+    return;
+  }
+  // Try to hand over automatically; the button is the fallback when the browser needs a tap.
+  setTimeout(function () { window.location.replace(isAndroid ? intentUrl : direct); }, 150);
+})();
+</script>
+</body>
+</html>
