@@ -1,77 +1,107 @@
 package app.cairn.widget
 
-import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.dp
-import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.GlanceTheme
-import androidx.glance.LocalContext
-import androidx.glance.LocalSize
-import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
+import androidx.glance.layout.padding
+import androidx.glance.background
+import androidx.glance.appwidget.cornerRadius
+import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
+import app.cairn.core.designsystem.ThemeId
+import app.cairn.core.model.DistanceUnit
+import kotlinx.coroutines.flow.Flow
 
-class LastActivityWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Exact
+class LastActivityWidget : CairnWidget<ActivityUi>(WidgetKind.LastActivity) {
+    override fun flow(unit: DistanceUnit?): Flow<WidgetUi<ActivityUi>> = WidgetEnvironment.lastActivity(unit)
+    override fun sample() = Samples.activity()
 
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
-        provideContent {
-            val ui = WidgetEnvironment.lastActivity().collectAsState(WidgetUi.Loading).value
-            CairnGlanceTheme {
-                when (ui) {
-                    WidgetUi.Loading -> LoadingView()
-                    is WidgetUi.Message -> MessageView(ui)
-                    is WidgetUi.Content -> ActivityBody(ui)
-                }
+    @Composable
+    override fun Body(ui: WidgetUi.Content<ActivityUi>) {
+        val b = ui.body
+        val cfg = skin.cfg
+        // Priority: duration (when distance is the hero), pace, average heart rate; the user can hide each.
+        val stats = listOfNotNull(
+            b.duration?.takeIf { cfg.shows(Part.Duration) }?.let { "Time" to it },
+            b.pace?.takeIf { cfg.shows(Part.Pace) }?.let { "Pace" to it },
+            b.avgHr?.takeIf { cfg.shows(Part.AvgHr) }?.let { "Heart rate" to it },
+        )
+        val values = listOfNotNull(b.distance) + stats.map { it.second }
+        val (w0, h0) = widgetSize()
+        val inner0 = w0 - 2f * Layouts.pad(app.cairn.core.designsystem.SizeClass.of(w0, h0), h0)
+        val lineStyle = cfg.style == WidgetStyle.ActivityLine || (h0 < 90f && cfg.style != WidgetStyle.ActivityGrid)
+        // One-liner text: the hero value first, then every available stat that fits the line at a legible size.
+        val rest = if (b.distance != null) stats.map { it.second } else stats.filter { it.first != "Time" }.map { it.second }
+        val allParts = listOfNotNull(b.distance ?: b.duration) + rest
+        val twoParts = Layouts.activityMain(allParts.take(2), inner0, LocalFontScale)
+        @Composable fun planFor(lineText: String) = currentPlan(heroText = if (cfg.style == WidgetStyle.ActivityGrid && !lineStyle) "" else if (lineStyle) lineText else (b.distance ?: b.duration ?: "\u2013"), values = values)
+        var plan = planFor(twoParts)
+        var lineText = twoParts
+        // With no room for a second line, the one line carries every stat that fits.
+        if (lineStyle && !plan.has("meta")) { lineText = Layouts.activityMain(allParts, inner0, LocalFontScale); plan = planFor(lineText) }
+        Framed(ui, kind, plan) {
+            when (plan.style) {
+                WidgetStyle.ActivityGrid -> GridStyle(b, stats, plan)
+                WidgetStyle.ActivityLine -> LineStyle(b, rest, plan, lineText)
+                else -> HeroStyle(b, stats, plan)
             }
         }
     }
 }
 
-class LastActivityWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = LastActivityWidget()
+class LastActivityWidgetReceiver : CairnReceiver() {
+    override val glanceAppWidget = LastActivityWidget()
+}
+
+private fun shortLabel(l: String) = when (l) { "Distance" -> "Dist"; "Heart rate" -> "HR"; else -> l }
+
+@Composable
+private fun Header(b: ActivityUi) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(GlanceModifier.height(8.dp).width(8.dp).background(cp(skin.p.accent)).cornerRadius(4.dp)) {}
+        Spacer(GlanceModifier.width(6.dp))
+        Txt("${b.sport} · ${b.date}", 12f, FontWeight.Medium, skin.p.inkSub)
+    }
 }
 
 @Composable
-private fun ActivityBody(ui: WidgetUi.Content<ActivityUi>) {
-    val context = LocalContext.current
-    val size = LocalSize.current
-    val scale = LocalFontScale
-    val b = ui.body
-    val layout = SizeRules.lastActivity(size.width.value, size.height.value, scale)
-    val oneLine = layout.mode == SizeRules.ActivityMode.OneLine
-    val sub = GlanceTheme.colors.onSurfaceVariant
-    WidgetFrame(
-        ui.description, bodyTap(context, WidgetKind.LastActivity),
-        footer = { FooterView(ui.footer, ui.screen, compact = oneLine || size.width < 150.dp) },
-        padding = if (oneLine) 8.dp else 14.dp,
-    ) {
-        if (oneLine) {
-            Row(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                Txt("${b.sport} \u00b7 ${b.date}", 13f, FontWeight.Medium, modifier = GlanceModifier.defaultWeight())
-                Txt(listOfNotNull(b.distance, b.duration).joinToString(" \u00b7 "), 13f, color = sub)
-            }
-        } else {
-            Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                Txt("${b.sport} \u00b7 ${b.date}", 12f, color = sub)
-                Txt(b.distance ?: b.duration ?: "\u2013", SizeRules.cappedSp(30f, scale, 1.15f), FontWeight.Medium)
-                // Priority: duration (when distance is the hero), pace, average heart rate.
-                val stats = listOfNotNull(b.distance?.let { b.duration }, b.pace, b.avgHr).take(layout.maxStats)
-                stats.chunked(layout.statsPerRow).forEach { row ->
-                    Row(GlanceModifier.fillMaxWidth()) {
-                        row.forEach { Txt(it, 13f, modifier = GlanceModifier.defaultWeight()) }
-                    }
-                }
-            }
+private fun HeroStyle(b: ActivityUi, stats: List<Pair<String, String>>, plan: Layouts.Plan) {
+    val shown = if (b.distance != null) stats else stats.filter { it.first != "Time" }
+    val rows = plan.count("s")
+    Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+        if (plan.has("header")) Header(b)
+        Txt(b.distance ?: b.duration ?: "–", plan.heroSp, FontWeight.Bold, hero = true)
+        shown.take(rows * plan.perRow).chunked(plan.perRow).forEach { line ->
+            Row(GlanceModifier.fillMaxWidth()) { line.forEach { Txt(it.second, 13f, FontWeight.Medium, modifier = GlanceModifier.defaultWeight()) } }
         }
+    }
+}
+
+@Composable
+private fun GridStyle(b: ActivityUi, stats: List<Pair<String, String>>, plan: Layouts.Plan) {
+    val all = listOfNotNull(b.distance?.let { "Distance" to it }) + stats
+    val tiles = all.take(plan.count("t")).map { (l, v) -> (if (TextFit.fits(l, 10f, LocalFontScale, plan.heroAvailDp)) l else shortLabel(l)) to v }
+    Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+        if (plan.has("header")) { Header(b); Spacer(GlanceModifier.height(4.dp)) }
+        TileRows(tiles, plan, compact = !plan.has("header") && widgetSize().second < 90f)
+    }
+}
+
+@Composable
+private fun LineStyle(b: ActivityUi, rest: List<String>, plan: Layouts.Plan, main: String) {
+    // The second line holds whatever the first did not.
+    val meta = rest.drop(1).joinToString(" \u00b7 ")
+    Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+        if (plan.has("title")) Header(b)
+        Txt(main, plan.heroSp, FontWeight.Bold, hero = true)
+        if (plan.has("meta") && meta.isNotEmpty()) Sub(meta, 13f)
     }
 }

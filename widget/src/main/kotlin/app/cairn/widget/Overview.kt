@@ -1,0 +1,183 @@
+package app.cairn.widget
+
+import app.cairn.core.designsystem.FitMath
+import app.cairn.core.designsystem.WidgetTokens
+import app.cairn.core.model.Freshness
+
+/** The stats the Overview widget can show. Order here is the picker's canonical order. */
+enum class OverviewId(val label: String) {
+    Steps("Steps"), Sleep("Sleep"), SleepScore("Sleep score"), Recovery("Recovery"), RestingHr("Resting HR"),
+    Calories("Calories"), Stress("Stress"), LoadRatio("Load ratio"), Vo2("VO2max"), LastDistance("Last run");
+
+    companion object {
+        val Default = listOf(Steps, Sleep, Recovery, RestingHr)
+        const val MAX = 6
+        fun parse(raw: String?): OverviewId? = entries.firstOrNull { it.name == raw }
+    }
+}
+
+/** One stat: a number and its unit (set in small, light text beside it), an optional 0..1 progress and a 7-day trend. */
+data class OverviewItem(
+    val id: OverviewId,
+    val number: String,
+    val unit: String = "",
+    val fraction: Float? = null,
+    /** Load ratio, for colouring. */
+    val level: Double? = null,
+    val trend: List<Float> = emptyList(),
+)
+
+data class OverviewUi(val items: List<OverviewItem>) {
+    fun find(id: OverviewId): OverviewItem? = items.firstOrNull { it.id == id }
+}
+
+object OverviewMapper {
+    /** "52 bpm" -> ("52", "bpm"), "98%" -> ("98", "%"), "7h 41m" stays whole. The number and unit are drawn together on one baseline. */
+    fun splitUnit(text: String): Pair<String, String> {
+        val t = text.trim()
+        if (t.endsWith("%")) return t.dropLast(1).trim() to "%"
+        val i = t.lastIndexOf(' ')
+        if (i > 0) {
+            val unit = t.substring(i + 1)
+            if (unit.isNotEmpty() && unit.all { it.isLetter() || it == '/' }) return t.substring(0, i) to unit
+        }
+        return t to ""
+    }
+
+    /** Builds the Overview data from the per-widget results; each stat shows only when its source has data. */
+    fun build(
+        today: WidgetUi<TodayUi>, sleep: WidgetUi<SleepUi>, recovery: WidgetUi<RecoveryUi>,
+        load: WidgetUi<TrainingLoadUi>, fitness: WidgetUi<FitnessUi>, activity: WidgetUi<ActivityUi>,
+    ): WidgetUi<OverviewUi> {
+        val items = mutableListOf<OverviewItem>()
+        val footers = mutableListOf<FooterUi>()
+        (today as? WidgetUi.Content)?.let { c ->
+            footers += c.footer
+            c.body.stepsText?.let { items += OverviewItem(OverviewId.Steps, it, "steps", c.body.stepsFraction) }
+        }
+        (sleep as? WidgetUi.Content)?.let { c ->
+            footers += c.footer
+            items += OverviewItem(OverviewId.Sleep, c.body.durationText, "", (c.body.minutes / 480f).coerceIn(0f, 1f))
+            c.body.score?.let { items += OverviewItem(OverviewId.SleepScore, it.toString(), "", (it / 100f).coerceIn(0f, 1f)) }
+        }
+        (recovery as? WidgetUi.Content)?.let { c ->
+            footers += c.footer
+            items += OverviewItem(OverviewId.Recovery, c.body.percentText.removeSuffix("%"), "%", c.body.fraction)
+        }
+        (today as? WidgetUi.Content)?.body?.metrics?.forEach { m ->
+            val id = when (m.id) { MetricId.RestingHr -> OverviewId.RestingHr; MetricId.Calories -> OverviewId.Calories; MetricId.Stress -> OverviewId.Stress; else -> null } ?: return@forEach
+            val (n, u) = splitUnit(m.value)
+            items += OverviewItem(id, n, u)
+        }
+        (load as? WidgetUi.Content)?.let { c ->
+            footers += c.footer
+            if (c.body.ratio != null) items += OverviewItem(OverviewId.LoadRatio, c.body.ratioText, "", null, c.body.ratio, c.body.bars.map { it.fraction })
+        }
+        (fitness as? WidgetUi.Content)?.let { c ->
+            footers += c.footer
+            c.body.vo2Text?.let { items += OverviewItem(OverviewId.Vo2, it) }
+        }
+        (activity as? WidgetUi.Content)?.let { c ->
+            footers += c.footer
+            c.body.distance?.let { val (n, u) = splitUnit(it); items += OverviewItem(OverviewId.LastDistance, n, u) }
+        }
+        if (footers.isEmpty()) return (today as? WidgetUi.Message) ?: (listOf(sleep, recovery, load, fitness, activity).firstOrNull { it is WidgetUi.Message } as? WidgetUi.Message) ?: WidgetUi.Loading
+        val ordered = items.sortedBy { it.id.ordinal }
+        // The data-age line reports the oldest source, so a stale tile never hides behind a fresh one.
+        val footer = footers.maxByOrNull { it.tier.ordinal } ?: footers.first()
+        val desc = "Overview. " + ordered.joinToString(". ") { "${it.id.label} ${it.number} ${it.unit}".trim() } + ". " + footer.text
+        return WidgetUi.Content(OverviewUi(ordered), footer, desc, Screen.Today)
+    }
+}
+
+/** Where the chosen stats go in the box, from their number and the box's aspect ratio. */
+enum class OverviewPattern { Single, Grid, BigLeft, BigTop }
+
+data class OverviewPlan(
+    /** How many of the chosen stats are shown (fewer only when the box is too small for even a compact tile). */
+    val shown: Int,
+    val pattern: OverviewPattern,
+    val cols: Int,
+    val rows: Int,
+    /** Width and height in dp of the smallest tile, which every tile is at least as large as. */
+    val tileW: Float,
+    val tileH: Float,
+)
+
+object OverviewLayout {
+    const val GAP = 6f
+    const val MIN_TILE_W = 56f
+    const val MIN_TILE_H = 44f
+
+    /** Pattern for [n] stats in a box of [w] x [h] dp (content area): 1 hero, 2 side by side, 3 one big + two small, 4 as 2x2, 5-6 as 3x2 or 2x3. */
+    fun pattern(n: Int, w: Float, h: Float): Triple<OverviewPattern, Int, Int> {
+        val aspect = w / h.coerceAtLeast(1f)
+        return when {
+            n <= 1 -> Triple(OverviewPattern.Single, 1, 1)
+            n == 2 -> if (aspect >= 1f) Triple(OverviewPattern.Grid, 2, 1) else Triple(OverviewPattern.Grid, 1, 2)
+            n == 3 -> if (aspect >= 1f) Triple(OverviewPattern.BigLeft, 2, 2) else Triple(OverviewPattern.BigTop, 2, 2)
+            n == 4 -> when { aspect >= 3f -> Triple(OverviewPattern.Grid, 4, 1); aspect <= 0.34f -> Triple(OverviewPattern.Grid, 1, 4); else -> Triple(OverviewPattern.Grid, 2, 2) }
+            else -> if (aspect >= 1.2f) Triple(OverviewPattern.Grid, 3, 2) else Triple(OverviewPattern.Grid, 2, 3)
+        }
+    }
+
+    /** Smallest tile of a pattern: its width and height. Rows split evenly, so every tile fills its cell exactly. */
+    fun tileSize(n: Int, pattern: OverviewPattern, cols: Int, rows: Int, w: Float, h: Float): Pair<Float, Float> = when (pattern) {
+        OverviewPattern.Single -> w to h
+        OverviewPattern.BigLeft -> (w - GAP) / 2f to (h - GAP) / 2f
+        OverviewPattern.BigTop -> (w - GAP) / 2f to (h - GAP) / 2f
+        OverviewPattern.Grid -> {
+            val perRow = FitMath.rows(n, cols)
+            val widest = perRow.max()
+            val rowCount = perRow.size
+            ((w - GAP * (widest - 1)) / widest) to ((h - GAP * (rowCount - 1)) / rowCount)
+        }
+    }
+
+    /** Preferred pattern first, then the other arrangements that can hold [k] stats (a single row, a single column, 2 columns). */
+    fun candidates(k: Int, w: Float, h: Float): List<Triple<OverviewPattern, Int, Int>> {
+        if (k <= 1) return listOf(Triple(OverviewPattern.Single, 1, 1))
+        val list = mutableListOf(pattern(k, w, h))
+        list += Triple(OverviewPattern.Grid, k, 1)
+        list += Triple(OverviewPattern.Grid, 1, k)
+        if (k >= 3) list += Triple(OverviewPattern.Grid, 2, 2)
+        if (k >= 5) list += Triple(OverviewPattern.Grid, 3, 2)
+        return list.distinct()
+    }
+
+    /** The arrangement for [n] stats: the most stats, in the best pattern, whose smallest tile is still readable. */
+    fun plan(n: Int, w: Float, h: Float): OverviewPlan {
+        for (k in n.coerceIn(1, OverviewId.MAX) downTo 1) {
+            for ((p, c, r) in candidates(k, w, h)) {
+                val (tw, th) = tileSize(k, p, c, r, w, h)
+                if (k == 1 || (tw >= MIN_TILE_W && th >= MIN_TILE_H)) return OverviewPlan(k, p, c, r, tw, th)
+            }
+        }
+        return OverviewPlan(1, OverviewPattern.Single, 1, 1, w, h)
+    }
+
+    /** Value size and unit size for a tile: the largest number (within [14, max by height]) whose number and unit fit the width. */
+    fun valueSizes(number: String, unit: String, tileW: Float, tileH: Float, fontScale: Float, ringReserve: Float = 0f, maxSp: Float = 56f): Pair<Float, Float> {
+        val availW = tileW - 2f * PAD - ringReserve
+        val maxByHeight = (tileH * 0.36f / (1.2f * Layouts.ts(fontScale))).coerceIn(14f, maxSp)
+        val floor = TextFit.minSp(fontScale, 14f, Layouts.HERO_CAP)
+        var sp = maxByHeight
+        fun width(s: Float) = TextFit.widthDp(number, s, fontScale, Layouts.HERO_CAP) + (if (unit.isEmpty()) 0f else 2f + TextFit.widthDp(unit, unitSp(s), fontScale, Layouts.HERO_CAP))
+        while (sp > floor && width(sp) > availW) sp -= 1f
+        return maxOf(sp, minOf(floor, maxByHeight)) to unitSp(sp)
+    }
+
+    fun unitSp(valueSp: Float): Float = maxOf(10f, valueSp * 0.42f)
+
+    /** Ring diameter beside the value, or 0 when there is no room: the ring never squeezes the value below its floor. */
+    fun ringSize(number: String, unit: String, tileW: Float, tileH: Float, fontScale: Float): Float {
+        val d = minOf(tileH - 2f * PAD - 16f, tileW * 0.36f)
+        if (d < 32f) return 0f
+        val (sp, _) = valueSizes(number, unit, tileW, tileH, fontScale, ringReserve = d + 6f)
+        val floor = TextFit.minSp(fontScale, 14f, Layouts.HERO_CAP)
+        val fits = TextFit.widthDp(number, sp, fontScale, Layouts.HERO_CAP) + (if (unit.isEmpty()) 0f else 2f + TextFit.widthDp(unit, unitSp(sp), fontScale, Layouts.HERO_CAP)) <= tileW - 2f * PAD - d - 6f
+        return if (fits || sp > floor) d else 0f
+    }
+
+    const val PAD = 8f
+}

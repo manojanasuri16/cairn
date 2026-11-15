@@ -1,76 +1,85 @@
 package app.cairn.widget
 
-import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.unit.dp
-import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.GlanceTheme
-import androidx.glance.LocalContext
-import androidx.glance.LocalSize
-import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.height
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.TextAlign
+import app.cairn.core.designsystem.ThemeId
+import app.cairn.core.model.DistanceUnit
+import kotlinx.coroutines.flow.Flow
+import kotlin.math.roundToInt
 
+class RecoveryWidget : CairnWidget<RecoveryUi>(WidgetKind.Recovery) {
+    override fun flow(unit: DistanceUnit?): Flow<WidgetUi<RecoveryUi>> = WidgetEnvironment.recovery(unit)
+    override fun sample() = Samples.recovery()
 
-class RecoveryWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Exact
-
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
-        provideContent {
-            val ui = WidgetEnvironment.recovery().collectAsState(WidgetUi.Loading).value
-            CairnGlanceTheme {
-                when (ui) {
-                    WidgetUi.Loading -> LoadingView()
-                    is WidgetUi.Message -> MessageView(ui)
-                    is WidgetUi.Content -> RecoveryBody(ui)
-                }
+    @Composable
+    override fun Body(ui: WidgetUi.Content<RecoveryUi>) {
+        val b = ui.body
+        val cfg = skin.cfg
+        val plan = currentPlan(chars = b.percentText.length, heroText = b.percentText)
+        val color = skin.p.recovery((b.fraction * 100).roundToInt())
+        val ttf = if (cfg.shows(Part.TimeToFull) && plan.has("ttf")) b.timeToFull else null
+        Framed(ui, kind, plan) {
+            when (cfg.style) {
+                WidgetStyle.RecoveryGauge -> GaugeStyle(b, plan, color, ttf)
+                WidgetStyle.RecoveryPill -> PillStyle(b, plan, color, ttf)
+                else -> RingStyle(b, plan, color, ttf)
             }
         }
     }
 }
 
-class RecoveryWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = RecoveryWidget()
+class RecoveryWidgetReceiver : CairnReceiver() {
+    override val glanceAppWidget = RecoveryWidget()
 }
 
 @Composable
-private fun RecoveryBody(ui: WidgetUi.Content<RecoveryUi>) {
-    val context = LocalContext.current
-    val size = LocalSize.current
-    val scale = LocalFontScale
-    val b = ui.body
-    val wide = size.width >= 150.dp
-    WidgetFrame(ui.description, bodyTap(context, WidgetKind.Recovery), footer = { FooterView(ui.footer, ui.screen, compact = !wide) }, padding = 10.dp) {
-        val ring: @Composable () -> Unit = {
-            Ring(b.fraction, if (wide) 80.dp else 76.dp, 8.dp) {
-                Txt(b.percentText, SizeRules.cappedSp(if (wide) 24f else 22f, scale), FontWeight.Medium)
+private fun RingStyle(b: RecoveryUi, plan: Layouts.Plan, color: Int, ttf: String?) {
+    val ring: @Composable () -> Unit = {
+        Ring(b.fraction, plan.heroDp.dp, Layouts.ringStroke(plan.heroDp).dp, color) { Txt(b.percentText, plan.heroSp, FontWeight.Bold, hero = true) }
+    }
+    if (plan.side) {
+        Row(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            ring()
+            Spacer(GlanceModifier.width(16.dp))
+            Column(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
+                if (plan.has("level")) Txt(b.level, 16f, FontWeight.Bold, maxLines = 2)
+                ttf?.let { Sub(it, 12f, maxLines = 2) }
             }
         }
-        if (wide) {
-            Row(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                ring()
-                Spacer(GlanceModifier.width(16.dp))
-                Column(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
-                    Txt(b.level, 16f, FontWeight.Medium, maxLines = 2)
-                    b.timeToFull?.let { Txt(it, 12f, color = GlanceTheme.colors.onSurfaceVariant, maxLines = 2) }
-                }
-            }
-        } else {
-            Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalAlignment = Alignment.CenterHorizontally) {
-                ring()
-                Txt(b.level, SizeRules.cappedSp(11f, scale, 1.15f), FontWeight.Medium, align = TextAlign.Center)
-            }
+    } else {
+        Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalAlignment = Alignment.CenterHorizontally) {
+            ring()
+            if (plan.has("level")) Txt(b.level, 11f, FontWeight.Bold, maxLines = 2, align = TextAlign.Center)
+            ttf?.let { Sub(it, 11f, align = TextAlign.Center) }
         }
+    }
+}
+
+@Composable
+private fun GaugeStyle(b: RecoveryUi, plan: Layouts.Plan, color: Int, ttf: String?) {
+    Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalAlignment = Alignment.CenterHorizontally) {
+        Gauge(b.fraction, plan.heroDp.dp, 10.dp, color) { Txt(b.percentText, plan.heroSp, FontWeight.Bold, hero = true) }
+        if (plan.has("level")) { Spacer(GlanceModifier.height(2.dp)); Txt(b.level, 13f, FontWeight.Bold, align = TextAlign.Center) }
+        ttf?.let { Sub(it, 11f, align = TextAlign.Center) }
+    }
+}
+
+@Composable
+private fun PillStyle(b: RecoveryUi, plan: Layouts.Plan, color: Int, ttf: String?) {
+    Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+        if (plan.has("label")) Sub("Recovery", 12f)
+        Txt(b.percentText, plan.heroSp, FontWeight.Bold, hero = true)
+        if (plan.has("pill")) { Spacer(GlanceModifier.height(4.dp)); Pill(b.level, color) }
+        ttf?.let { Spacer(GlanceModifier.height(4.dp)); Sub(it, 12f, maxLines = 1) }
     }
 }

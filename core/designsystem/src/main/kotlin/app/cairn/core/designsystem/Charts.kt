@@ -32,7 +32,7 @@ fun ProgressRing(
     size: Dp = 160.dp,
     stroke: Dp = 12.dp,
     color: Color = MaterialTheme.colorScheme.primary,
-    track: Color = MaterialTheme.colorScheme.surfaceVariant,
+    track: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
     content: @Composable () -> Unit,
 ) {
     val reduced = LocalReducedMotion.current

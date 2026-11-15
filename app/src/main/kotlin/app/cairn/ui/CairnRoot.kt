@@ -51,7 +51,10 @@ import app.cairn.ExplorerFeature
 import app.cairn.InspectorScreen
 import app.cairn.SyncDiagnosticsScreen
 import app.cairn.core.designsystem.CairnMotion
+import app.cairn.CairnApp
 import app.cairn.core.designsystem.CairnTheme
+import app.cairn.core.designsystem.AppLook
+import androidx.compose.ui.graphics.Color
 import app.cairn.core.designsystem.LocalReducedMotion
 import app.cairn.widget.Screen
 
@@ -101,7 +104,9 @@ private val TABS = listOf(
 
 @Composable
 fun CairnRoot(coros: CorosViewModel, startScreen: String?, corosMissing: Boolean) {
-    CairnTheme {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val look by (context.applicationContext as CairnApp).graph.appSettings.look.collectAsStateWithLifecycle(initialValue = AppLook())
+    CairnTheme(look) {
         val onboarding: OnboardingViewModel = viewModel()
         val done by onboarding.done.collectAsStateWithLifecycle()
         when (done) {

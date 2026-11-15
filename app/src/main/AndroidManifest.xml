@@ -46,6 +46,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Widget configuration: shown when placing and re-openable from the launcher (reconfigurable). -->
+        <activity
+            android:name=".WidgetConfigActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- Invisible trampoline: opens COROS (or Cairn) and schedules the delayed refreshes. -->
         <activity
             android:name=".OpenCorosActivity"

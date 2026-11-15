@@ -18,6 +18,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.cairn.core.designsystem.CairnTheme
+import app.cairn.core.designsystem.LocalCardColors
+import androidx.compose.ui.graphics.Color
 import app.cairn.core.designsystem.LoadBars
 import app.cairn.core.designsystem.Spacing
 import app.cairn.core.model.Freshness
@@ -35,15 +37,20 @@ fun FitnessContent(state: FitnessState, onOpenAccount: () -> Unit, modifier: Mod
         state.footer?.let { AgeLine(it) }
         state.empty?.let { EmptyState(it, onOpenAccount) }
         state.chart?.let { c ->
+            val p = LocalCardColors.current
+            val ratioValue = state.ratio?.replace(',', '.')?.toDoubleOrNull()
+            val color = Color(when { ratioValue == null -> p.cool; ratioValue < 0.8 -> p.cool; ratioValue <= 1.3 -> p.good; ratioValue <= 1.5 -> p.warn; else -> p.bad })
             SectionCard {
                 SectionTitle("Training load, last 7 days")
-                state.ratio?.let { Text(it, style = MaterialTheme.typography.displaySmall) }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    state.ratio?.let { FitText(it, MaterialTheme.typography.displaySmall) }
+                    state.comment?.let { LevelPill(it, color) }
+                }
                 state.ratio?.let { Text("Load ratio", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                state.comment?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
-                LoadBars(c.short, c.long, c.description)
+                LoadBars(c.short, c.long, c.description, shortColor = MaterialTheme.colorScheme.primary, longColor = Color(p.cool))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    Text("Short-term", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    Text("Long-term", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.tertiary)
+                    LegendItem(MaterialTheme.colorScheme.primary, "Short-term")
+                    LegendItem(Color(p.cool), "Long-term")
                 }
             }
         }
@@ -53,7 +60,7 @@ fun FitnessContent(state: FitnessState, onOpenAccount: () -> Unit, modifier: Mod
             state.thresholdPace?.let { MetricUi("Threshold pace", it) },
         )
         if (level.isNotEmpty()) SectionCard { SectionTitle("Running fitness"); level.forEach { MetricRow(it) } }
-        if (state.predictions.isNotEmpty()) SectionCard { SectionTitle("Race predictions"); state.predictions.forEach { MetricRow(it) } }
+        if (state.predictions.isNotEmpty()) SectionCard { SectionTitle("Race predictions"); AdaptiveTiles(state.predictions) }
     }
 }
 

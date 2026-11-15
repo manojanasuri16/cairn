@@ -1,6 +1,7 @@
 package app.cairn.widget
 
 import app.cairn.core.model.DisplayPrefs
+import app.cairn.core.model.DistanceUnit
 import app.cairn.data.ActivityRepository
 import app.cairn.data.DailyRepository
 import app.cairn.data.FitnessRepository
@@ -27,6 +28,8 @@ class WidgetDataSources(
     val trainingLoad: TrainingLoadRepository,
     val fitness: FitnessRepository,
     val prefs: suspend () -> DisplayPrefs = { DisplayPrefs() },
+    /** Per-widget configuration and the app-wide appearance. Null in tests. */
+    val settings: WidgetSettings? = null,
     val auth: suspend () -> AuthState,
 )
 
@@ -40,6 +43,10 @@ object WidgetEnvironment {
 
     fun install(s: WidgetDataSources) { sources = s }
 
+    val settings: WidgetSettings? get() = sources?.settings
+
+    private suspend fun WidgetDataSources.prefsWith(unit: DistanceUnit?): DisplayPrefs = prefs().let { if (unit == null) it else it.copy(unit = unit) }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun <T> build(block: (WidgetDataSources, LocalDate) -> Flow<WidgetUi<T>>): Flow<WidgetUi<T>> =
         ticks.onStart { emit(Unit) }.flatMapLatest {
@@ -47,32 +54,45 @@ object WidgetEnvironment {
             if (s == null) flowOf(WidgetUi.Loading) else block(s, LocalDate.now())
         }
 
-    fun today(): Flow<WidgetUi<TodayUi>> = build { s, day ->
+    fun today(unit: DistanceUnit? = null): Flow<WidgetUi<TodayUi>> = build { s, day ->
         combine(s.daily.observeDay(day), s.sleep.observeLatest(day), s.recovery.observe()) { d, sl, r ->
-            WidgetMapper.today(d?.value, sl?.value, r?.value, s.auth(), Instant.now(), day, prefs = s.prefs())
+            WidgetMapper.today(d?.value, sl?.value, r?.value, s.auth(), Instant.now(), day, prefs = s.prefsWith(unit))
         }
     }
 
-    fun recovery(): Flow<WidgetUi<RecoveryUi>> = build { s, _ ->
-        s.recovery.observe().map { WidgetMapper.recovery(it?.value, s.auth(), Instant.now(), s.prefs()) }
+    fun recovery(unit: DistanceUnit? = null): Flow<WidgetUi<RecoveryUi>> = build { s, _ ->
+        s.recovery.observe().map { WidgetMapper.recovery(it?.value, s.auth(), Instant.now(), s.prefsWith(unit)) }
     }
 
-    fun lastActivity(): Flow<WidgetUi<ActivityUi>> = build { s, day ->
-        s.activities.observeRecent(day.minusDays(60), 1).map { WidgetMapper.lastActivity(it.firstOrNull()?.value, s.auth(), Instant.now(), day, prefs = s.prefs()) }
+    fun lastActivity(unit: DistanceUnit? = null): Flow<WidgetUi<ActivityUi>> = build { s, day ->
+        s.activities.observeRecent(day.minusDays(60), 1).map { WidgetMapper.lastActivity(it.firstOrNull()?.value, s.auth(), Instant.now(), day, prefs = s.prefsWith(unit)) }
     }
 
-    fun trainingLoad(): Flow<WidgetUi<TrainingLoadUi>> = build { s, day ->
+    fun trainingLoad(unit: DistanceUnit? = null): Flow<WidgetUi<TrainingLoadUi>> = build { s, day ->
         combine(s.trainingLoad.observe(day.minusDays(14), day), s.fitness.observe()) { loads, fit ->
             // No VO2max history is cached, so no trend yet (previousVo2max = null).
-            WidgetMapper.trainingLoad(loads.map { it.value }, fit?.value, null, s.auth(), Instant.now(), day, prefs = s.prefs())
+            WidgetMapper.trainingLoad(loads.map { it.value }, fit?.value, null, s.auth(), Instant.now(), day, prefs = s.prefsWith(unit))
         }
     }
 
-    fun sleep(): Flow<WidgetUi<SleepUi>> = build { s, day ->
-        s.sleep.observeLatest(day).map { WidgetMapper.sleep(it?.value, s.auth(), Instant.now(), day, prefs = s.prefs()) }
+    fun sleep(unit: DistanceUnit? = null): Flow<WidgetUi<SleepUi>> = build { s, day ->
+        s.sleep.observeLatest(day).map { WidgetMapper.sleep(it?.value, s.auth(), Instant.now(), day, prefs = s.prefsWith(unit)) }
     }
 
-    fun fitness(): Flow<WidgetUi<FitnessUi>> = build { s, _ ->
-        s.fitness.observe().map { WidgetMapper.fitness(it?.value, s.auth(), Instant.now(), s.prefs()) }
+    fun overview(unit: DistanceUnit? = null): Flow<WidgetUi<OverviewUi>> = build { s, day ->
+        val first = combine(s.daily.observeDay(day), s.sleep.observeLatest(day), s.recovery.observe()) { d, sl, r -> Triple(d?.value, sl?.value, r?.value) }
+        val second = combine(s.trainingLoad.observe(day.minusDays(14), day), s.fitness.observe(), s.activities.observeRecent(day.minusDays(60), 1)) { l, f, a -> Triple(l.map { it.value }, f?.value, a.firstOrNull()?.value) }
+        combine(first, second) { (d, sl, r), (l, f, a) ->
+            val prefs = s.prefsWith(unit); val now = Instant.now(); val auth = s.auth()
+            OverviewMapper.build(
+                WidgetMapper.today(d, sl, r, auth, now, day, prefs = prefs), WidgetMapper.sleep(sl, auth, now, day, prefs = prefs),
+                WidgetMapper.recovery(r, auth, now, prefs), WidgetMapper.trainingLoad(l, f, null, auth, now, day, prefs = prefs),
+                WidgetMapper.fitness(f, auth, now, prefs), WidgetMapper.lastActivity(a, auth, now, day, prefs = prefs),
+            )
+        }
+    }
+
+    fun fitness(unit: DistanceUnit? = null): Flow<WidgetUi<FitnessUi>> = build { s, _ ->
+        s.fitness.observe().map { WidgetMapper.fitness(it?.value, s.auth(), Instant.now(), s.prefsWith(unit)) }
     }
 }

@@ -26,9 +26,14 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.widthIn
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.cairn.core.designsystem.CairnTheme
+import app.cairn.core.designsystem.LocalCairnPalette
+import app.cairn.core.designsystem.LocalCardColors
+import kotlin.math.roundToInt
 import app.cairn.core.designsystem.ProgressRing
 import app.cairn.core.designsystem.SegmentBar
 import app.cairn.core.designsystem.Sparkline
@@ -63,16 +68,18 @@ fun TodayContent(state: TodayState, onOpenAccount: () -> Unit) {
         state.footer?.let { AgeLine(it) }
         state.empty?.let { EmptyState(it, onOpenAccount) }
         state.recovery?.let { r ->
-            SectionCard {
-                SectionTitle("Recovery")
+            val p = LocalCairnPalette.current
+            val color = Color(p.recovery((r.fraction * 100).roundToInt()))
+            HeroCard {
+                SectionTitle("Recovery", onHero = true)
                 // The ring grows with the font scale so the numeral never clips at 200%.
                 val ring = (168 * LocalDensity.current.fontScale.coerceIn(1f, 1.75f)).dp
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    ProgressRing(r.fraction, r.description, size = ring) {
-                        Text(r.valueText, style = MaterialTheme.typography.displayMedium)
+                    ProgressRing(r.fraction, r.description, size = ring, color = color, track = Color(p.track)) {
+                        FitText(r.valueText, MaterialTheme.typography.displayMedium, Modifier.widthIn(max = ring * 0.62f), color = Color(p.ink), floor = 20.sp, textAlign = TextAlign.Center)
                     }
-                    state.recoveryLevel?.let { Text(it, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center) }
-                    state.timeToFull?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    state.recoveryLevel?.let { LevelPill(it, color) }
+                    state.timeToFull?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Color(p.inkSub)) }
                 }
             }
         }
@@ -80,9 +87,9 @@ fun TodayContent(state: TodayState, onOpenAccount: () -> Unit) {
             SectionCard {
                 SectionTitle("Steps")
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    ProgressRing(s.fraction, s.description, size = 80.dp, stroke = 8.dp) {}
+                    ProgressRing(s.fraction, s.description, size = 80.dp, stroke = 8.dp, color = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)) {}
                     Column(Modifier.weight(1f)) {
-                        Text(s.valueText, style = MaterialTheme.typography.headlineLarge)
+                        FitText(s.valueText, MaterialTheme.typography.headlineLarge, Modifier.fillMaxWidth(), floor = 20.sp)
                         Text(s.caption, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -117,23 +124,23 @@ fun TodayContent(state: TodayState, onOpenAccount: () -> Unit) {
 private fun SleepCard(s: SleepUi) {
     SectionCard {
         SectionTitle("Sleep")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Bottom) {
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xxs), itemVerticalAlignment = Alignment.Bottom) {
             Text(s.durationText, style = MaterialTheme.typography.headlineLarge)
             s.scoreText?.let { Text("Score $it", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
         s.window?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         if (s.stages.isNotEmpty()) {
-            val scheme = MaterialTheme.colorScheme
-            fun color(k: StageKind): Color = when (k) {
-                StageKind.Deep -> scheme.primary
-                StageKind.Light -> scheme.primary.copy(alpha = 0.45f)
-                StageKind.Rem -> scheme.tertiary
-                StageKind.Awake -> scheme.outline
-            }
+            val p = LocalCardColors.current
+            fun color(k: StageKind): Color = Color(when (k) {
+                StageKind.Deep -> p.deep
+                StageKind.Light -> p.light
+                StageKind.Rem -> p.rem
+                StageKind.Awake -> p.awake
+            })
             SegmentBar(s.stages.map { it.minutes.toFloat() to color(it.kind) }, s.description)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 s.stages.forEach { st ->
-                    Text("${st.label} ${st.text}", style = MaterialTheme.typography.labelLarge, color = color(st.kind).let { if (st.kind == StageKind.Light) scheme.onSurfaceVariant else it })
+                    LegendItem(color(st.kind), "${st.label} ${st.text}")
                 }
             }
         }

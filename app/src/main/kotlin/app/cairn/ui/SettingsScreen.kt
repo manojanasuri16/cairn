@@ -51,6 +51,10 @@ import app.cairn.BuildConfig
 import app.cairn.ExplorerFeature
 import app.cairn.sync.NudgeSettings
 import app.cairn.sync.SyncSettings
+import app.cairn.core.designsystem.AppLook
+import app.cairn.core.designsystem.ThemeId
+import app.cairn.widget.AppAppearance
+import app.cairn.widget.Bg
 import app.cairn.widget.PinnableWidget
 import app.cairn.widget.TapTarget
 import app.cairn.widget.WidgetKind
@@ -83,6 +87,8 @@ fun SettingsScreen(coros: CorosViewModel, nav: SettingsNav, modifier: Modifier =
         notifDenied = !ok
         scope.launch { graph.nudgeSettings.setEnabled(ok) }
     }
+    val look by graph.appSettings.look.collectAsStateWithLifecycle(initialValue = AppLook())
+    val appearance by graph.appSettings.widgetSettings.appearance.collectAsStateWithLifecycle(initialValue = AppAppearance())
     val tapTargets by graph.appSettings.tapTargets.collectAsStateWithLifecycle(initialValue = emptyMap())
     var editingTarget by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -117,6 +123,11 @@ fun SettingsScreen(coros: CorosViewModel, nav: SettingsNav, modifier: Modifier =
         nav = nav,
         onDeleteRequest = { confirmDelete = true },
         modifier = modifier,
+        look = look,
+        onLook = { scope.launch { graph.appSettings.setLook(it) } },
+        onWidgetStyle = { scope.launch { graph.appSettings.widgetSettings.setTheme(it) } },
+        appearance = appearance,
+        onAppearance = { b, o -> scope.launch { graph.appSettings.widgetSettings.setDefaultBackground(b, o) } },
     )
     WidgetKind.parse(editingTarget)?.let { kind ->
         TapTargetPickerDialog(
@@ -177,8 +188,16 @@ fun SettingsContent(
     nav: SettingsNav,
     onDeleteRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    look: AppLook = AppLook(),
+    onLook: (AppLook) -> Unit = {},
+    onWidgetStyle: (ThemeId) -> Unit = {},
+    appearance: AppAppearance = AppAppearance(),
+    onAppearance: (Bg, Int) -> Unit = { _, _ -> },
 ) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        ThemeCard(look, onLook)
+        WidgetAppearanceCard(appearance, onWidgetStyle, onAppearance)
+
         SectionCard {
             SectionTitle("Sources")
             Text("Health Connect", style = MaterialTheme.typography.titleMedium)
@@ -225,7 +244,11 @@ fun SettingsContent(
         if (widgetsSupported) {
             SectionCard {
                 SectionTitle("Add a widget")
-                PinnableWidget.entries.forEach { w -> OutlinedButton(onClick = { onPin(w) }, modifier = Modifier.fillMaxWidth()) { Text("Add ${w.label} widget") } }
+                Text("Pick a style and colours when you place a widget; long-press it later to reconfigure.", style = MaterialTheme.typography.bodySmall)
+                PinnableWidget.entries.forEach { w ->
+                    OutlinedButton(onClick = { onPin(w) }, modifier = Modifier.fillMaxWidth()) { Text("Add ${w.label} widget") }
+                    Text(w.styles, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
 

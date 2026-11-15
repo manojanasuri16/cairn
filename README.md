@@ -6,10 +6,10 @@ Cairn reads from the official COROS MCP server (and optionally Health Connect), 
 
 ## Features
 
-- Home screen widgets: Today, Recovery, Last activity, Training load, Sleep, Fitness. They adapt to the size you give them: bigger cells show more.
+- Home screen widgets: Overview (a grid of 1 to 6 stats you choose), Today, Recovery, Last activity, Training load, Sleep, Fitness. Each has three style variants, ten colour styles, Clean by default (a calm tonal card in the spirit of Google Health and Apple Health) plus the Daymark family (Dusk, Dawn, Forest, Midnight, Sunrise, Minimal, Ocean, Violet, Berry; gradient, solid or transparent with opacity), and a per-widget settings screen with a live preview. They adapt to the size you give them: bigger cells show more.
 - Every widget has a freshness footer: fresh, aging or stale, in words and not colour alone. A stale footer opens COROS so you can sync.
 - App screens: Today, Activities, Fitness, Settings, Diagnostics.
-- Units (km or miles), light, dark and dynamic colour, TalkBack labels, large font support, reduced motion.
+- Units (km or miles), eight accent colours (Dusk default) with light, dark or system mode and optional Material You, TalkBack labels, large font support, reduced motion.
 - Background sync with WorkManager, kept light on battery.
 
 ## Screenshots (placeholders)

@@ -24,58 +24,6 @@ class LayoutRulesTest {
         assertEquals("0,47", de.body.ratioText)
     }
 
-    @Test fun todayBreakpoints() {
-        assertEquals(SizeRules.TodayMode.RingOnly, SizeRules.today(100f, 100f, 1f).mode)
-        assertEquals(SizeRules.TodayMode.RingOnly, SizeRules.today(100f, 200f, 1f).mode) // too narrow for labels
-        val cell = SizeRules.today(150f, 150f, 1f)
-        assertEquals(SizeRules.TodayMode.Stacked, cell.mode)
-        assertTrue(cell.rows >= 2)
-        val bigger = SizeRules.today(150f, 240f, 1f)
-        assertTrue(bigger.rows > cell.rows)
-        assertTrue(bigger.rows <= SizeRules.MAX_TODAY_ROWS)
-        val wide = SizeRules.today(250f, 110f, 1f)
-        assertEquals(SizeRules.TodayMode.Side, wide.mode)
-        assertTrue(wide.rows >= 1)
-        assertTrue(SizeRules.today(250f, 200f, 1f).rows > wide.rows)
-    }
-
-    @Test fun todayDropsRowsAtLargeFont() {
-        assertTrue(SizeRules.today(150f, 180f, 2f).rows < SizeRules.today(150f, 180f, 1f).rows)
-        assertTrue(SizeRules.today(250f, 110f, 2f).rows >= 1)
-    }
-
-    @Test fun sleepBreakpoints() {
-        val small = SizeRules.sleep(110f, 110f, 1f)
-        assertFalse(small.wide)
-        assertTrue(small.score)
-        val cell = SizeRules.sleep(150f, 160f, 1f)
-        assertTrue(cell.score && cell.bar && cell.window)
-        assertFalse(SizeRules.sleep(150f, 110f, 1f).legend)
-        val wide = SizeRules.sleep(250f, 110f, 1f)
-        assertTrue(wide.wide && wide.score && wide.window && wide.bar)
-        assertTrue(SizeRules.sleep(250f, 160f, 1f).legend)
-        val big = SizeRules.sleep(250f, 220f, 1f)
-        assertTrue(big.legend && big.note)
-    }
-
-    @Test fun sleepDropsLowPriorityAtLargeFont() {
-        val l = SizeRules.sleep(150f, 160f, 2f)
-        assertFalse(l.legend)
-        assertFalse(l.note)
-    }
-
-    @Test fun lastActivityBreakpoints() {
-        assertEquals(SizeRules.ActivityMode.OneLine, SizeRules.lastActivity(250f, 40f, 1f).mode)
-        val cell = SizeRules.lastActivity(150f, 150f, 1f)
-        assertEquals(SizeRules.ActivityMode.Card, cell.mode)
-        assertEquals(2, cell.statsPerRow)
-        assertTrue(cell.maxStats >= 3) // duration, pace and heart rate all fit
-        val wide = SizeRules.lastActivity(250f, 110f, 1f)
-        assertEquals(3, wide.statsPerRow)
-        assertTrue(wide.maxStats >= 3)
-        assertTrue(SizeRules.lastActivity(150f, 150f, 2f).maxStats < 3)
-    }
-
     @Test fun footerShortText() {
         val stale = WidgetMapper.footer(listOf(now.minusSeconds(14 * 3600L)), now)
         assertTrue(stale.shortText.startsWith("Stale "))

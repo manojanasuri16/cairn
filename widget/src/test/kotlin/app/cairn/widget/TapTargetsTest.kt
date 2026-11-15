@@ -44,12 +44,13 @@ class TapTargetsTest {
 
     @Test fun decodeFallsBackToDefault() {
         WidgetKind.entries.forEach { k ->
-            assertEquals(TapTarget.CorosHome, TapTargets.decode(null, k))
-            assertEquals(TapTarget.CorosHome, TapTargets.decode("junk", k))
-            assertEquals(TapTarget.CorosHome, TapTargets.decode("screen:", k))
-            assertEquals(TapTarget.CorosHome, TapTargets.decode("screen:bad name;rm", k))
+            val d = TapTargets.default(k)
+            assertEquals(d, TapTargets.decode(null, k))
+            assertEquals(d, TapTargets.decode("junk", k))
+            assertEquals(d, TapTargets.decode("screen:", k))
+            assertEquals(d, TapTargets.decode("screen:bad name;rm", k))
         }
-        assertTrue(TapTargets.KNOWN_DEFAULTS.isEmpty())
+        assertEquals(mapOf(WidgetKind.Overview to TapTarget.OpenCairn), TapTargets.KNOWN_DEFAULTS)
         assertEquals(WidgetKind.entries.size, WidgetKind.entries.map { TapTargets.storageKey(it) }.toSet().size)
     }
 

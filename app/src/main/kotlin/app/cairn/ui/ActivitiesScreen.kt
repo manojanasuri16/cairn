@@ -81,7 +81,7 @@ fun ActivitiesContent(state: ActivitiesState, onOpenAccount: () -> Unit, modifie
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ActivityRow(row: ActivityRowUi, onClick: () -> Unit) {
-    Card(Modifier.fillMaxWidth().clickable(onClickLabel = "Show details", onClick = onClick).semantics(mergeDescendants = true) { contentDescription = row.description }) {
+    Card(colors = cairnCardColors(), modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Show details", onClick = onClick).semantics(mergeDescendants = true) { contentDescription = row.description }) {
         Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.defaultMinSize(minWidth = 40.dp, minHeight = 40.dp).clearAndSetSemantics { }) {
                 Box(contentAlignment = Alignment.Center) { Text(row.glyph, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer) }

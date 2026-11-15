@@ -7,7 +7,8 @@ enum class WidgetKind(val label: String, val cairnScreen: Screen) {
     LastActivity("Last activity", Screen.Activities),
     TrainingLoad("Training load", Screen.Fitness),
     Sleep("Sleep", Screen.Today),
-    Fitness("Fitness", Screen.Fitness);
+    Fitness("Fitness", Screen.Fitness),
+    Overview("Overview", Screen.Today);
 
     companion object {
         fun parse(raw: String?): WidgetKind? = entries.firstOrNull { it.name == raw }
@@ -27,7 +28,7 @@ sealed interface TapTarget {
 /** Persistence mapping and defaults. Stores class names only, nothing personal. */
 object TapTargets {
     /** Known-good COROS screens per widget. Empty until supplied; add entries here, e.g. `WidgetKind.Sleep to TapTarget.CorosScreen("com.example.SleepActivity")`. */
-    val KNOWN_DEFAULTS: Map<WidgetKind, TapTarget> = emptyMap()
+    val KNOWN_DEFAULTS: Map<WidgetKind, TapTarget> = mapOf(WidgetKind.Overview to TapTarget.OpenCairn)
 
     fun default(kind: WidgetKind): TapTarget = KNOWN_DEFAULTS[kind] ?: TapTarget.CorosHome
 

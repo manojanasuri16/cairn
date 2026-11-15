@@ -114,8 +114,11 @@ class AppGraph(private val context: Context) : SyncComponent {
     /** Widgets render from Room only; give them the repositories and the sign-in state. */
     fun installWidgets() {
         WidgetEnvironment.install(
-            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository, trainingLoadRepository, fitnessRepository, prefs = { appSettings.displayNow() }) { authState() },
+            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository, trainingLoadRepository, fitnessRepository, prefs = { appSettings.displayNow() }, settings = appSettings.widgetSettings) { authState() },
         )
+        runCatching { KeepAliveWorker.schedule(context) }
+        // Android 15+: show the coloured, synthetic-data previews in the launcher's widget picker.
+        appScope.launch { runCatching { app.cairn.widget.registerWidgetPreviews(context) } }
     }
 
     suspend fun authState(): AuthState = when {

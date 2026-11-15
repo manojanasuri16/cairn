@@ -11,4 +11,6 @@
     <string name="widget_load_desc">Seven days of training load, your load ratio and VO2max.</string>
     <string name="widget_sleep_desc">How long you slept, your score, sleep stages and the time you slept.</string>
     <string name="widget_fitness_desc">VO2max, threshold pace and race predictions.</string>
+    <string name="widget_overview_label">Cairn Overview</string>
+    <string name="widget_overview_desc">Up to six of your stats in one tidy grid: steps, sleep, recovery, heart rate and more.</string>
 </resources>

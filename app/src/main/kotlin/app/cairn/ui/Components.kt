@@ -20,7 +20,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import app.cairn.core.designsystem.Contrast
+import app.cairn.core.designsystem.HeroSurface
+import app.cairn.core.designsystem.LocalCairnPalette
+import app.cairn.core.designsystem.LocalCardColors
 import app.cairn.core.designsystem.Spacing
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
 import app.cairn.core.model.Freshness
 import app.cairn.widget.FooterUi
 
@@ -31,35 +40,68 @@ fun View.rejectHaptic() { performHapticFeedback(HapticFeedbackConstants.REJECT) 
 /** Data age with explicit wording; colour is a second channel, never the only one. */
 @Composable
 fun AgeLine(footer: FooterUi, modifier: Modifier = Modifier) {
-    val (color, suffix) = when (footer.tier) {
-        Freshness.Fresh -> MaterialTheme.colorScheme.onSurfaceVariant to ""
-        Freshness.Aging -> MaterialTheme.colorScheme.tertiary to ", getting old"
-        Freshness.Stale -> MaterialTheme.colorScheme.error to ""
+    val p = LocalCardColors.current
+    val (dot, suffix) = when (footer.tier) {
+        Freshness.Fresh -> Color(p.good) to ""
+        Freshness.Aging -> Color(p.warn) to ", getting old"
+        Freshness.Stale -> Color(p.bad) to ""
     }
+    val bgArgb = MaterialTheme.colorScheme.background.toArgb()
+    val color = if (footer.tier == Freshness.Stale) Color(Contrast.ensure(p.bad, listOf(bgArgb), 4.5)) else MaterialTheme.colorScheme.onSurfaceVariant
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        androidx.compose.foundation.layout.Box(Modifier.size(Spacing.xs).background(color, CircleShape))
+        Box(Modifier.size(Spacing.xs).background(dot, CircleShape))
         Text(footer.text + suffix, style = MaterialTheme.typography.labelLarge, color = color)
     }
 }
 
+/** Quiet section header: small, secondary text colour. */
 @Composable
-fun SectionTitle(text: String, modifier: Modifier = Modifier) {
-    Text(text, modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+fun SectionTitle(text: String, modifier: Modifier = Modifier, onHero: Boolean = false) {
+    Text(
+        text, modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall,
+        color = if (onHero) Color(LocalCairnPalette.current.ink) else MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** The one hero per screen: a vivid gradient card, content in the palette's ink. */
+@Composable
+fun HeroCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    HeroSurface(modifier) { Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() } }
+}
+
+/** Solid semantic pill (level words stay in the text). */
+@Composable
+fun LevelPill(text: String, color: Color, modifier: Modifier = Modifier) {
+    Box(modifier.background(color, RoundedCornerShape(50)).padding(horizontal = Spacing.sm, vertical = Spacing.xxs)) {
+        Text(text, style = MaterialTheme.typography.labelLarge, color = Color(Contrast.bestInk(listOf(color.toArgb()))))
+    }
+}
+
+/** Legend entry: coloured dot plus text in the normal text colour, so colour is never the only signal. */
+@Composable
+fun LegendItem(color: Color, text: String, textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+        Box(Modifier.size(10.dp).background(color, CircleShape))
+        Text(text, style = MaterialTheme.typography.labelLarge, color = textColor)
+    }
 }
 
 @Composable
 fun SectionCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Card(modifier.fillMaxWidth()) {
+    Card(modifier.fillMaxWidth(), colors = cairnCardColors()) {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() }
     }
 }
 
-/** Label on the left, value on the right; both wrap at large font scale. */
+/** Label and value on one line when they fit; otherwise the value drops to its own line, whole. Never squeezed or ellipsized. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun MetricRow(m: MetricUi, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
-        Text(m.label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(m.value, Modifier.weight(1f, fill = false), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.End)
+    androidx.compose.foundation.layout.FlowRow(
+        modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+    ) {
+        Text(m.label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(m.value, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.End)
     }
 }
 
@@ -71,3 +113,7 @@ fun EmptyState(e: EmptyUi, onAction: () -> Unit, modifier: Modifier = Modifier) 
         if (e.action == EmptyAction.OpenAccount) TextButton(onClick = onAction) { Text("Open COROS account") }
     }
 }
+
+/** White (light) or near-black (dark) cards on the neutral background, as in Daymark. */
+@Composable
+fun cairnCardColors() = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)

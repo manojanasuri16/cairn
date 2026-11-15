@@ -148,7 +148,7 @@ object WidgetMapper {
         val ratio = latest?.loadRatio?.takeIf { it > 0 }
         val comment = latest?.comment?.takeIf { it.isNotBlank() }?.let(Fmt::sport) ?: ratio?.let(::ratioLabel) ?: "No ratio yet"
         val trend = if (vo2 != null && previousVo2max != null && previousVo2max > 0) Fmt.trend(vo2 - previousVo2max) else null
-        val body = TrainingLoadUi(bars, ratio?.let { String.format(locale, "%.2f", it) } ?: "\u2013", comment, vo2?.let { "VO2max $it" }, trend)
+        val body = TrainingLoadUi(bars, ratio?.let { String.format(locale, "%.2f", it) } ?: "\u2013", comment, vo2?.let { "VO2max $it" }, trend, ratio)
         val stamps = listOfNotNull(latest?.stamp?.sourceUpdatedAt, fitness?.takeIf { vo2 != null }?.stamp?.sourceUpdatedAt)
         val footer = footer(stamps, now, prefs)
         val desc = listOfNotNull(
@@ -184,7 +184,7 @@ object WidgetMapper {
         val stages = if (haveStages) raw.mapNotNull { (s, m) -> m?.takeIf { it > 0 }?.let { StageSlice(s, it, "${s.label} ${Fmt.duration(it)}") } }.takeIf { it.isNotEmpty() } else null
         val note = if (stages != null && stagesApproximate(night, asleep)) "Stage times are approximate" else null
         val window = if (night.start != null && night.end != null) Fmt.window(night.start!!, night.end!!, zone) else null
-        val body = SleepUi(Fmt.duration(asleep), night.score?.takeIf { it > 0 }?.let { "Score $it" }, window, stages, note)
+        val body = SleepUi(Fmt.duration(asleep), night.score?.takeIf { it > 0 }?.let { "Score $it" }, window, stages, note, asleep, night.score?.takeIf { it > 0 })
         val footer = footer(listOf(night.stamp.sourceUpdatedAt), now, prefs)
         val desc = listOfNotNull(
             "Sleep", "Slept ${body.durationText}", body.scoreText, window?.let { "from ${Fmt.windowSpoken(night.start!!, night.end!!, zone)}" },

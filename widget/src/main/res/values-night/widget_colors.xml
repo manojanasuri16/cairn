@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget styles (same ids and values as the Daymark app). Preview layouts and drawables read these; the live widgets use the same values in Palettes. -->
+<resources>
+    <color name="wdg_minimal_start">#FF1B2120</color>
+    <color name="wdg_minimal_center">#FF181D1C</color>
+    <color name="wdg_minimal_end">#FF141918</color>
+    <color name="wdg_minimal_text">#FFE7ECE9</color>
+    <color name="wdg_minimal_soft">#FF9EA8A4</color>
+    <color name="wdg_minimal_accent">#FF7FD3B9</color>
+    <color name="wdg_minimal_good">#FF4CC38F</color>
+    <color name="wdg_minimal_bad">#FFF07C72</color>
+    <color name="wdg_clean_start">#FF191A1E</color>
+    <color name="wdg_clean_center">#FF191A1E</color>
+    <color name="wdg_clean_end">#FF16171A</color>
+    <color name="wdg_clean_text">#FFE4E4E8</color>
+    <color name="wdg_clean_soft">#FFAAADB6</color>
+    <color name="wdg_clean_accent">#FFB4BAFF</color>
+    <color name="wdg_clean_good">#FF4CC38F</color>
+    <color name="wdg_clean_bad">#FFF07C72</color>
+</resources>

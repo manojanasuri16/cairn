@@ -62,6 +62,8 @@ data class TrainingLoadUi(
     val vo2Text: String?,
     /** "+1", "-2" or "steady"; null when there is no earlier value to compare with. */
     val vo2Trend: String?,
+    /** Numeric ratio behind [ratioText], for colour and the dial. Null when none is cached. */
+    val ratio: Double? = null,
 )
 
 enum class SleepStage(val label: String) { Deep("Deep"), Light("Light"), Rem("REM"), Awake("Awake") }
@@ -77,6 +79,9 @@ data class SleepUi(
     val stages: List<StageSlice>?,
     /** Set when stage minutes do not add up to the sleep time or came from a source that estimates them. */
     val stageNote: String?,
+    /** Numeric sleep minutes and score, for rings and lanes. */
+    val minutes: Int = 0,
+    val score: Int? = null,
 )
 
 data class RacePrediction(val label: String, val time: String)
