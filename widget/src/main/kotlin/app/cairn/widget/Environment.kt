@@ -1,5 +1,6 @@
 package app.cairn.widget
 
+import app.cairn.core.model.DisplayPrefs
 import app.cairn.data.ActivityRepository
 import app.cairn.data.DailyRepository
 import app.cairn.data.RecoveryRepository
@@ -21,6 +22,7 @@ class WidgetDataSources(
     val sleep: SleepRepository,
     val recovery: RecoveryRepository,
     val activities: ActivityRepository,
+    val prefs: suspend () -> DisplayPrefs = { DisplayPrefs() },
     val auth: suspend () -> AuthState,
 )
 
@@ -43,15 +45,15 @@ object WidgetEnvironment {
 
     fun today(): Flow<WidgetUi<TodayUi>> = build { s, day ->
         combine(s.daily.observeDay(day), s.sleep.observeLatest(day), s.recovery.observe()) { d, sl, r ->
-            WidgetMapper.today(d?.value, sl?.value, r?.value, s.auth(), Instant.now(), day)
+            WidgetMapper.today(d?.value, sl?.value, r?.value, s.auth(), Instant.now(), day, prefs = s.prefs())
         }
     }
 
     fun recovery(): Flow<WidgetUi<RecoveryUi>> = build { s, _ ->
-        s.recovery.observe().map { WidgetMapper.recovery(it?.value, s.auth(), Instant.now()) }
+        s.recovery.observe().map { WidgetMapper.recovery(it?.value, s.auth(), Instant.now(), s.prefs()) }
     }
 
     fun lastActivity(): Flow<WidgetUi<ActivityUi>> = build { s, day ->
-        s.activities.observeRecent(day.minusDays(60), 1).map { WidgetMapper.lastActivity(it.firstOrNull()?.value, s.auth(), Instant.now(), day) }
+        s.activities.observeRecent(day.minusDays(60), 1).map { WidgetMapper.lastActivity(it.firstOrNull()?.value, s.auth(), Instant.now(), day, prefs = s.prefs()) }
     }
 }

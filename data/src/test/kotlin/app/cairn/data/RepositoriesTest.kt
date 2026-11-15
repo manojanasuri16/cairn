@@ -36,6 +36,7 @@ import org.junit.Test
 
 private class FakeDailyDao : DailyDao {
     val rows = MutableStateFlow<List<DailyEntity>>(emptyList())
+    override suspend fun clear() { rows.value = emptyList() }
     override fun observeRange(from: String, to: String): Flow<List<DailyEntity>> = rows.map { l -> l.filter { it.date in from..to }.sortedBy { it.date } }
     override suspend fun get(dates: List<String>, source: String) = rows.value.filter { it.date in dates && it.source == source }
     override suspend fun upsert(rows: List<DailyEntity>) { this.rows.value = this.rows.value.filterNot { o -> rows.any { it.date == o.date && it.source == o.source } } + rows }
@@ -44,6 +45,7 @@ private class FakeDailyDao : DailyDao {
 
 private class FakeSleepDao : SleepDao {
     val rows = MutableStateFlow<List<SleepEntity>>(emptyList())
+    override suspend fun clear() { rows.value = emptyList() }
     override fun observeRange(from: String, to: String) = rows.map { l -> l.filter { it.date in from..to } }
     override suspend fun get(dates: List<String>, source: String) = rows.value.filter { it.date in dates && it.source == source }
     override suspend fun upsert(rows: List<SleepEntity>) { this.rows.value = this.rows.value.filterNot { o -> rows.any { it.date == o.date && it.source == o.source } } + rows }
@@ -52,12 +54,14 @@ private class FakeSleepDao : SleepDao {
 
 private class FakeRecoveryDao : RecoveryDao {
     val rows = MutableStateFlow<List<RecoveryEntity>>(emptyList())
+    override suspend fun clear() { rows.value = emptyList() }
     override fun observeAll() = rows
     override suspend fun upsert(row: RecoveryEntity) { rows.value = rows.value.filter { it.source != row.source } + row }
 }
 
 private class FakeLoadDao : TrainingLoadDao {
     val rows = MutableStateFlow<List<TrainingLoadEntity>>(emptyList())
+    override suspend fun clear() { rows.value = emptyList() }
     override fun observeRange(from: String, to: String) = rows.map { l -> l.filter { it.date in from..to } }
     override suspend fun upsert(rows: List<TrainingLoadEntity>) { this.rows.value = this.rows.value.filterNot { o -> rows.any { it.date == o.date && it.source == o.source } } + rows }
     override suspend fun deleteBefore(before: String) { rows.value = rows.value.filter { it.date >= before } }
@@ -65,15 +69,32 @@ private class FakeLoadDao : TrainingLoadDao {
 
 private class FakeFitnessDao : FitnessDao {
     val rows = MutableStateFlow<List<FitnessEntity>>(emptyList())
+    override suspend fun clear() { rows.value = emptyList() }
     override fun observeAll() = rows
     override suspend fun upsert(row: FitnessEntity) { rows.value = rows.value.filter { it.source != row.source } + row }
 }
 
 private class FakeActivityDao : ActivityDao {
     val rows = MutableStateFlow<List<ActivityEntity>>(emptyList())
+    override suspend fun clear() { rows.value = emptyList() }
     override fun observeSince(from: String) = rows.map { l -> l.filter { it.date >= from } }
     override suspend fun upsert(rows: List<ActivityEntity>) { this.rows.value = this.rows.value.filterNot { o -> rows.any { it.id == o.id } } + rows }
     override suspend fun deleteBefore(before: String) { rows.value = rows.value.filter { it.date >= before } }
+}
+
+class ClearTest {
+    @Test fun clearEmptiesRepositories() = runBlocking {
+        val dao = FakeActivityDao()
+        val repo = ActivityRepository(dao)
+        val at = Instant.parse("2030-01-03T10:00:00Z")
+        repo.store(listOf(app.cairn.core.model.Activity("a", app.cairn.core.model.Stamp(app.cairn.core.model.DataSource.COROS_MCP, at), LocalDate.of(2030, 1, 3), "run")))
+        assertEquals(1, dao.rows.value.size)
+        repo.clear()
+        assertTrue(dao.rows.value.isEmpty())
+        val sleep = FakeSleepDao()
+        SleepRepository(sleep).clear()
+        assertTrue(sleep.rows.value.isEmpty())
+    }
 }
 
 class RepositoriesTest {

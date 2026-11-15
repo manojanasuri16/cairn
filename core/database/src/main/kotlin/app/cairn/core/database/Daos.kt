@@ -23,6 +23,9 @@ interface DailyDao {
 
     @Query("DELETE FROM daily WHERE date < :before")
     suspend fun deleteBefore(before: String)
+
+    @Query("DELETE FROM daily")
+    suspend fun clear()
 }
 
 @Dao
@@ -38,6 +41,9 @@ interface SleepDao {
 
     @Query("DELETE FROM sleep WHERE date < :before")
     suspend fun deleteBefore(before: String)
+
+    @Query("DELETE FROM sleep")
+    suspend fun clear()
 }
 
 @Dao
@@ -47,6 +53,9 @@ interface RecoveryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(row: RecoveryEntity)
+
+    @Query("DELETE FROM recovery")
+    suspend fun clear()
 }
 
 @Dao
@@ -59,6 +68,9 @@ interface TrainingLoadDao {
 
     @Query("DELETE FROM training_load WHERE date < :before")
     suspend fun deleteBefore(before: String)
+
+    @Query("DELETE FROM training_load")
+    suspend fun clear()
 }
 
 @Dao
@@ -68,6 +80,9 @@ interface FitnessDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(row: FitnessEntity)
+
+    @Query("DELETE FROM fitness")
+    suspend fun clear()
 }
 
 @Dao
@@ -80,6 +95,9 @@ interface ActivityDao {
 
     @Query("DELETE FROM activity WHERE date < :before")
     suspend fun deleteBefore(before: String)
+
+    @Query("DELETE FROM activity")
+    suspend fun clear()
 }
 
 @Database(

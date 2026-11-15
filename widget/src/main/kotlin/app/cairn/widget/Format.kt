@@ -1,5 +1,6 @@
 package app.cairn.widget
 
+import app.cairn.core.model.DistanceUnit
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -25,7 +26,27 @@ object Fmt {
 
     fun distanceKm(meters: Double, locale: Locale = Locale.getDefault()): String = String.format(locale, "%.1f km", meters / 1000.0)
 
-    fun pace(secPerKm: Int): String = "${secPerKm / 60}:${(secPerKm % 60).toString().padStart(2, '0')} /km"
+    fun distance(meters: Double, unit: DistanceUnit, locale: Locale = Locale.getDefault()): String = when (unit) {
+        DistanceUnit.Km -> distanceKm(meters, locale)
+        DistanceUnit.Mi -> String.format(locale, "%.1f mi", meters / METERS_PER_MILE)
+    }
+
+    /** "5:13 /km", or "8:24 /mi" when [unit] is miles. */
+    fun pace(secPerKm: Int, unit: DistanceUnit = DistanceUnit.Km): String {
+        val sec = if (unit == DistanceUnit.Mi) Math.round(secPerKm * METERS_PER_MILE / 1000.0).toInt() else secPerKm
+        return "${sec / 60}:${(sec % 60).toString().padStart(2, '0')} " + if (unit == DistanceUnit.Mi) "/mi" else "/km"
+    }
+
+    /** Race time: "24:10", "1:52:03". */
+    fun raceTime(totalSec: Int): String {
+        val s = totalSec.coerceAtLeast(0)
+        val h = s / 3600
+        val m = (s % 3600) / 60
+        val r = s % 60
+        return if (h > 0) "%d:%02d:%02d".format(h, m, r) else "%d:%02d".format(m, r)
+    }
+
+    const val METERS_PER_MILE = 1609.344
 
     fun bpm(v: Int): String = "$v bpm"
 

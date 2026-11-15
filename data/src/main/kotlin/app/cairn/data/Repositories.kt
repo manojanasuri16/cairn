@@ -52,6 +52,9 @@ class DailyRepository(private val dao: DailyDao, private val clock: Clock = Cloc
         }
         dao.upsert(out)
     }
+
+    /** Deletes every cached row ("Delete all Cairn data"). */
+    suspend fun clear() = dao.clear()
 }
 
 class SleepRepository(private val dao: SleepDao, private val clock: Clock = Clock { Instant.now() }) {
@@ -76,6 +79,9 @@ class SleepRepository(private val dao: SleepDao, private val clock: Clock = Cloc
         }
         dao.upsert(out)
     }
+
+    /** Deletes every cached row ("Delete all Cairn data"). */
+    suspend fun clear() = dao.clear()
 }
 
 class RecoveryRepository(private val dao: RecoveryDao, private val clock: Clock = Clock { Instant.now() }) {
@@ -84,6 +90,9 @@ class RecoveryRepository(private val dao: RecoveryDao, private val clock: Clock 
     }
 
     suspend fun store(recovery: Recovery) = dao.upsert(recovery.toEntity())
+
+    /** Deletes every cached row ("Delete all Cairn data"). */
+    suspend fun clear() = dao.clear()
 }
 
 class TrainingLoadRepository(private val dao: TrainingLoadDao, private val clock: Clock = Clock { Instant.now() }) {
@@ -99,6 +108,9 @@ class TrainingLoadRepository(private val dao: TrainingLoadDao, private val clock
         observe(today.minusDays(days), today).map { it.lastOrNull() }
 
     suspend fun store(days: List<TrainingLoadDay>) { if (days.isNotEmpty()) dao.upsert(days.map { it.toEntity() }) }
+
+    /** Deletes every cached row ("Delete all Cairn data"). */
+    suspend fun clear() = dao.clear()
 }
 
 class FitnessRepository(private val dao: FitnessDao, private val clock: Clock = Clock { Instant.now() }) {
@@ -107,6 +119,9 @@ class FitnessRepository(private val dao: FitnessDao, private val clock: Clock = 
     }
 
     suspend fun store(snapshot: FitnessSnapshot) = dao.upsert(snapshot.toEntity())
+
+    /** Deletes every cached row ("Delete all Cairn data"). */
+    suspend fun clear() = dao.clear()
 }
 
 class ActivityRepository(private val dao: ActivityDao, private val clock: Clock = Clock { Instant.now() }) {
@@ -118,4 +133,7 @@ class ActivityRepository(private val dao: ActivityDao, private val clock: Clock 
         }
 
     suspend fun store(activities: List<Activity>) { if (activities.isNotEmpty()) dao.upsert(activities.map { it.toEntity() }) }
+
+    /** Deletes every cached row ("Delete all Cairn data"). */
+    suspend fun clear() = dao.clear()
 }

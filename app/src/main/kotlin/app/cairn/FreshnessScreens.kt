@@ -143,39 +143,3 @@ fun FreshnessScreen(corosMissing: Boolean, modifier: Modifier = Modifier) {
         }
     }
 }
-
-@Composable
-fun SettingsScreen(onOpenFreshness: () -> Unit, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val graph = (context.applicationContext as CairnApp).graph
-    val scope = rememberCoroutineScope()
-    val on by graph.nudgeSettings.enabled.collectAsState(initial = false)
-    val hours by graph.nudgeSettings.thresholdHours.collectAsState(initial = NudgeSettings.DEFAULT)
-    var denied by remember { mutableStateOf(false) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        denied = !ok
-        scope.launch { graph.nudgeSettings.setEnabled(ok) }
-    }
-    Column(modifier.padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Remind me when COROS hasn't synced", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-            Switch(checked = on, onCheckedChange = { want ->
-                if (!want) { scope.launch { graph.nudgeSettings.setEnabled(false); graph.notifier.cancel() } }
-                else if (graph.notifier.hasPermission()) { denied = false; scope.launch { graph.nudgeSettings.setEnabled(true) } }
-                else launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            })
-        }
-        Text(
-            "Cairn shows at most one quiet notification per day, between 08:00 and 22:00, when the newest data is older than the threshold. Tapping it opens COROS so it can sync. Nothing is sent anywhere.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        if (denied) Text("Notifications are blocked for Cairn, so the reminder stays off. Allow them in system settings to use it.", color = MaterialTheme.colorScheme.error)
-        Text("Remind me after", style = MaterialTheme.typography.titleSmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            NudgeSettings.CHOICES.forEach { h ->
-                FilterChip(selected = hours == h, enabled = on, onClick = { scope.launch { graph.nudgeSettings.setThreshold(h) } }, label = { Text("$h h") })
-            }
-        }
-        OutlinedButton(onClick = onOpenFreshness) { Text("Keep data fresh") }
-    }
-}

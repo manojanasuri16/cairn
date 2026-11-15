@@ -1,0 +1,72 @@
+package app.cairn.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import app.cairn.core.designsystem.CairnTheme
+import app.cairn.core.designsystem.LoadBars
+import app.cairn.core.designsystem.Spacing
+import app.cairn.core.model.Freshness
+import app.cairn.widget.FooterUi
+
+@Composable
+fun FitnessScreen(onOpenAccount: () -> Unit, modifier: Modifier = Modifier, vm: FitnessViewModel = viewModel()) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    FitnessContent(state, onOpenAccount, modifier)
+}
+
+@Composable
+fun FitnessContent(state: FitnessState, onOpenAccount: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        state.footer?.let { AgeLine(it) }
+        state.empty?.let { EmptyState(it, onOpenAccount) }
+        state.chart?.let { c ->
+            SectionCard {
+                SectionTitle("Training load, last 7 days")
+                state.ratio?.let { Text(it, style = MaterialTheme.typography.displaySmall) }
+                state.ratio?.let { Text("Load ratio", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                state.comment?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+                LoadBars(c.short, c.long, c.description)
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Text("Short-term", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Text("Long-term", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.tertiary)
+                }
+            }
+        }
+        val level = listOfNotNull(
+            state.vo2max?.let { MetricUi("VO2max", it) },
+            state.runningLevel?.let { MetricUi("Running level", it) },
+            state.thresholdPace?.let { MetricUi("Threshold pace", it) },
+        )
+        if (level.isNotEmpty()) SectionCard { SectionTitle("Running fitness"); level.forEach { MetricRow(it) } }
+        if (state.predictions.isNotEmpty()) SectionCard { SectionTitle("Race predictions"); state.predictions.forEach { MetricRow(it) } }
+    }
+}
+
+@Preview(showBackground = true, fontScale = 2f)
+@Composable
+private fun FitnessPreview() = CairnTheme {
+    FitnessContent(
+        FitnessState(
+            loading = false, chart = LoadChartUi(listOf(40f, 55f, null, 70f, 62f, 80f, 75f), listOf(50f, 52f, 54f, 55f, 58f, 60f, 62f), "Training load"),
+            ratio = "1.21", comment = "Optimal", vo2max = "52", runningLevel = "74", thresholdPace = "4:21 /km",
+            predictions = listOf(MetricUi("5K", "21:40"), MetricUi("Marathon", "3:42:10")),
+            footer = FooterUi("Updated 3h ago", Freshness.Aging),
+        ),
+        onOpenAccount = {},
+    )
+}

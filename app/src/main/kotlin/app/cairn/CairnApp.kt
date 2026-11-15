@@ -30,6 +30,7 @@ import app.cairn.sync.SyncComponent
 import app.cairn.sync.SyncComponentProvider
 import app.cairn.sync.SyncEngine
 import app.cairn.sync.SyncScheduler
+import app.cairn.sync.SyncState
 import app.cairn.sync.WidgetUpdater
 import app.cairn.widget.AuthState
 import app.cairn.widget.GlanceWidgetUpdater
@@ -87,12 +88,13 @@ class AppGraph(private val context: Context) : SyncComponent {
 
     val healthConnect: HealthConnectReader by lazy { HealthConnectReader(context) }
 
-    private val prefs by lazy {
+    val prefs by lazy {
         PreferenceDataStoreFactory.create(scope = appScope, produceFile = { File(datastoreDir.apply { mkdirs() }, "sync.preferences_pb") })
     }
     override val syncSettings by lazy { DataStoreSyncSettings(prefs) }
     override val syncState by lazy { DataStoreSyncStateStore(prefs) }
     val nudgeSettings by lazy { DataStoreNudgeSettings(prefs) }
+    val appSettings by lazy { AppSettings(prefs) }
     val notifier by lazy { StaleNudgeNotifier(context) }
 
     @Volatile var widgetUpdater: WidgetUpdater = GlanceWidgetUpdater(context)
@@ -112,15 +114,27 @@ class AppGraph(private val context: Context) : SyncComponent {
     /** Widgets render from Room only; give them the repositories and the sign-in state. */
     fun installWidgets() {
         WidgetEnvironment.install(
-            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository) {
-                when {
-                    syncState.get().needsSignIn -> AuthState.NeedsSignIn
-                    tokenStore.load() == null -> AuthState.SignedOut
-                    else -> AuthState.Ok
-                }
-            },
+            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository, prefs = { appSettings.displayNow() }) { authState() },
         )
     }
+
+    suspend fun authState(): AuthState = when {
+        syncState.get().needsSignIn -> AuthState.NeedsSignIn
+        tokenStore.load() == null -> AuthState.SignedOut
+        else -> AuthState.Ok
+    }
+
+    /** "Delete all Cairn data": every cached health row, the sync state and the reminder marker. Sign-in is untouched (use Sign out). */
+    suspend fun deleteAllData() {
+        dailyRepository.clear(); sleepRepository.clear(); recoveryRepository.clear()
+        trainingLoadRepository.clear(); fitnessRepository.clear(); activityRepository.clear()
+        syncState.update { SyncState() }
+        nudgeSettings.setLastNotifiedDay(null)
+        notifier.cancel()
+        runCatching { widgetUpdater.updateAll() }
+    }
+
+    fun refreshWidgets() { appScope.launch { runCatching { widgetUpdater.updateAll() } } }
 
     fun onSignedIn() { appScope.launch { runCatching { syncScheduler.onSignedIn() } } }
     fun onSignedOut() { appScope.launch { runCatching { syncScheduler.onSignedOut() } } }

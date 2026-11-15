@@ -3,6 +3,7 @@ package app.cairn.widget
 import app.cairn.core.common.RelativeAge
 import app.cairn.core.model.Activity
 import app.cairn.core.model.DailySummary
+import app.cairn.core.model.DisplayPrefs
 import app.cairn.core.model.Freshness
 import app.cairn.core.model.Recovery
 import app.cairn.core.model.SleepNight
@@ -15,10 +16,10 @@ import java.util.Locale
 object WidgetMapper {
     const val STEP_GOAL = 10_000
 
-    fun footer(stamps: List<Instant>, now: Instant): FooterUi {
+    fun footer(stamps: List<Instant>, now: Instant, prefs: DisplayPrefs = DisplayPrefs()): FooterUi {
         val newest = stamps.max()
         val age = Duration.between(newest, now).let { if (it.isNegative) Duration.ZERO else it }
-        val tier = Freshness.fromAge(age)
+        val tier = Freshness.fromAge(age, prefs.freshLimit, prefs.agingLimit)
         val rel = RelativeAge.format(age)
         val text = if (tier == Freshness.Stale) "Stale, last synced ${rel.removePrefix("Updated ")}" else rel
         return FooterUi(text, tier)
@@ -32,6 +33,7 @@ object WidgetMapper {
         now: Instant,
         today: LocalDate,
         locale: Locale = Locale.getDefault(),
+        prefs: DisplayPrefs = DisplayPrefs(),
     ): WidgetUi<TodayUi> {
         val stamps = mutableListOf<Instant>()
         // Day rollover: a summary from a previous day is not "today".
@@ -57,7 +59,7 @@ object WidgetMapper {
             stepsFraction = steps?.let { (it.value.toFloat() / STEP_GOAL).coerceIn(0f, 1f) } ?: 0f,
             metrics = metrics,
         )
-        val footer = footer(stamps, now)
+        val footer = footer(stamps, now, prefs)
         val parts = buildList {
             add("Today")
             add(body.stepsText?.let { "$it steps" } ?: "No steps yet today")
@@ -67,13 +69,13 @@ object WidgetMapper {
         return WidgetUi.Content(body, footer, parts.joinToString(". "), Screen.Today)
     }
 
-    fun recovery(recovery: Recovery?, auth: AuthState, now: Instant): WidgetUi<RecoveryUi> {
+    fun recovery(recovery: Recovery?, auth: AuthState, now: Instant, prefs: DisplayPrefs = DisplayPrefs()): WidgetUi<RecoveryUi> {
         val pct = recovery?.percent ?: return empty(auth, "No recovery data", Screen.Today)
         val full = pct >= 100 || recovery.hoursToFullRecovery == 0
         val level = recovery.level?.takeIf { it.isNotBlank() }?.let(Fmt::sport) ?: levelFor(pct)
         val time = if (full) "Fully recovered" else Fmt.timeToFull(recovery.hoursToFullRecovery)
         val body = RecoveryUi("$pct%", (pct / 100f).coerceIn(0f, 1f), level, time)
-        val footer = footer(listOf(recovery.stamp.sourceUpdatedAt), now)
+        val footer = footer(listOf(recovery.stamp.sourceUpdatedAt), now, prefs)
         val desc = listOfNotNull("Recovery $pct percent", level, time, footer.text).joinToString(". ")
         return WidgetUi.Content(body, footer, desc, Screen.Today)
     }
@@ -90,17 +92,18 @@ object WidgetMapper {
         now: Instant,
         today: LocalDate,
         locale: Locale = Locale.getDefault(),
+        prefs: DisplayPrefs = DisplayPrefs(),
     ): WidgetUi<ActivityUi> {
         if (activity == null) return empty(auth, "No activities yet", Screen.Activities)
         val body = ActivityUi(
             sport = Fmt.sport(activity.sport),
             date = Fmt.date(activity.date, today, locale),
-            distance = activity.distanceMeters?.takeIf { it > 0 }?.let { Fmt.distanceKm(it, locale) },
+            distance = activity.distanceMeters?.takeIf { it > 0 }?.let { Fmt.distance(it, prefs.unit, locale) },
             duration = activity.durationSec?.takeIf { it > 0 }?.let(Fmt::durationSec),
-            pace = activity.avgPaceSecPerKm?.takeIf { it > 0 }?.let(Fmt::pace),
+            pace = activity.avgPaceSecPerKm?.takeIf { it > 0 }?.let { Fmt.pace(it, prefs.unit) },
             avgHr = activity.avgHr?.takeIf { it > 0 }?.let(Fmt::bpm),
         )
-        val footer = footer(listOf(activity.stamp.sourceUpdatedAt), now)
+        val footer = footer(listOf(activity.stamp.sourceUpdatedAt), now, prefs)
         val desc = listOfNotNull("Last activity", body.sport, body.date, body.distance, body.duration, body.pace, body.avgHr?.let { "average heart rate $it" }, footer.text)
             .joinToString(". ")
         return WidgetUi.Content(body, footer, desc, Screen.Activities)
