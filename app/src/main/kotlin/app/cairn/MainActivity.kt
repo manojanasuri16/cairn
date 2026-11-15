@@ -14,7 +14,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 
@@ -33,12 +40,20 @@ private fun CairnApp() {
     val dark = isSystemInDarkTheme()
     // minSdk 34, so dynamic colour is always available.
     val colors = if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    var inspector by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = inspector) { inspector = false }
     MaterialTheme(colorScheme = colors) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            topBar = { CenterAlignedTopAppBar(title = { Text("Cairn") }) },
+            topBar = { CenterAlignedTopAppBar(title = { Text(if (inspector) "Data sources" else "Cairn") }) },
         ) { padding ->
-            androidx.compose.foundation.layout.Box(Modifier.padding(padding)) {}
+            if (inspector) {
+                InspectorScreen(Modifier.padding(padding))
+            } else {
+                Column(Modifier.padding(padding)) {
+                    TextButton(onClick = { inspector = true }) { Text("Data sources") }
+                }
+            }
         }
     }
 }

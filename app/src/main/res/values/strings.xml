@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Cairn</string>
+    <string name="rationale_title">Why Cairn reads health data</string>
+    <string name="rationale_body">Cairn reads your health data from Health Connect only to show it on your phone. It never changes your data and does not send it anywhere.</string>
 </resources>
