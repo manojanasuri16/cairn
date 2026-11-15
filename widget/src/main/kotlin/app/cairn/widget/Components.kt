@@ -58,6 +58,10 @@ private fun fontScaleOf(context: Context): Float = context.resources.configurati
 @Composable
 fun tapIntent(context: Context, screen: Screen): Action = actionStartActivity(cairnIntent(context, screen))
 
+/** Body tap: the user's chosen COROS screen for this widget (see Settings, Widget tap targets). */
+@Composable
+fun bodyTap(context: Context, kind: WidgetKind): Action = actionStartActivity(bodyTapIntent(context, kind))
+
 /** Shared surface: tonal background, system corner radius, TalkBack summary, footer slot. */
 @Composable
 fun WidgetFrame(

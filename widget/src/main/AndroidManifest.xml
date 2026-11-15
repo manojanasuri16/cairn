@@ -13,5 +13,17 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_activity_info" />
         </receiver>
+        <receiver android:name=".TrainingLoadWidgetReceiver" android:exported="true" android:label="@string/widget_load_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_load_info" />
+        </receiver>
+        <receiver android:name=".SleepWidgetReceiver" android:exported="true" android:label="@string/widget_sleep_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_sleep_info" />
+        </receiver>
+        <receiver android:name=".FitnessWidgetReceiver" android:exported="true" android:label="@string/widget_fitness_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_fitness_info" />
+        </receiver>
     </application>
 </manifest>

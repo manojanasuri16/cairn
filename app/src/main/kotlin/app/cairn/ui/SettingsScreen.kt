@@ -50,6 +50,8 @@ import app.cairn.source.healthconnect.syncReadPermissions
 import app.cairn.sync.NudgeSettings
 import app.cairn.sync.SyncSettings
 import app.cairn.widget.PinnableWidget
+import app.cairn.widget.TapTarget
+import app.cairn.widget.WidgetKind
 import app.cairn.widget.WidgetPinner
 import kotlinx.coroutines.launch
 
@@ -78,6 +80,8 @@ fun SettingsScreen(coros: CorosViewModel, nav: SettingsNav, modifier: Modifier =
         notifDenied = !ok
         scope.launch { graph.nudgeSettings.setEnabled(ok) }
     }
+    val tapTargets by graph.appSettings.tapTargets.collectAsStateWithLifecycle(initialValue = emptyMap())
+    var editingTarget by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.deleted) { if (state.deleted) view.confirmHaptic() }
 
@@ -105,10 +109,20 @@ fun SettingsScreen(coros: CorosViewModel, nav: SettingsNav, modifier: Modifier =
         },
         onNudgeHours = { scope.launch { graph.nudgeSettings.setThreshold(it) } },
         onPin = { WidgetPinner.pin(context, it) },
+        tapTargets = tapTargets,
+        onEditTapTarget = { editingTarget = it.name },
         nav = nav,
         onDeleteRequest = { confirmDelete = true },
         modifier = modifier,
     )
+    WidgetKind.parse(editingTarget)?.let { kind ->
+        TapTargetPickerDialog(
+            kind = kind,
+            current = tapTargets[kind] ?: TapTarget.CorosHome,
+            onSave = { t -> scope.launch { graph.appSettings.setTapTarget(kind, t) }; editingTarget = null },
+            onDismiss = { editingTarget = null },
+        )
+    }
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
@@ -155,6 +169,8 @@ fun SettingsContent(
     onNudge: (Boolean) -> Unit,
     onNudgeHours: (Int) -> Unit,
     onPin: (PinnableWidget) -> Unit,
+    tapTargets: Map<WidgetKind, TapTarget>,
+    onEditTapTarget: (WidgetKind) -> Unit,
     nav: SettingsNav,
     onDeleteRequest: () -> Unit,
     modifier: Modifier = Modifier,
@@ -209,6 +225,8 @@ fun SettingsContent(
                 PinnableWidget.entries.forEach { w -> OutlinedButton(onClick = { onPin(w) }, modifier = Modifier.fillMaxWidth()) { Text("Add ${w.label} widget") } }
             }
         }
+
+        TapTargetsCard(tapTargets, onEditTapTarget)
 
         SectionCard {
             SectionTitle("Tools")

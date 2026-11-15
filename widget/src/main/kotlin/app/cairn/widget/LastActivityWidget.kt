@@ -53,7 +53,7 @@ private fun ActivityBody(ui: WidgetUi.Content<ActivityUi>) {
     val oneLine = size.height < 80.dp
     val sub = GlanceTheme.colors.onSurfaceVariant
     WidgetFrame(
-        ui.description, tapIntent(context, ui.screen),
+        ui.description, bodyTap(context, WidgetKind.LastActivity),
         footer = { FooterView(ui.footer, ui.screen, compact = oneLine) },
         padding = if (oneLine) 8.dp else 14.dp,
     ) {

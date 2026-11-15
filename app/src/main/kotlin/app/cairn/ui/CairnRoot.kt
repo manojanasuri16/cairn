@@ -80,6 +80,7 @@ object Routes {
     /** Where a widget tap (or other launcher extra) lands. Unknown values open Today. */
     fun forScreen(screen: String?): String = when (screen) {
         Screen.Activities.name -> ACTIVITIES
+        Screen.Fitness.name -> FITNESS
         Screen.Account.name -> ACCOUNT
         Screen.Freshness.name -> FRESHNESS
         else -> TODAY

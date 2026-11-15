@@ -5,4 +5,10 @@
     <string name="widget_today_desc">Steps, sleep, resting heart rate and recovery at a glance.</string>
     <string name="widget_recovery_desc">How recovered you are and when you will be fully recovered.</string>
     <string name="widget_activity_desc">Your most recent workout: distance, time, pace and heart rate.</string>
+    <string name="widget_load_label">Cairn Training load</string>
+    <string name="widget_sleep_label">Cairn Sleep</string>
+    <string name="widget_fitness_label">Cairn Fitness</string>
+    <string name="widget_load_desc">Seven days of training load, your load ratio and VO2max.</string>
+    <string name="widget_sleep_desc">How long you slept, your score, sleep stages and the time you slept.</string>
+    <string name="widget_fitness_desc">VO2max, threshold pace and race predictions.</string>
 </resources>

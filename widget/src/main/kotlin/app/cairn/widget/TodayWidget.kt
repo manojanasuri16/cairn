@@ -61,7 +61,7 @@ private fun TodayBody(ui: WidgetUi.Content<TodayUi>) {
     val tall = size.height >= 150.dp
     WidgetFrame(
         description = ui.description,
-        bodyAction = tapIntent(context, ui.screen),
+        bodyAction = bodyTap(context, WidgetKind.Today),
         footer = { FooterView(ui.footer, ui.screen, compact = compact) },
         padding = if (compact) 10.dp else 14.dp,
     ) {

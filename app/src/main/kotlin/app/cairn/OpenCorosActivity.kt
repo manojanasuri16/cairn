@@ -1,37 +1,38 @@
 package app.cairn
 
 import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
-import app.cairn.sync.CorosRefreshPlanner
-import app.cairn.widget.COROS_PACKAGE
-import app.cairn.widget.EXTRA_COROS_MISSING
-import app.cairn.widget.EXTRA_SCREEN
+import app.cairn.widget.EXTRA_WIDGET
 import app.cairn.widget.Screen
+import app.cairn.widget.TapTarget
+import app.cairn.widget.WidgetKind
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 
-/** Opens COROS so it syncs the watch, and schedules two delayed Cairn refreshes. Falls back to Cairn when COROS is missing. */
+/**
+ * Invisible trampoline for widget taps. With a widget extra it opens that widget's chosen target, otherwise COROS
+ * (the stale footer). Schedules the delayed refreshes when COROS opens; falls back to Cairn when it cannot.
+ */
 class OpenCorosActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        openCorosAndRefresh(this)
+        val kind = WidgetKind.parse(intent?.getStringExtra(EXTRA_WIDGET))
+        val target = if (kind == null) TapTarget.CorosHome else resolveTarget(kind)
+        CorosLauncher(this).launch(target, kind?.cairnScreen ?: Screen.Freshness)
         finish()
     }
+
+    /** One short DataStore read; the tap must start the next activity from this foreground activity. */
+    private fun resolveTarget(kind: WidgetKind): TapTarget = runCatching {
+        val settings = (applicationContext as CairnApp).graph.appSettings
+        runBlocking { withTimeoutOrNull(1_000) { settings.tapTarget(kind).first() } }
+    }.getOrNull() ?: app.cairn.widget.TapTargets.default(kind)
 }
 
-fun isCorosInstalled(context: android.content.Context): Boolean =
-    context.packageManager.getLaunchIntentForPackage(COROS_PACKAGE) != null
+fun isCorosInstalled(context: android.content.Context): Boolean = CorosLauncher(context).isInstalled()
 
+/** Opens COROS (or Cairn's explanation when it is missing) and schedules the delayed refreshes. */
 fun openCorosAndRefresh(context: android.content.Context) {
-    val launch = context.packageManager.getLaunchIntentForPackage(COROS_PACKAGE)
-    when (CorosRefreshPlanner.decide(launch != null)) {
-        CorosRefreshPlanner.Launch.OpenCoros -> {
-            (context.applicationContext as CairnApp).graph.syncScheduler.scheduleCorosRefreshes()
-            context.startActivity(launch!!.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }
-        CorosRefreshPlanner.Launch.ExplainInCairn ->
-            context.startActivity(
-                Intent(context, MainActivity::class.java).putExtra(EXTRA_SCREEN, Screen.Freshness.name)
-                    .putExtra(EXTRA_COROS_MISSING, true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-            )
-    }
+    CorosLauncher(context).launch(TapTarget.CorosHome, Screen.Freshness)
 }

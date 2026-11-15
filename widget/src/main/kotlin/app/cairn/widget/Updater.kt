@@ -13,6 +13,9 @@ class GlanceWidgetUpdater(private val context: Context) : WidgetUpdater {
         TodayWidget().updateAll(context)
         RecoveryWidget().updateAll(context)
         LastActivityWidget().updateAll(context)
+        TrainingLoadWidget().updateAll(context)
+        SleepWidget().updateAll(context)
+        FitnessWidget().updateAll(context)
     }
 }
 
@@ -21,6 +24,9 @@ enum class PinnableWidget(val label: String, val receiver: Class<*>) {
     Today("Today", TodayWidgetReceiver::class.java),
     Recovery("Recovery", RecoveryWidgetReceiver::class.java),
     LastActivity("Last activity", LastActivityWidgetReceiver::class.java),
+    TrainingLoad("Training load", TrainingLoadWidgetReceiver::class.java),
+    Sleep("Sleep", SleepWidgetReceiver::class.java),
+    Fitness("Fitness", FitnessWidgetReceiver::class.java),
 }
 
 object WidgetPinner {

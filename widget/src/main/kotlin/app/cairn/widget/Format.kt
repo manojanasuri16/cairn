@@ -2,7 +2,9 @@ package app.cairn.widget
 
 import app.cairn.core.model.DistanceUnit
 import java.text.NumberFormat
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -44,6 +46,30 @@ object Fmt {
         val m = (s % 3600) / 60
         val r = s % 60
         return if (h > 0) "%d:%02d:%02d".format(h, m, r) else "%d:%02d".format(m, r)
+    }
+
+    /** "00:28\u201308:30" in 24-hour time. */
+    fun window(start: Instant, end: Instant, zone: ZoneId): String {
+        val f = DateTimeFormatter.ofPattern("HH:mm")
+        return f.format(start.atZone(zone)) + "\u2013" + f.format(end.atZone(zone))
+    }
+
+    fun windowSpoken(start: Instant, end: Instant, zone: ZoneId): String {
+        val f = DateTimeFormatter.ofPattern("HH:mm")
+        return f.format(start.atZone(zone)) + " to " + f.format(end.atZone(zone))
+    }
+
+    /** "+1", "-2", "steady". */
+    fun trend(delta: Int): String = when {
+        delta > 0 -> "+$delta"
+        delta < 0 -> "-${-delta}"
+        else -> "steady"
+    }
+
+    fun trendSpoken(t: String): String = when {
+        t.startsWith("+") -> "up ${t.drop(1)}"
+        t.startsWith("-") -> "down ${t.drop(1)}"
+        else -> t
     }
 
     const val METERS_PER_MILE = 1609.344

@@ -3,6 +3,8 @@ package app.cairn.widget
 import app.cairn.core.model.DisplayPrefs
 import app.cairn.data.ActivityRepository
 import app.cairn.data.DailyRepository
+import app.cairn.data.FitnessRepository
+import app.cairn.data.TrainingLoadRepository
 import app.cairn.data.RecoveryRepository
 import app.cairn.data.SleepRepository
 import java.time.Instant
@@ -22,6 +24,8 @@ class WidgetDataSources(
     val sleep: SleepRepository,
     val recovery: RecoveryRepository,
     val activities: ActivityRepository,
+    val trainingLoad: TrainingLoadRepository,
+    val fitness: FitnessRepository,
     val prefs: suspend () -> DisplayPrefs = { DisplayPrefs() },
     val auth: suspend () -> AuthState,
 )
@@ -55,5 +59,20 @@ object WidgetEnvironment {
 
     fun lastActivity(): Flow<WidgetUi<ActivityUi>> = build { s, day ->
         s.activities.observeRecent(day.minusDays(60), 1).map { WidgetMapper.lastActivity(it.firstOrNull()?.value, s.auth(), Instant.now(), day, prefs = s.prefs()) }
+    }
+
+    fun trainingLoad(): Flow<WidgetUi<TrainingLoadUi>> = build { s, day ->
+        combine(s.trainingLoad.observe(day.minusDays(14), day), s.fitness.observe()) { loads, fit ->
+            // No VO2max history is cached, so no trend yet (previousVo2max = null).
+            WidgetMapper.trainingLoad(loads.map { it.value }, fit?.value, null, s.auth(), Instant.now(), day, prefs = s.prefs())
+        }
+    }
+
+    fun sleep(): Flow<WidgetUi<SleepUi>> = build { s, day ->
+        s.sleep.observeLatest(day).map { WidgetMapper.sleep(it?.value, s.auth(), Instant.now(), day, prefs = s.prefs()) }
+    }
+
+    fun fitness(): Flow<WidgetUi<FitnessUi>> = build { s, _ ->
+        s.fitness.observe().map { WidgetMapper.fitness(it?.value, s.auth(), Instant.now(), s.prefs()) }
     }
 }

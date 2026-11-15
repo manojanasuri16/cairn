@@ -114,7 +114,7 @@ class AppGraph(private val context: Context) : SyncComponent {
     /** Widgets render from Room only; give them the repositories and the sign-in state. */
     fun installWidgets() {
         WidgetEnvironment.install(
-            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository, prefs = { appSettings.displayNow() }) { authState() },
+            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository, trainingLoadRepository, fitnessRepository, prefs = { appSettings.displayNow() }) { authState() },
         )
     }
 

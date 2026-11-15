@@ -54,7 +54,7 @@ private fun RecoveryBody(ui: WidgetUi.Content<RecoveryUi>) {
     val scale = LocalFontScale
     val b = ui.body
     val wide = size.width >= 150.dp
-    WidgetFrame(ui.description, tapIntent(context, ui.screen), footer = { FooterView(ui.footer, ui.screen, compact = !wide) }, padding = 10.dp) {
+    WidgetFrame(ui.description, bodyTap(context, WidgetKind.Recovery), footer = { FooterView(ui.footer, ui.screen, compact = !wide) }, padding = 10.dp) {
         val ring: @Composable () -> Unit = {
             Ring(b.fraction, if (wide) 80.dp else 76.dp, 8.dp) {
                 Txt(b.percentText, SizeRules.cappedSp(if (wide) 24f else 22f, scale), FontWeight.Medium)
