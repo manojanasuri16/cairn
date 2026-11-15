@@ -249,7 +249,14 @@ Keep modules coarse; this is a one-person app. The split exists mainly to keep `
 
 ### 4.5 OAuth on Android (to validate in M2)
 
-1. Pick the regional MCP host (US `mcpus.coros.com`, EU `mcpeu.coros.com`, CN `mcpcn.coros.com`; `mcp.coros.com` also documented). Laps (see Reference below) registers at `/connect/register` and authorizes at `/oauth2/authorize`. Verify against `/.well-known/openid-configuration` in M2.
+**Verified 2026-11-15** (unauthenticated GET of `/.well-known/oauth-authorization-server`, `openid-configuration`, `oauth-protected-resource`):
+
+- `mcpus`, `mcpeu` and `mcpcn.coros.com` each serve their own metadata with `issuer` = that host. `mcp.coros.com` also answers `/.well-known/*`. MCP endpoint is `<host>/mcp`.
+- Endpoints: `/oauth2/authorize`, `/oauth2/token`, `/oauth2/revoke`, `/oauth2/device_authorization`, `/connect/register` (DCR). PKCE `S256` only. Scopes `openid mcp.tools offline_access`. `token_endpoint_auth_methods_supported` includes `none`.
+- Grants: `authorization_code`, `refresh_token`, `urn:ietf:params:oauth:grant-type:device_code` (also `client_credentials`, `token-exchange`, unused). Revocation exists, so sign-out revokes.
+- Implemented in `source:corosmcp` (hand-rolled OkHttp + kotlinx.serialization): DCR per sign-in with the loopback redirect, PKCE, device-code fallback, refresh, revoke. Still to confirm on device: whether COROS accepts an ephemeral loopback port.
+
+1. Pick the regional MCP host (US default `mcpus.coros.com`, EU `mcpeu.coros.com`, CN `mcpcn.coros.com`).
 2. Dynamic client registration once per install (RFC 7591), scope `mcp.tools offline_access`, `token_endpoint_auth_method: none`, PKCE S256. **Loopback redirect first**: an ephemeral `http://127.0.0.1:<port>/callback` receiver plus a Custom Tab. Laps shows COROS accepts this. A custom scheme (`app.cairn:/oauth2redirect`) is untested.
 3. **If loopback fails on device**, fall back to the **device-code grant**: Cairn opens the verification URL in a Custom Tab and polls `/oauth2/token`. This avoids redirect URIs entirely.
 
