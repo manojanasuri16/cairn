@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":core:database"))
     implementation(project(":data"))
     implementation(project(":sync"))
+    implementation(project(":widget"))
     implementation(libs.work.runtime.ktx)
     implementation(libs.androidx.browser)
     implementation(libs.kotlinx.coroutines.android)

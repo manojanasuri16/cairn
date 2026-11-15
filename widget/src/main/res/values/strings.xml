@@ -1,0 +1,8 @@
+<resources>
+    <string name="widget_today_label">Cairn Today</string>
+    <string name="widget_recovery_label">Cairn Recovery</string>
+    <string name="widget_activity_label">Cairn Last activity</string>
+    <string name="widget_today_desc">Steps, sleep, resting heart rate and recovery at a glance.</string>
+    <string name="widget_recovery_desc">How recovered you are and when you will be fully recovered.</string>
+    <string name="widget_activity_desc">Your most recent workout: distance, time, pace and heart rate.</string>
+</resources>

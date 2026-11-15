@@ -23,13 +23,16 @@ import app.cairn.sync.DataStoreSyncSettings
 import app.cairn.sync.DataStoreSyncStateStore
 import app.cairn.sync.HealthConnectSource
 import app.cairn.sync.McpCorosGateway
-import app.cairn.sync.NoOpWidgetUpdater
 import app.cairn.sync.RepositorySyncWriter
 import app.cairn.sync.SyncComponent
 import app.cairn.sync.SyncComponentProvider
 import app.cairn.sync.SyncEngine
 import app.cairn.sync.SyncScheduler
 import app.cairn.sync.WidgetUpdater
+import app.cairn.widget.AuthState
+import app.cairn.widget.GlanceWidgetUpdater
+import app.cairn.widget.WidgetDataSources
+import app.cairn.widget.WidgetEnvironment
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +47,7 @@ class CairnApp : Application(), SyncComponentProvider {
 
     override fun onCreate() {
         super.onCreate()
+        graph.installWidgets()
         // Idempotent (UPDATE policy); also queues one APP_START refresh, which the MCP gap logic may skip.
         graph.appScope.launch { runCatching { graph.syncScheduler.onAppStart() } }
     }
@@ -56,8 +60,7 @@ class RegionStore(private val file: File) {
 }
 
 /**
- * Manual service locator: everything is created lazily, once. Swap [widgetUpdater] when the widget module
- * (M5) provides a real implementation.
+ * Manual service locator: everything is created lazily, once. [widgetUpdater] refreshes the Glance widgets after each sync run.
  */
 class AppGraph(private val context: Context) : SyncComponent {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -88,7 +91,7 @@ class AppGraph(private val context: Context) : SyncComponent {
     override val syncSettings by lazy { DataStoreSyncSettings(prefs) }
     override val syncState by lazy { DataStoreSyncStateStore(prefs) }
 
-    @Volatile var widgetUpdater: WidgetUpdater = NoOpWidgetUpdater
+    @Volatile var widgetUpdater: WidgetUpdater = GlanceWidgetUpdater(context)
 
     override val syncEngine: SyncEngine by lazy {
         SyncEngine(
@@ -100,6 +103,19 @@ class AppGraph(private val context: Context) : SyncComponent {
         )
     }
     override val syncScheduler: SyncScheduler by lazy { SyncScheduler(WorkManager.getInstance(context), syncSettings, syncState) }
+
+    /** Widgets render from Room only; give them the repositories and the sign-in state. */
+    fun installWidgets() {
+        WidgetEnvironment.install(
+            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository) {
+                when {
+                    syncState.get().needsSignIn -> AuthState.NeedsSignIn
+                    tokenStore.load() == null -> AuthState.SignedOut
+                    else -> AuthState.Ok
+                }
+            },
+        )
+    }
 
     fun onSignedIn() { appScope.launch { runCatching { syncScheduler.onSignedIn() } } }
     fun onSignedOut() { appScope.launch { runCatching { syncScheduler.onSignedOut() } } }

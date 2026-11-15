@@ -25,6 +25,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import app.cairn.widget.EXTRA_SCREEN
+import app.cairn.widget.PinnableWidget
+import app.cairn.widget.Screen
+import app.cairn.widget.WidgetPinner
 
 class MainActivity : ComponentActivity() {
     private val coros: CorosViewModel by viewModels()
@@ -32,19 +37,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { CairnApp(coros) }
+        setContent { CairnApp(coros, intent?.getStringExtra(EXTRA_SCREEN) == Screen.Account.name) }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CairnApp(coros: CorosViewModel) {
+private fun CairnApp(coros: CorosViewModel, openAccount: Boolean) {
     val context = LocalContext.current
     val dark = isSystemInDarkTheme()
     // minSdk 34, so dynamic colour is always available.
     val colors = if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     var inspector by rememberSaveable { mutableStateOf(false) }
-    var account by rememberSaveable { mutableStateOf(false) }
+    var account by rememberSaveable { mutableStateOf(openAccount) }
     var diagnostics by rememberSaveable { mutableStateOf(false) }
     BackHandler(enabled = inspector || account || diagnostics) { inspector = false; account = false; diagnostics = false }
     MaterialTheme(colorScheme = colors) {
@@ -63,6 +68,12 @@ private fun CairnApp(coros: CorosViewModel) {
                     TextButton(onClick = { inspector = true }) { Text("Data sources") }
                     TextButton(onClick = { account = true }) { Text("COROS account") }
                     TextButton(onClick = { diagnostics = true }) { Text("Sync diagnostics") }
+                    if (WidgetPinner.isSupported(context)) {
+                        Text("Add widget", Modifier.padding(start = 12.dp, top = 12.dp), style = MaterialTheme.typography.labelLarge)
+                        PinnableWidget.entries.forEach { w ->
+                            TextButton(onClick = { WidgetPinner.pin(context, w) }) { Text(w.label) }
+                        }
+                    }
                 }
             }
         }
