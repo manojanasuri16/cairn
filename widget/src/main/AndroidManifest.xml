@@ -86,5 +86,53 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_overview_large_info" />
         </receiver>
+        <receiver android:name=".HrvWidgetReceiver" android:exported="true" android:label="@string/widget_hrv_label_small">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_hrv_info" />
+        </receiver>
+        <receiver android:name=".HrvWideWidgetReceiver" android:exported="true" android:label="@string/widget_hrv_label_wide">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_hrv_wide_info" />
+        </receiver>
+        <receiver android:name=".HrvLargeWidgetReceiver" android:exported="true" android:label="@string/widget_hrv_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_hrv_large_info" />
+        </receiver>
+        <receiver android:name=".HeartRateWidgetReceiver" android:exported="true" android:label="@string/widget_heart_label_small">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_heart_info" />
+        </receiver>
+        <receiver android:name=".HeartRateWideWidgetReceiver" android:exported="true" android:label="@string/widget_heart_label_wide">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_heart_wide_info" />
+        </receiver>
+        <receiver android:name=".HeartRateLargeWidgetReceiver" android:exported="true" android:label="@string/widget_heart_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_heart_large_info" />
+        </receiver>
+        <receiver android:name=".StressWidgetReceiver" android:exported="true" android:label="@string/widget_stress_label_small">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_stress_info" />
+        </receiver>
+        <receiver android:name=".StressWideWidgetReceiver" android:exported="true" android:label="@string/widget_stress_label_wide">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_stress_wide_info" />
+        </receiver>
+        <receiver android:name=".StressLargeWidgetReceiver" android:exported="true" android:label="@string/widget_stress_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_stress_large_info" />
+        </receiver>
+        <receiver android:name=".WeeklyMileageSmallWidgetReceiver" android:exported="true" android:label="@string/widget_mileage_label_small">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_mileage_small_info" />
+        </receiver>
+        <receiver android:name=".WeeklyMileageWidgetReceiver" android:exported="true" android:label="@string/widget_mileage_label_wide">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_mileage_info" />
+        </receiver>
+        <receiver android:name=".WeeklyMileageLargeWidgetReceiver" android:exported="true" android:label="@string/widget_mileage_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_mileage_large_info" />
+        </receiver>
     </application>
 </manifest>

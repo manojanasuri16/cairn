@@ -197,4 +197,75 @@ object Gfx {
         }
         b
     }
+
+    private data class RangeKey(val w: Int, val h: Int, val band: Pair<Int, Int>?, val marker: Int, val colors: List<Int>)
+
+    /**
+     * A horizontal range bar: a rounded track, the shaded [band] (0..1 start and end, e.g. the normal range) and a vertical marker
+     * pin at [marker] (0..1) with a ring in the card colour so it reads over the band. Colours: track, band, marker, markerRing.
+     */
+    fun rangeBar(wPx: Int, hPx: Int, band: Pair<Float, Float>?, marker: Float, track: Int, bandColor: Int, markerColor: Int, ring: Int): Bitmap =
+        cached(RangeKey(wPx, hPx, band?.let { (it.first.coerceIn(0f, 1f) * 1000).toInt() to (it.second.coerceIn(0f, 1f) * 1000).toInt() }, (marker.coerceIn(0f, 1f) * 1000).toInt(), listOf(track, bandColor, markerColor, ring))) {
+            val b = bmp(wPx, hPx)
+            val c = Canvas(b)
+            val p = paint()
+            val trackH = b.height * 0.5f
+            val top = (b.height - trackH) / 2f
+            p.color = track
+            c.drawRoundRect(RectF(0f, top, b.width.toFloat(), top + trackH), trackH / 2f, trackH / 2f, p)
+            if (band != null) {
+                p.color = bandColor
+                val l = b.width * band.first.coerceIn(0f, 1f)
+                val r = (b.width * band.second.coerceIn(0f, 1f)).coerceAtLeast(l + trackH)
+                c.drawRoundRect(RectF(l, top, r.coerceAtMost(b.width.toFloat()), top + trackH), trackH / 2f, trackH / 2f, p)
+            }
+            val pinW = (b.height * 0.26f).coerceAtLeast(4f)
+            val cx = (b.width * marker.coerceIn(0f, 1f)).coerceIn(pinW, b.width - pinW)
+            p.color = ring
+            c.drawRoundRect(RectF(cx - pinW * 0.5f - 2f, 0f, cx + pinW * 0.5f + 2f, b.height.toFloat()), pinW, pinW, p)
+            p.color = markerColor
+            c.drawRoundRect(RectF(cx - pinW * 0.5f, 2f, cx + pinW * 0.5f, b.height - 2f), pinW, pinW, p)
+            b
+        }
+
+    private data class BandBarsKey(val w: Int, val h: Int, val pct: List<Int>, val colors: List<Int>, val today: Int, val band: Pair<Int, Int>?, val extra: List<Int>)
+
+    /**
+     * Day bars with an optional shaded horizontal [band] behind them (0..1 of the height, e.g. the normal range) and a colour per bar.
+     * A fraction below 0 means "no reading": a small neutral stub marks the day. The bar at [todayIdx] gets an outline in [todayRing].
+     */
+    fun bandBars(wPx: Int, hPx: Int, fractions: List<Float>, colors: List<Int>, todayIdx: Int, todayRing: Int, band: Pair<Float, Float>?, bandColor: Int, stubColor: Int): Bitmap =
+        cached(BandBarsKey(wPx, hPx, fractions.map { if (it < 0f) -1 else (it.coerceIn(0f, 1f) * 100).toInt() }, colors, todayIdx, band?.let { (it.first.coerceIn(0f, 1f) * 100).toInt() to (it.second.coerceIn(0f, 1f) * 100).toInt() }, listOf(todayRing, bandColor, stubColor))) {
+            val b = bmp(wPx, hPx)
+            val c = Canvas(b)
+            val n = fractions.size.coerceAtLeast(1)
+            val slot = b.width.toFloat() / n
+            val barW = slot * 0.56f
+            val p = paint()
+            if (band != null) {
+                p.color = bandColor
+                val top = b.height * (1f - band.second.coerceIn(0f, 1f))
+                val bottom = b.height * (1f - band.first.coerceIn(0f, 1f))
+                c.drawRoundRect(RectF(0f, top, b.width.toFloat(), bottom.coerceAtLeast(top + 2f)), 6f, 6f, p)
+            }
+            val stub = (b.height * 0.05f).coerceAtLeast(3f)
+            fractions.forEachIndexed { i, f ->
+                val left = i * slot + (slot - barW) / 2f
+                if (f < 0f) {
+                    p.color = stubColor
+                    c.drawRoundRect(RectF(left, b.height - stub, left + barW, b.height.toFloat()), barW / 3f, barW / 3f, p)
+                } else {
+                    val bh = (b.height * f.coerceIn(0f, 1f)).coerceAtLeast(stub)
+                    val r = RectF(left, b.height - bh, left + barW, b.height.toFloat())
+                    p.style = Paint.Style.FILL
+                    p.color = colors[i]
+                    c.drawRoundRect(r, barW / 3f, barW / 3f, p)
+                    if (i == todayIdx) {
+                        val o = paint(); o.style = Paint.Style.STROKE; o.strokeWidth = 2f; o.color = todayRing
+                        c.drawRoundRect(RectF(r.left - 1f, r.top - 1f, r.right + 1f, r.bottom), barW / 3f, barW / 3f, o)
+                    }
+                }
+            }
+            b
+        }
 }

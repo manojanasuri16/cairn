@@ -153,6 +153,7 @@ private fun ConfigScreen(graph: AppGraph, kind: WidgetKind, id: Int, onDone: (Wi
         app.cairn.widget.WidgetLog.d("config loaded kind=$kind id=$id key=wcfg_$id metrics=${loaded?.metrics?.map { it.name }} style=${loaded?.style}")
     }
     val appearance by settings.appearance.collectAsStateWithLifecycle(initialValue = AppAppearance())
+    val display by graph.appSettings.display.collectAsStateWithLifecycle(initialValue = app.cairn.core.model.DisplayPrefs())
     val tapTarget by graph.appSettings.tapTarget(kind).collectAsStateWithLifecycle(initialValue = TapTarget.CorosHome)
     val scope = rememberCoroutineScope()
     val cfg = loaded
@@ -169,7 +170,7 @@ private fun ConfigScreen(graph: AppGraph, kind: WidgetKind, id: Int, onDone: (Wi
                 WidgetCustomizer(
                     kind, cfg, { loaded = it }, appearance, size, { size = it },
                     "This only changes the preview. Resize the widget on your home screen by long-pressing it.",
-                    tapTarget, { editTap = true },
+                    tapTarget, { editTap = true }, appUnit = display.unit,
                 )
             }
             Row(Modifier.fillMaxWidth().padding(Spacing.md).navigationBarsPadding(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

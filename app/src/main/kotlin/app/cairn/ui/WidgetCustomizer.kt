@@ -52,6 +52,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import app.cairn.core.designsystem.AccentOption
 import app.cairn.core.designsystem.Spacing
 import app.cairn.core.designsystem.ThemeId
+import app.cairn.core.model.DistanceUnit
 import app.cairn.widget.AppAppearance
 import app.cairn.widget.Bg
 import app.cairn.widget.Corners
@@ -60,6 +61,7 @@ import app.cairn.widget.Part
 import app.cairn.widget.ResolvedConfig
 import app.cairn.widget.TapTarget
 import app.cairn.widget.UnitsPref
+import app.cairn.widget.WeeklyGoal
 import app.cairn.widget.WidgetCatalog
 import app.cairn.widget.WidgetConfig
 import app.cairn.widget.WidgetKind
@@ -96,11 +98,29 @@ fun styleHint(s: WidgetStyle): String = when (s) {
     WidgetStyle.FitnessVo2 -> "VO2max up front"
     WidgetStyle.FitnessLadder -> "Paces listed like a ladder"
     WidgetStyle.OverviewGrid -> "Your chosen stats in a tidy grid"
+    WidgetStyle.HrvRange -> "A bar with your normal range shaded and a marker for last night"
+    WidgetStyle.HrvNights -> "Seven nights as bars, the normal range as a stripe"
+    WidgetStyle.HrvPill -> "A big number and COROS's word for it"
+    WidgetStyle.HeartSpark -> "Resting heart rate with a 7-day line"
+    WidgetStyle.HeartRange -> "Today's lowest, average and highest on one bar"
+    WidgetStyle.HeartPair -> "Daily average and resting heart rate side by side"
+    WidgetStyle.StressPill -> "Today's number with its level word"
+    WidgetStyle.StressBars -> "Seven days of bars, coloured by level"
+    WidgetStyle.StressGauge -> "A half-circle gauge with the number inside"
+    WidgetStyle.MileageBars -> "Distance per day, Monday to Sunday"
+    WidgetStyle.MileageGoal -> "A ring that fills towards your weekly goal"
+    WidgetStyle.MileageTrend -> "The week's total with a line building up"
 }
 
 private fun partHint(p: Part): String = when (p) {
     Part.Rings -> "Small rings and trend lines inside the tiles"
     Part.Comment -> "A short sentence about your load"
+    Part.NormalRange -> "The normal range COROS gives for you"
+    Part.Baseline -> "Your baseline HRV"
+    Part.SevenDayAvg -> "The average of the last seven days"
+    Part.DailyAvg -> "Today's average with the lowest and highest"
+    Part.ActivityCount -> "How many activities made up the total"
+    Part.VsLastWeek -> "The change from last Monday-to-Sunday week"
     else -> "Show or hide ${p.label.lowercase()}"
 }
 
@@ -134,6 +154,8 @@ fun WidgetCustomizer(
     tapTarget: TapTarget,
     onEditTap: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The app-wide distance unit, for the weekly goal's default and label. */
+    appUnit: DistanceUnit = DistanceUnit.Km,
 ) {
     val resolved = cfg.resolve(kind, appearance)
     var section by rememberSaveable { mutableStateOf(CustomSection.Style) }
@@ -169,6 +191,7 @@ fun WidgetCustomizer(
                 }
                 CustomSection.Content -> {
                     if (kind == WidgetKind.Overview) OverviewStats(cfg, resolved, onCfg)
+                    if (kind == WidgetKind.WeeklyMileage) WeeklyGoalEditor(cfg, appUnit, onCfg)
                     val parts = Part.forKind(kind)
                     if (parts.isEmpty() && kind != WidgetKind.Overview) Text("Nothing to switch on or off for this widget.", style = MaterialTheme.typography.bodyMedium)
                     parts.forEach { part ->
@@ -261,6 +284,27 @@ private fun OverviewStats(cfg: WidgetConfig, resolved: ResolvedConfig, set: (Wid
     }
 }
 
+/** Weekly mileage: an optional goal for the Goal ring (30 km or 20 mi to start with). Without one the ring style shows bars. */
+@Composable
+private fun WeeklyGoalEditor(cfg: WidgetConfig, appUnit: DistanceUnit, set: (WidgetConfig) -> Unit) {
+    val unit = when (cfg.units) { UnitsPref.Km -> DistanceUnit.Km; UnitsPref.Mi -> DistanceUnit.Mi; UnitsPref.Inherit -> appUnit }
+    val label = if (unit == DistanceUnit.Mi) "mi" else "km"
+    val goal = cfg.weeklyGoal
+    val max = if (unit == DistanceUnit.Mi) WeeklyGoal.MAX_MI else WeeklyGoal.MAX_KM
+    ToggleRow("Weekly goal", "The Goal ring fills towards it. Without a goal the Goal ring style shows bars instead.", goal != null) {
+        set(cfg.copy(weeklyGoal = if (it) WeeklyGoal.default(unit) else null))
+    }
+    if (goal != null) {
+        val shown = goal.inUnit(unit).coerceIn(5, max)
+        Text("Goal: $shown $label a week", style = MaterialTheme.typography.titleSmall)
+        Slider(
+            value = shown.toFloat(), onValueChange = { set(cfg.copy(weeklyGoal = WeeklyGoal(((it / 5f).toInt() * 5).coerceIn(5, max), unit))) },
+            valueRange = 5f..max.toFloat(), steps = max / 5 - 2,
+            modifier = Modifier.semantics { contentDescription = "Weekly goal"; stateDescription = "$shown $label" },
+        )
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MoreOptions(kind: WidgetKind, cfg: WidgetConfig, set: (WidgetConfig) -> Unit) {
@@ -282,7 +326,7 @@ private fun MoreOptions(kind: WidgetKind, cfg: WidgetConfig, set: (WidgetConfig)
                 )
             }
         }
-        if (kind == WidgetKind.LastActivity || kind == WidgetKind.Fitness) {
+        if (kind == WidgetKind.LastActivity || kind == WidgetKind.Fitness || kind == WidgetKind.WeeklyMileage) {
             Text("Units for this widget", style = MaterialTheme.typography.titleSmall)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 UnitsPref.entries.forEach { u -> FilterChip(selected = cfg.units == u, onClick = { set(cfg.copy(units = u)) }, label = { Text(u.label) }, modifier = Modifier.semantics { role = Role.RadioButton }) }

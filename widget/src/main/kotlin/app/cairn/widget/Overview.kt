@@ -12,7 +12,9 @@ enum class OverviewId(val label: String) {
     Calories("Calories"), Stress("Stress"),
     /** Id kept as LoadRatio so placed widgets keep their choice; COROS calls it Intensity Trend and shows it as a percent. */
     LoadRatio("Intensity Trend"), Vo2("VO2max"), LastDistance("Last run"),
-    HeartRate("Heart rate"), Hrv("HRV"), WeeklyLoad("Weekly load"), TodayRun("Today's run");
+    HeartRate("Heart rate"), Hrv("HRV"), WeeklyLoad("Weekly load"), TodayRun("Today's run"),
+    /** Added in 1.4.0; appended so the ids and order of every earlier stat stay as they were. */
+    WeeklyMileage("Weekly mileage");
 
     companion object {
         val Default = listOf(Steps, Sleep, Recovery, RestingHr)

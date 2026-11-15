@@ -18,14 +18,16 @@ enum class WidgetSize(val label: String, val cells: String, val cw: Int, val ch:
 object WidgetVariants {
     /** The size each of the original receivers has always provided. They are never renamed or removed. */
     fun defaultSize(kind: WidgetKind): WidgetSize = when (kind) {
-        WidgetKind.Today, WidgetKind.Recovery, WidgetKind.Sleep -> WidgetSize.Small
-        WidgetKind.LastActivity, WidgetKind.TrainingLoad, WidgetKind.Fitness, WidgetKind.Overview -> WidgetSize.Wide
+        WidgetKind.Today, WidgetKind.Recovery, WidgetKind.Sleep, WidgetKind.Hrv, WidgetKind.HeartRate, WidgetKind.Stress -> WidgetSize.Small
+        WidgetKind.LastActivity, WidgetKind.TrainingLoad, WidgetKind.Fitness, WidgetKind.Overview, WidgetKind.WeeklyMileage -> WidgetSize.Wide
     }
 
     private fun original(kind: WidgetKind) = when (kind) {
         WidgetKind.Today -> "TodayWidgetReceiver"; WidgetKind.Recovery -> "RecoveryWidgetReceiver"
         WidgetKind.LastActivity -> "LastActivityWidgetReceiver"; WidgetKind.TrainingLoad -> "TrainingLoadWidgetReceiver"
         WidgetKind.Sleep -> "SleepWidgetReceiver"; WidgetKind.Fitness -> "FitnessWidgetReceiver"; WidgetKind.Overview -> "OverviewWidgetReceiver"
+        WidgetKind.Hrv -> "HrvWidgetReceiver"; WidgetKind.HeartRate -> "HeartRateWidgetReceiver"
+        WidgetKind.Stress -> "StressWidgetReceiver"; WidgetKind.WeeklyMileage -> "WeeklyMileageWidgetReceiver"
     }
 
     /** Simple class name of the receiver whose default cell size is [size]. */
@@ -53,6 +55,18 @@ object WidgetVariants {
         "FitnessSmallWidgetReceiver" -> FitnessSmallWidgetReceiver::class.java
         "FitnessLargeWidgetReceiver" -> FitnessLargeWidgetReceiver::class.java
         "OverviewSmallWidgetReceiver" -> OverviewSmallWidgetReceiver::class.java
+        "HrvWidgetReceiver" -> HrvWidgetReceiver::class.java
+        "HrvWideWidgetReceiver" -> HrvWideWidgetReceiver::class.java
+        "HrvLargeWidgetReceiver" -> HrvLargeWidgetReceiver::class.java
+        "HeartRateWidgetReceiver" -> HeartRateWidgetReceiver::class.java
+        "HeartRateWideWidgetReceiver" -> HeartRateWideWidgetReceiver::class.java
+        "HeartRateLargeWidgetReceiver" -> HeartRateLargeWidgetReceiver::class.java
+        "StressWidgetReceiver" -> StressWidgetReceiver::class.java
+        "StressWideWidgetReceiver" -> StressWideWidgetReceiver::class.java
+        "StressLargeWidgetReceiver" -> StressLargeWidgetReceiver::class.java
+        "WeeklyMileageWidgetReceiver" -> WeeklyMileageWidgetReceiver::class.java
+        "WeeklyMileageSmallWidgetReceiver" -> WeeklyMileageSmallWidgetReceiver::class.java
+        "WeeklyMileageLargeWidgetReceiver" -> WeeklyMileageLargeWidgetReceiver::class.java
         else -> OverviewLargeWidgetReceiver::class.java
     }
 

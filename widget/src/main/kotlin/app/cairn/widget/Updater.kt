@@ -18,6 +18,10 @@ class GlanceWidgetUpdater(private val context: Context) : WidgetUpdater {
         SleepWidget().updateAll(context)
         FitnessWidget().updateAll(context)
         OverviewWidget().updateAll(context)
+        HrvWidget().updateAll(context)
+        HeartRateWidget().updateAll(context)
+        StressWidget().updateAll(context)
+        WeeklyMileageWidget().updateAll(context)
     }
 
     /** Re-renders one widget kind after its configuration changed. */
@@ -30,6 +34,10 @@ class GlanceWidgetUpdater(private val context: Context) : WidgetUpdater {
             WidgetKind.Sleep -> SleepWidget().updateAll(context)
             WidgetKind.Fitness -> FitnessWidget().updateAll(context)
             WidgetKind.Overview -> OverviewWidget().updateAll(context)
+            WidgetKind.Hrv -> HrvWidget().updateAll(context)
+            WidgetKind.HeartRate -> HeartRateWidget().updateAll(context)
+            WidgetKind.Stress -> StressWidget().updateAll(context)
+            WidgetKind.WeeklyMileage -> WeeklyMileageWidget().updateAll(context)
         }
     }
 }
@@ -42,7 +50,11 @@ enum class PinnableWidget(val label: String, val receiver: Class<*>, val kind: W
     TrainingLoad("Training load", TrainingLoadWidgetReceiver::class.java, WidgetKind.TrainingLoad),
     Sleep("Sleep", SleepWidgetReceiver::class.java, WidgetKind.Sleep),
     Fitness("Fitness", FitnessWidgetReceiver::class.java, WidgetKind.Fitness),
-    Overview("Overview", OverviewWidgetReceiver::class.java, WidgetKind.Overview);
+    Overview("Overview", OverviewWidgetReceiver::class.java, WidgetKind.Overview),
+    Hrv("Overnight HRV", HrvWidgetReceiver::class.java, WidgetKind.Hrv),
+    HeartRate("Heart rate", HeartRateWidgetReceiver::class.java, WidgetKind.HeartRate),
+    Stress("Stress", StressWidgetReceiver::class.java, WidgetKind.Stress),
+    WeeklyMileage("Weekly mileage", WeeklyMileageWidgetReceiver::class.java, WidgetKind.WeeklyMileage);
 
     /** "Ring, Gauge arc, Number and pill": the styles on offer, shown under the add button. */
     val styles: String get() = WidgetStyle.forKind(kind).joinToString(", ") { it.label }

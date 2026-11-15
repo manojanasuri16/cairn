@@ -99,7 +99,7 @@ object WidgetEnvironment {
         val second = combine(s.trainingLoad.observe(day.minusDays(14), day), s.fitness.observe(), s.activities.observeRecent(day.minusDays(60), 1)) { l, f, a -> Triple(l.map { it.value }, f?.value, a.firstOrNull()?.value) }
         val third = combine(
             s.vitals?.observe(day, day) ?: flowOf(emptyList()), s.hrv?.observe(day, day) ?: flowOf(emptyList()),
-            s.activities.observeRecent(day.minusDays(7), 100), s.details?.observeAll() ?: flowOf(emptyMap()),
+            s.activities.observeRecent(app.cairn.core.model.WeeklyMileage.mondayOf(day).minusDays(7), 500), s.details?.observeAll() ?: flowOf(emptyMap()),
         ) { v, h, acts, det -> Extras(v.lastOrNull()?.value, h.lastOrNull()?.value, acts.map { it.value }, det) }
         combine(first, second, third) { (d, sl, r), (l, f, a), x ->
             val prefs = s.prefsWith(unit); val now = Instant.now(); val auth = s.auth()
@@ -110,8 +110,35 @@ object WidgetEnvironment {
                 WidgetMapper.overviewExtras(
                     x.vitals, x.hrv, if (s.details != null) app.cairn.core.model.WeeklyLoad.compute(x.activities, x.details, day) else null,
                     (x.details.values.maxOfOrNull { it.stamp.sourceUpdatedAt } ?: x.activities.maxOfOrNull { it.stamp.sourceUpdatedAt }), x.activities.firstOrNull { it.date == day && (it.distanceMeters ?: 0.0) > 0 }, now, day, prefs,
+                    mileage = app.cairn.core.model.WeeklyMileage.compute(x.activities, day), mileageStamp = x.activities.filter { !it.date.isBefore(app.cairn.core.model.WeeklyMileage.mondayOf(day)) }.maxOfOrNull { it.stamp.sourceUpdatedAt },
                 ),
             )
+        }
+    }
+
+    fun hrv(unit: DistanceUnit? = null): Flow<WidgetUi<HrvUi>> = build { s, day ->
+        (s.hrv?.observe(day.minusDays(6), day) ?: flowOf(emptyList())).map { rows ->
+            WidgetMapper.hrv(rows.map { it.value }, s.auth(), Instant.now(), day, prefs = s.prefsWith(unit))
+        }
+    }
+
+    fun heartRate(unit: DistanceUnit? = null): Flow<WidgetUi<HeartRateUi>> = build { s, day ->
+        (s.vitals?.observe(day.minusDays(6), day) ?: flowOf(emptyList())).map { rows ->
+            WidgetMapper.heartRate(rows.map { it.value }, s.auth(), Instant.now(), day, prefs = s.prefsWith(unit))
+        }
+    }
+
+    fun stress(unit: DistanceUnit? = null): Flow<WidgetUi<StressUi>> = build { s, day ->
+        (s.vitals?.observe(day.minusDays(6), day) ?: flowOf(emptyList())).map { rows ->
+            WidgetMapper.stress(rows.map { it.value }, s.auth(), Instant.now(), day, prefs = s.prefsWith(unit))
+        }
+    }
+
+    /** Two weeks of activities (this Monday to Sunday and the one before), so a week that spans two months is complete. */
+    fun weeklyMileage(unit: DistanceUnit? = null): Flow<WidgetUi<MileageUi>> = build { s, day ->
+        val since = app.cairn.core.model.WeeklyMileage.mondayOf(day).minusDays(7)
+        s.activities.observeRecent(since, 500).map { rows ->
+            WidgetMapper.weeklyMileage(rows.map { it.value }, s.auth(), Instant.now(), day, prefs = s.prefsWith(unit))
         }
     }
 

@@ -17,6 +17,10 @@ internal object SamplePlans {
         WidgetKind.Sleep -> Layouts.plan(style, w, h, scale, chars = 6, heroText = "7h 41m", values = legend)
         WidgetKind.Fitness -> Layouts.plan(style, w, h, scale, heroText = "52", values = raceTimes)
         WidgetKind.Overview -> Layouts.plan(style, w, h, scale)
+        WidgetKind.Hrv -> Layouts.plan(style, w, h, scale, chars = 5, heroText = "65 ms", values = listOf("Elevated"))
+        WidgetKind.HeartRate -> Layouts.plan(style, w, h, scale, chars = 6, heroText = "51 bpm")
+        WidgetKind.Stress -> Layouts.plan(style, w, h, scale, chars = 2, heroText = "30", values = listOf("Medium"))
+        WidgetKind.WeeklyMileage -> Layouts.plan(style, w, h, scale, chars = 4, heroText = "25.10 km")
     }
 
     /** Smallest cell Android lets the user place, from each provider's widget_info. */
@@ -24,7 +28,7 @@ internal object SamplePlans {
         WidgetKind.Today, WidgetKind.Recovery, WidgetKind.Sleep -> 110 to 110
         WidgetKind.LastActivity -> 250 to 40
         WidgetKind.TrainingLoad, WidgetKind.Fitness -> 250 to 110
-        WidgetKind.Overview -> 110 to 110
+        WidgetKind.Overview, WidgetKind.Hrv, WidgetKind.HeartRate, WidgetKind.Stress, WidgetKind.WeeklyMileage -> 110 to 110
     }
 
     /** Typical launcher cells: 2x2 (110-180 x 110-230), 3x2, 4x2 (250-330 x 110-230), 4x3 (250-330 x 230-330), 4x1 (250-330 x 55-90). */

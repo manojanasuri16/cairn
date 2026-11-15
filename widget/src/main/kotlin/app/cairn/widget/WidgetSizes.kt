@@ -22,6 +22,10 @@ object WidgetSizes {
         WidgetKind.TrainingLoad to listOf(250 to 110, 250 to 145),
         WidgetKind.Sleep to listOf(110 to 110, 110 to 115, 110 to 125, 110 to 140, 110 to 150, 110 to 165, 110 to 205, 110 to 220, 120 to 190, 120 to 205, 195 to 110, 195 to 115, 195 to 130, 195 to 145, 195 to 170, 245 to 115),
         WidgetKind.Overview to listOf(110 to 110, 110 to 158, 110 to 216, 110 to 274, 138 to 110, 138 to 158, 138 to 216, 138 to 274, 200 to 110, 200 to 158, 200 to 216, 200 to 274, 262 to 110, 262 to 158, 262 to 216, 262 to 274),
+        WidgetKind.Hrv to listOf(110 to 110, 110 to 140, 110 to 145, 110 to 160, 110 to 170, 110 to 185, 110 to 195, 195 to 110, 195 to 125, 195 to 135, 195 to 165, 195 to 190),
+        WidgetKind.HeartRate to listOf(110 to 110, 110 to 120, 110 to 130, 110 to 145, 110 to 160, 195 to 110, 195 to 125),
+        WidgetKind.Stress to listOf(110 to 110, 110 to 135, 110 to 160, 110 to 185, 110 to 205, 110 to 220, 195 to 110, 195 to 120, 195 to 135, 195 to 160),
+        WidgetKind.WeeklyMileage to listOf(110 to 110, 110 to 125, 110 to 145, 110 to 160, 110 to 175, 195 to 110, 195 to 120),
         WidgetKind.Fitness to listOf(250 to 110, 250 to 125, 250 to 145, 250 to 150, 250 to 175, 250 to 190, 250 to 205, 250 to 240, 305 to 110, 305 to 120, 305 to 125, 305 to 150, 320 to 150),
     )
 

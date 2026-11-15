@@ -1,6 +1,7 @@
 package app.cairn.widget
 
 import app.cairn.core.model.Freshness
+import app.cairn.core.model.StressBand
 
 /** Synthetic sample data for previews. Made up; never derived from the user's data. */
 object Samples {
@@ -61,4 +62,45 @@ object Samples {
         ),
         "Overview. Steps 8,432. Sleep 7 hours 41 minutes. Recovery 82 percent. Resting heart rate 52.",
     )
+
+    private val letters = "MTWTFSS"
+
+    fun hrv() = content(
+        HrvUi(
+            "65", "ms", 65, "Elevated", Tone.Cool, "Normal range 46-58 ms", 46, 58, "Baseline 52 ms", 52,
+            listOf(52, 49, 55, 58, 47, 61, 65).mapIndexed { i, ms -> HrvNight(letters[i].toString(), ms, i == 6, "day ${i + 1} $ms milliseconds") },
+        ),
+        "Overnight HRV 65 milliseconds. Elevated. Normal range 46 to 58 milliseconds.",
+    )
+
+    fun heartRate() = content(
+        HeartRateUi(
+            "51", "bpm", "Resting HR", 51, 70, 44, 154, "7-day avg 53 bpm", "Daily average 70 bpm", "44-154 bpm",
+            listOf(55, 54, 53, 54, 52, 53, 51),
+        ),
+        "Resting heart rate 51 bpm. Seven day average 53 bpm. Daily average 70 bpm.",
+    )
+
+    fun stress() = content(
+        StressUi(
+            "30", 30, "Low", Tone.Good, "7-day avg 30",
+            listOf(24, 35, 28, 41, 22, 33, 30).mapIndexed { i, v -> StressBar(letters[i].toString(), v, v / 45f, WidgetMapper.stressTone(StressBand.of(v)!!), i == 6, "day ${i + 1} stress $v") },
+        ),
+        "Stress 30. Low. Seven day average 30.",
+    )
+
+    fun mileage(): WidgetUi.Content<MileageUi> {
+        val km = listOf(6.2, 0.0, 8.1, 0.0, 5.3, 5.5, 0.0)
+        val peak = km.max()
+        val total = km.sum()
+        var run = 0.0
+        return WidgetUi.Content(
+            MileageUi(
+                "25.10", "km", total * 1000, 4, "4 activities", "+12% vs last week", 12,
+                km.mapIndexed { i, d -> MileageBar(letters[i].toString(), d * 1000, (d / peak).toFloat(), i == 5, "day ${i + 1} $d km") },
+                km.take(6).map { run += it; (run / total).toFloat() },
+            ),
+            footer, "Weekly mileage 25.10 kilometres this week. 4 activities. +12% vs last week.", Screen.Activities,
+        )
+    }
 }

@@ -47,3 +47,54 @@ object SleepRating {
         else -> "Poor"
     }
 }
+
+/**
+ * COROS-style stress words for the day's average stress (1-99). **The band edges are an assumption**: COROS does not publish them,
+ * so Cairn uses Relaxed 1-25, Low 26-50, Medium 51-75 and High 76-99 (documented in docs/data-sources.md).
+ */
+enum class StressBand(val word: String, val low: Int, val high: Int) {
+    Relaxed("Relaxed", 1, 25), Low("Low", 26, 50), Medium("Medium", 51, 75), High("High", 76, 99);
+
+    companion object {
+        /** Null for 0 or less: the server uses "no data" there. Anything above 99 is High. */
+        fun of(value: Int): StressBand? = when {
+            value <= 0 -> null
+            value <= 25 -> Relaxed
+            value <= 50 -> Low
+            value <= 75 -> Medium
+            else -> High
+        }
+    }
+}
+
+/**
+ * COROS-style weekly distance: the sum of `distanceMeters` of ALL cached activities from Monday to Sunday of the week that holds
+ * [today] (the same way COROS's month header sums), the per-day sums, and the previous Monday-Sunday week for the comparison.
+ * A week that spans two months is handled because dates, not months, decide.
+ */
+data class WeeklyMileage(
+    val monday: LocalDate,
+    val totalMeters: Double,
+    val count: Int,
+    /** Monday..Sunday of this week; days after today are 0. */
+    val dayMeters: List<Double>,
+    val lastWeekMeters: Double,
+    val lastWeekCount: Int,
+) {
+    /** Percent change against last week, or null when last week has no distance to compare with. */
+    val changePercent: Int? get() = if (lastWeekMeters > 0.0) Math.round((totalMeters - lastWeekMeters) / lastWeekMeters * 100.0).toInt() else null
+
+    companion object {
+        fun mondayOf(date: LocalDate): LocalDate = date.minusDays((date.dayOfWeek.value - 1).toLong())
+
+        fun compute(activities: List<Activity>, today: LocalDate): WeeklyMileage {
+            val monday = mondayOf(today)
+            val lastMonday = monday.minusDays(7)
+            fun dist(a: Activity) = (a.distanceMeters ?: 0.0).coerceAtLeast(0.0)
+            val thisWeek = activities.filter { !it.date.isBefore(monday) && !it.date.isAfter(monday.plusDays(6)) && !it.date.isAfter(today) }
+            val lastWeek = activities.filter { !it.date.isBefore(lastMonday) && it.date.isBefore(monday) }
+            val days = (0..6).map { i -> val d = monday.plusDays(i.toLong()); thisWeek.filter { it.date == d }.sumOf(::dist) }
+            return WeeklyMileage(monday, thisWeek.sumOf(::dist), thisWeek.size, days, lastWeek.sumOf(::dist), lastWeek.size)
+        }
+    }
+}

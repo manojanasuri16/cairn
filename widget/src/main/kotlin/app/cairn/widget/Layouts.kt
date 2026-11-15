@@ -164,7 +164,7 @@ object Layouts {
         return minOf(avail, maxDp, maxByWidth).coerceAtLeast(minDp.coerceAtMost(avail)).toInt() to 0
     }
 
-    private fun ringNumeralSp(ringDp: Int, strokeDp: Float, chars: Int): Float {
+    internal fun ringNumeralSp(ringDp: Int, strokeDp: Float, chars: Int): Float {
         val inner = ringDp - 2 * strokeDp - 8
         val byWidth = inner / (0.56f * chars)
         return minOf(ringDp * 0.3f, byWidth).coerceAtLeast(WidgetTokens.MIN_RING_NUMERAL_SP)
@@ -178,6 +178,7 @@ object Layouts {
         val p = pad(sc, h)
         // A one-row strip cannot hold a hero card: every Last activity style becomes the one-liner.
         val style = if (requested.kind == WidgetKind.LastActivity && h < 90f && requested != WidgetStyle.ActivityGrid) WidgetStyle.ActivityLine else requested
+        if (style.kind in MorePlans.kinds) return MorePlans.plan(style, w, h, fontScale, chars, heroText, values)
         val avail = availDp(w, h, fontScale)
         val t = ts(fontScale)
         val inner = (w - 2 * p).coerceAtLeast(0f)
@@ -374,6 +375,7 @@ object Layouts {
                 val n = (avail / rowDp).toInt().coerceIn(1, MAX_PRED + 1)
                 make(false, 0, 18f, (1..n).map { "r$it" }.toSet(), n * rowDp)
             }
+            else -> MorePlans.plan(style, w, h, fontScale, chars, heroText, values)
         }
     }
 

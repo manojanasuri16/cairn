@@ -45,12 +45,16 @@ Cairn reads from COROS's official MCP server (and optionally Health Connect), ca
 - **Training load** (Intensity Trend): the load ratio as a percent, a week of bars and your VO2max.
 - **Sleep**: duration, score, stage bar and bedtime window.
 - **Fitness**: a race grid with VO2max, threshold pace and predicted 5K, 10K, half and marathon times.
-- **Overview**: a grid of 1 to 6 stats you choose and order.
+- **Overview**: a grid of 1 to 6 stats you choose and order (steps, sleep, recovery, resting HR, heart rate, HRV, stress, weekly mileage and more).
+- **Overnight HRV**: last night's average (`65 ms`), COROS's own word for it (Elevated, Normal, Low) as a coloured pill, and "Normal range 46-58 ms". Range bar, 7 nights or number and pill.
+- **Heart rate**: Resting HR as the main number (`51 bpm`) with its 7-day average, plus today's average and min-max. Resting and 7-day line, min / average / max bar, or a pair.
+- **Stress**: today's average (`30`) with a level word (Relaxed, Low, Medium, High) as a pill. Number and level, 7-day bars coloured by level, or a gauge arc.
+- **Weekly mileage**: distance this week, Monday to Sunday (`25.10 km`), the activity count and the change against last week. Bars per day, a goal ring (set a weekly goal in the editor; without one it shows bars) or number and trend. Km or miles, per widget.
 
 **Style and customise**
 
 - 11 looks: **Clean** (default), Dusk, Dawn, Forest, Midnight, Sunrise, Minimal, Ocean, Violet, Berry, and Transparent (with opacity).
-- Each widget has its own editor: Style, Colour, Content, Size and Tap, with a live preview.
+- Each widget has its own editor: Style, Colour, Content, Size and Tap, with a live preview. Weekly mileage also has a weekly goal.
 - Sizes: Small 2x2, Wide 4x2, Large 4x3. Bigger cells show more.
 
 **Freshness, on every widget**
@@ -81,6 +85,9 @@ Cairn uses the names and number formats you already know from the COROS app.
 | Running Fitness | `68`, "Marathon 4:21:40" |
 | Today's Activity | `8.10 km`, `40:30`, `5'00" /km` |
 | Resting HR | `54 bpm`, "Today · 7-day avg 55 bpm" |
+| Overnight HRV | `65 ms`, the server's word ("Elevated"), "Normal range 46-58 ms" |
+| Stress | `30`, level word from Cairn's assumed bands (Relaxed 1-25, Low 26-50, Medium 51-75, High 76-99) |
+| Activities, month header | `25.10 km`, "3 activities" (Cairn sums the same way for the week, Monday to Sunday) |
 
 ## How fresh is the data?
 

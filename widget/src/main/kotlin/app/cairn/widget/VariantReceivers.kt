@@ -15,3 +15,11 @@ class FitnessSmallWidgetReceiver : CairnReceiver() { override val glanceAppWidge
 class FitnessLargeWidgetReceiver : CairnReceiver() { override val glanceAppWidget = FitnessWidget() }
 class OverviewSmallWidgetReceiver : CairnReceiver() { override val glanceAppWidget = OverviewWidget() }
 class OverviewLargeWidgetReceiver : CairnReceiver() { override val glanceAppWidget = OverviewWidget() }
+class HrvWideWidgetReceiver : CairnReceiver() { override val glanceAppWidget = HrvWidget() }
+class HrvLargeWidgetReceiver : CairnReceiver() { override val glanceAppWidget = HrvWidget() }
+class HeartRateWideWidgetReceiver : CairnReceiver() { override val glanceAppWidget = HeartRateWidget() }
+class HeartRateLargeWidgetReceiver : CairnReceiver() { override val glanceAppWidget = HeartRateWidget() }
+class StressWideWidgetReceiver : CairnReceiver() { override val glanceAppWidget = StressWidget() }
+class StressLargeWidgetReceiver : CairnReceiver() { override val glanceAppWidget = StressWidget() }
+class WeeklyMileageSmallWidgetReceiver : CairnReceiver() { override val glanceAppWidget = WeeklyMileageWidget() }
+class WeeklyMileageLargeWidgetReceiver : CairnReceiver() { override val glanceAppWidget = WeeklyMileageWidget() }

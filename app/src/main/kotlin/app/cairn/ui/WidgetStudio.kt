@@ -49,6 +49,10 @@ private fun blurb(k: WidgetKind) = when (k) {
     WidgetKind.Sleep -> "How long you slept, your score and stages"
     WidgetKind.Fitness -> "VO2max, threshold pace and race predictions"
     WidgetKind.Overview -> "Up to six of your stats in one grid"
+    WidgetKind.Hrv -> "Last night's HRV, its assessment and normal range"
+    WidgetKind.HeartRate -> "Resting heart rate, 7-day average, min and max"
+    WidgetKind.Stress -> "Today's stress level and a week of bars"
+    WidgetKind.WeeklyMileage -> "Distance this week, Monday to Sunday, and a goal ring"
 }
 
 /**
@@ -67,6 +71,7 @@ fun WidgetStudioScreen(initialKind: WidgetKind?, modifier: Modifier = Modifier) 
     if (kind == null) { Chooser(modifier) { kindName = it.name }; return }
 
     val appearance by settings.appearance.collectAsStateWithLifecycle(initialValue = AppAppearance())
+    val display by graph.appSettings.display.collectAsStateWithLifecycle(initialValue = app.cairn.core.model.DisplayPrefs())
     val tapTarget by graph.appSettings.tapTarget(kind).collectAsStateWithLifecycle(initialValue = TapTarget.CorosHome)
     var cfg by remember(kind) { mutableStateOf(WidgetConfig()) }
     var size by rememberSaveable(kind) { mutableStateOf(WidgetVariants.suggested(kind).name) }
@@ -79,7 +84,7 @@ fun WidgetStudioScreen(initialKind: WidgetKind?, modifier: Modifier = Modifier) 
             WidgetCustomizer(
                 kind, cfg, { cfg = it }, appearance, chosen, { size = it.name },
                 "Your launcher gets a ${WidgetVariants.pickerLabel(kind, chosen)} widget, so it lands at this size. You can still resize it later.",
-                tapTarget, { editTap = true },
+                tapTarget, { editTap = true }, appUnit = display.unit,
             )
         }
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

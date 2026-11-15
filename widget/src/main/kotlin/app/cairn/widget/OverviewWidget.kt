@@ -78,13 +78,14 @@ fun metricAccent(p: Palette, item: OverviewItem): Int = when (item.id) {
     OverviewId.HeartRate -> p.stageRem
     OverviewId.Hrv -> p.good
     OverviewId.WeeklyLoad -> p.warn
+    OverviewId.WeeklyMileage -> p.accent
 }
 
 /** The same colour at 4.5:1 for small header text. */
 fun metricTitleColor(p: Palette, item: OverviewItem): Int = Contrast.ensure(metricAccent(p, item), p.textStops + p.tile, 4.5)
 
 fun metricIconFor(id: OverviewId): Int = when (id) {
-    OverviewId.Steps, OverviewId.LastDistance, OverviewId.TodayRun -> R.drawable.ic_w_steps
+    OverviewId.Steps, OverviewId.LastDistance, OverviewId.TodayRun, OverviewId.WeeklyMileage -> R.drawable.ic_w_steps
     OverviewId.Sleep, OverviewId.SleepScore -> R.drawable.ic_w_sleep
     OverviewId.Recovery -> R.drawable.ic_w_bolt
     OverviewId.RestingHr, OverviewId.HeartRate, OverviewId.Hrv -> R.drawable.ic_w_heart

@@ -197,9 +197,9 @@ fun <T> Framed(ui: WidgetUi.Content<T>, kind: WidgetKind, plan: Layouts.Plan, bo
 
 /** Plan for the current cell, the style from the resolved config and the live font scale. */
 @Composable
-fun currentPlan(chars: Int = 6, heroText: String = "", values: List<String> = emptyList()): Layouts.Plan {
+fun currentPlan(chars: Int = 6, heroText: String = "", values: List<String> = emptyList(), style: WidgetStyle = skin.cfg.style): Layouts.Plan {
     val (w, h) = widgetSize()
-    return Layouts.plan(skin.cfg.style, w, h, LocalFontScale, chars, heroText, values)
+    return Layouts.plan(style, w, h, LocalFontScale, chars, heroText, values)
 }
 
 /** Label left, value right, with an optional leading icon. */

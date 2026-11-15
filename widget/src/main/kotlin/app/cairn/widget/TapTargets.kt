@@ -8,7 +8,11 @@ enum class WidgetKind(val label: String, val cairnScreen: Screen) {
     TrainingLoad("Training load", Screen.Fitness),
     Sleep("Sleep", Screen.Today),
     Fitness("Fitness", Screen.Fitness),
-    Overview("Overview", Screen.Today);
+    Overview("Overview", Screen.Today),
+    Hrv("Overnight HRV", Screen.Today),
+    HeartRate("Heart rate", Screen.Today),
+    Stress("Stress", Screen.Today),
+    WeeklyMileage("Weekly mileage", Screen.Activities);
 
     companion object {
         fun parse(raw: String?): WidgetKind? = entries.firstOrNull { it.name == raw }

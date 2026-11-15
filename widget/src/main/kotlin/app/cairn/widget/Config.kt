@@ -2,6 +2,7 @@ package app.cairn.widget
 
 import app.cairn.core.designsystem.AccentOption
 import app.cairn.core.designsystem.ThemeId
+import app.cairn.core.model.DistanceUnit
 
 enum class Bg(val label: String) { Gradient("Gradient"), Solid("Solid"), Transparent("Transparent");
     companion object { fun parse(raw: String?): Bg? = entries.firstOrNull { it.name == raw } } }
@@ -32,6 +33,18 @@ enum class WidgetStyle(val kind: WidgetKind, val label: String) {
     FitnessGrid(WidgetKind.Fitness, "Race grid"),
     FitnessVo2(WidgetKind.Fitness, "VO2max hero"),
     FitnessLadder(WidgetKind.Fitness, "Pace ladder"),
+    HrvRange(WidgetKind.Hrv, "Range bar"),
+    HrvNights(WidgetKind.Hrv, "7 nights"),
+    HrvPill(WidgetKind.Hrv, "Number and pill"),
+    HeartSpark(WidgetKind.HeartRate, "Resting and 7-day line"),
+    HeartRange(WidgetKind.HeartRate, "Min, average, max"),
+    HeartPair(WidgetKind.HeartRate, "Pair"),
+    StressPill(WidgetKind.Stress, "Number and level"),
+    StressBars(WidgetKind.Stress, "7-day bars"),
+    StressGauge(WidgetKind.Stress, "Gauge arc"),
+    MileageBars(WidgetKind.WeeklyMileage, "Bars, Monday to Sunday"),
+    MileageGoal(WidgetKind.WeeklyMileage, "Goal ring"),
+    MileageTrend(WidgetKind.WeeklyMileage, "Number and trend"),
     OverviewGrid(WidgetKind.Overview, "Grid");
 
     companion object {
@@ -50,7 +63,10 @@ enum class Part(val label: String) {
     Vo2("VO2max"), Comment("Load comment"),
     Score("Score"), Window("Time window"), Stages("Stage legend"),
     Threshold("Threshold pace"), Predictions("Race predictions"),
-    Rings("Progress rings and trends");
+    Rings("Progress rings and trends"),
+    NormalRange("Normal range"), Baseline("Baseline"),
+    SevenDayAvg("7-day average"), DailyAvg("Daily average, min and max"),
+    ActivityCount("Activity count"), VsLastWeek("Comparison with last week");
 
     companion object {
         fun forKind(kind: WidgetKind): List<Part> = when (kind) {
@@ -61,11 +77,44 @@ enum class Part(val label: String) {
             WidgetKind.Sleep -> listOf(Score, Window, Stages)
             WidgetKind.Fitness -> listOf(Threshold, Predictions)
             WidgetKind.Overview -> listOf(Rings)
+            WidgetKind.Hrv -> listOf(NormalRange, Baseline)
+            WidgetKind.HeartRate -> listOf(SevenDayAvg, DailyAvg)
+            WidgetKind.Stress -> listOf(SevenDayAvg)
+            WidgetKind.WeeklyMileage -> listOf(ActivityCount, VsLastWeek)
         }
 
         fun ofMetric(id: MetricId): Part = when (id) {
             MetricId.Sleep -> Sleep; MetricId.RestingHr -> RestingHr; MetricId.Recovery -> Recovery
             MetricId.Calories -> Calories; MetricId.Stress -> Stress
+        }
+    }
+}
+
+/**
+ * The weekly distance goal of one Weekly mileage widget, stored with its unit so a later change of the app's unit never turns
+ * 30 km into 30 mi. The picker starts at [DEFAULT_KM] or [DEFAULT_MI].
+ */
+data class WeeklyGoal(val value: Int, val unit: DistanceUnit) {
+    val meters: Double get() = value * (if (unit == DistanceUnit.Mi) Fmt.METERS_PER_MILE else 1000.0)
+
+    /** The goal as a whole number in [shown] (rounded), for "of 30 km". */
+    fun inUnit(shown: DistanceUnit): Int = if (shown == unit) value else Math.round(meters / (if (shown == DistanceUnit.Mi) Fmt.METERS_PER_MILE else 1000.0)).toInt()
+
+    fun encode() = "$value${unit.name.lowercase()}"
+
+    companion object {
+        const val DEFAULT_KM = 30
+        const val DEFAULT_MI = 20
+        const val MAX_KM = 150
+        const val MAX_MI = 90
+        fun default(unit: DistanceUnit) = WeeklyGoal(if (unit == DistanceUnit.Mi) DEFAULT_MI else DEFAULT_KM, unit)
+
+        /** "30km" / "20mi"; anything else (or a value outside 1..max) is ignored. */
+        fun decode(raw: String?): WeeklyGoal? {
+            val m = Regex("(\\d{1,3})(km|mi)").matchEntire(raw ?: return null) ?: return null
+            val unit = if (m.groupValues[2] == "mi") DistanceUnit.Mi else DistanceUnit.Km
+            val v = m.groupValues[1].toInt()
+            return if (v in 1..(if (unit == DistanceUnit.Mi) MAX_MI else MAX_KM)) WeeklyGoal(v, unit) else null
         }
     }
 }
@@ -92,6 +141,8 @@ data class WidgetConfig(
     val hideSyncIcon: Boolean = false,
     /** Overview only: the chosen stats in order (1 to 6). Null means the default four. */
     val metrics: List<OverviewId>? = null,
+    /** Weekly mileage only: the goal for the Goal ring style. Null means no goal chosen (the ring style then shows bars). */
+    val weeklyGoal: WeeklyGoal? = null,
 ) {
     fun shows(part: Part) = part !in hidden
 
@@ -108,6 +159,7 @@ data class WidgetConfig(
             hidden = hidden.filter { it in Part.forKind(kind) }.toSet(),
             units = units, compactFooter = compactFooter, hideSyncIcon = hideSyncIcon,
             metrics = (metrics?.distinct()?.take(OverviewId.MAX)?.takeIf { it.isNotEmpty() }) ?: OverviewId.Default,
+            weeklyGoal = weeklyGoal.takeIf { kind == WidgetKind.WeeklyMileage },
         )
     }
 
@@ -123,6 +175,7 @@ data class WidgetConfig(
         if (compactFooter) add("cf=1")
         if (hideSyncIcon) add("hs=1")
         metrics?.let { add("metrics=" + it.joinToString(",") { m -> m.name }) }
+        weeklyGoal?.let { add("goal=${it.encode()}") }
     }.joinToString(";")
 
     companion object {
@@ -142,6 +195,7 @@ data class WidgetConfig(
                 compactFooter = m["cf"] == "1",
                 hideSyncIcon = m["hs"] == "1",
                 metrics = m["metrics"]?.split(',')?.mapNotNull { OverviewId.parse(it) }?.distinct()?.take(OverviewId.MAX)?.takeIf { it.isNotEmpty() },
+                weeklyGoal = WeeklyGoal.decode(m["goal"]),
             )
         }
     }
@@ -162,6 +216,7 @@ data class ResolvedConfig(
     val compactFooter: Boolean,
     val hideSyncIcon: Boolean = false,
     val metrics: List<OverviewId> = OverviewId.Default,
+    val weeklyGoal: WeeklyGoal? = null,
 ) {
     fun shows(part: Part) = part !in hidden
 

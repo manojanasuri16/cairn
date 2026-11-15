@@ -91,3 +91,86 @@ data class FitnessUi(
     val thresholdPace: String?,
     val predictions: List<RacePrediction>,
 )
+
+/** Semantic colour of a pill or bar. The word always sits next to it, so colour is never the only signal. */
+enum class Tone { Good, Warn, Bad, Cool, Neutral }
+
+/** One night in the HRV bars (nightly average in ms; null when that night has no reading). */
+data class HrvNight(val letter: String, val ms: Int?, val isToday: Boolean, val spoken: String)
+
+data class HrvUi(
+    /** "65" and "ms": drawn together as "65 ms" (the unit smaller). */
+    val number: String,
+    val unit: String,
+    val avgMs: Int,
+    /** The server's own assessment word ("Elevated", "Normal", "Low"), unchanged. */
+    val assessment: String,
+    val tone: Tone,
+    /** "Normal range 46-58 ms". Null when the server gave no range. */
+    val rangeText: String?,
+    val lowMs: Int?,
+    val highMs: Int?,
+    /** "Baseline 52 ms". */
+    val baselineText: String?,
+    val baselineMs: Int?,
+    /** Seven nights ending today, oldest first. */
+    val nights: List<HrvNight>,
+) {
+    val hero: String get() = "$number $unit"
+}
+
+data class HeartRateUi(
+    /** The big number: resting HR when COROS has one, otherwise the daily average. */
+    val number: String,
+    val unit: String,
+    /** "Resting HR" or "Daily average". */
+    val label: String,
+    val restingBpm: Int?,
+    val avgBpm: Int?,
+    val minBpm: Int?,
+    val maxBpm: Int?,
+    /** "7-day avg 53 bpm". */
+    val sevenDayText: String?,
+    /** "Daily average 70 bpm". */
+    val dailyText: String?,
+    /** "44-154 bpm". */
+    val minMaxText: String?,
+    /** Resting HR of the days that have one, oldest first (the sparkline). */
+    val series: List<Int>,
+) {
+    val hero: String get() = "$number $unit"
+}
+
+data class StressBar(val letter: String, val value: Int?, val fraction: Float, val tone: Tone, val isToday: Boolean, val spoken: String)
+
+data class StressUi(
+    val number: String,
+    val value: Int,
+    /** COROS-style band word (an assumption, see docs/data-sources.md). */
+    val level: String,
+    val tone: Tone,
+    /** "7-day avg 28". */
+    val sevenDayText: String?,
+    val bars: List<StressBar>,
+)
+
+data class MileageBar(val letter: String, val meters: Double, val fraction: Float, val isToday: Boolean, val spoken: String)
+
+data class MileageUi(
+    /** "25.10" and "km" / "mi": drawn together as "25.10 km". */
+    val number: String,
+    val unit: String,
+    val totalMeters: Double,
+    val count: Int,
+    /** "3 activities", "1 activity", "0 activities". */
+    val countText: String,
+    /** "+12% vs last week"; null when last week has no distance. */
+    val comparison: String?,
+    val changePercent: Int?,
+    /** Monday..Sunday. */
+    val bars: List<MileageBar>,
+    /** Running total at the end of each day Monday..today, as 0..1 of this week's total (the trend line). */
+    val cumulative: List<Float>,
+) {
+    val hero: String get() = "$number $unit"
+}

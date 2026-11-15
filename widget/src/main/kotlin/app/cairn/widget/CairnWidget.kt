@@ -96,6 +96,10 @@ object WidgetCatalog {
         WidgetKind.Sleep -> SleepWidget()
         WidgetKind.Fitness -> FitnessWidget()
         WidgetKind.Overview -> OverviewWidget()
+        WidgetKind.Hrv -> HrvWidget()
+        WidgetKind.HeartRate -> HeartRateWidget()
+        WidgetKind.Stress -> StressWidget()
+        WidgetKind.WeeklyMileage -> WeeklyMileageWidget()
     }
 
     /** Redraws one placed widget right now (used by Done in the configuration screen). */
@@ -106,7 +110,8 @@ object WidgetCatalog {
 
     /** Default size of the preview for [kind] in the configuration screen, in dp. */
     fun previewSize(kind: WidgetKind): DpSize = when (kind) {
-        WidgetKind.Today, WidgetKind.Recovery -> DpSize(170.dp, 170.dp)
+        WidgetKind.Today, WidgetKind.Recovery, WidgetKind.Hrv, WidgetKind.HeartRate, WidgetKind.Stress -> DpSize(170.dp, 170.dp)
+        WidgetKind.WeeklyMileage -> DpSize(300.dp, 160.dp)
         WidgetKind.Sleep, WidgetKind.LastActivity -> DpSize(300.dp, 140.dp)
         WidgetKind.TrainingLoad, WidgetKind.Fitness -> DpSize(300.dp, 160.dp)
         WidgetKind.Overview -> DpSize(300.dp, 170.dp)
@@ -132,4 +137,8 @@ suspend fun registerWidgetPreviews(context: Context) {
     runCatching { mgr.setWidgetPreviews(SleepWidgetReceiver::class) }
     runCatching { mgr.setWidgetPreviews(FitnessWidgetReceiver::class) }
     runCatching { mgr.setWidgetPreviews(OverviewWidgetReceiver::class) }
+    runCatching { mgr.setWidgetPreviews(HrvWidgetReceiver::class) }
+    runCatching { mgr.setWidgetPreviews(HeartRateWidgetReceiver::class) }
+    runCatching { mgr.setWidgetPreviews(StressWidgetReceiver::class) }
+    runCatching { mgr.setWidgetPreviews(WeeklyMileageWidgetReceiver::class) }
 }

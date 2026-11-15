@@ -3,6 +3,7 @@ package app.cairn.demo
 import app.cairn.core.model.Derived
 import app.cairn.core.model.SleepRating
 import app.cairn.core.model.WeeklyLoad
+import app.cairn.core.model.WeeklyMileage
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -37,17 +38,39 @@ class DemoDatasetTest {
         assertTrue(d.fitness.prediction5kSec!! < d.fitness.prediction10kSec!! && d.fitness.prediction10kSec!! < d.fitness.predictionHalfSec!! && d.fitness.predictionHalfSec!! < d.fitness.predictionMarathonSec!!)
     }
 
-    @Test fun monthsAndWeeklyLoadAreConsistentOnAnyDate() {
+    @Test fun weeksAndWeeklyLoadAreConsistentOnAnyDate() {
         for (t in days) {
             val d = DemoDataset.build(t, now, zone)
-            assertEquals(3, d.activities.count { it.date.month == t.month && it.date.year == t.year }, "this month on $t")
             val prev = t.minusMonths(1)
-            assertEquals(12, d.activities.count { it.date.month == prev.month && it.date.year == prev.year }, "last month on $t")
+            // The Activities list keeps its twelve runs last month (plus last week's two when last Monday fell in that month).
+            assertTrue(d.activities.count { it.date.month == prev.month && it.date.year == prev.year } >= 12, "last month on $t")
+            assertTrue(d.activities.count { it.date.month == t.month && it.date.year == t.year } >= 1, "this month on $t")
             val w = WeeklyLoad.compute(d.activities, d.details.associateBy { it.id }, t)
             assertEquals(DemoDataset.WEEK_LOAD, w.total, "weekly load on $t"); assertEquals(0, w.missing)
             assertEquals(d.activities.size, d.activities.map { it.id }.toSet().size)
             assertEquals(d.activities.map { it.id }.toSet(), d.details.map { it.id }.toSet())
+            // Weekly mileage: Monday to Sunday, three runs this week and two last week, on every date (also across a month end).
+            val m = WeeklyMileage.compute(d.activities, t)
+            assertEquals(3, m.count, "this week on $t"); assertEquals(DemoDataset.WEEK_KM * 1000, m.totalMeters, "this week km on $t")
+            assertEquals(2, m.lastWeekCount, "last week on $t"); assertEquals(DemoDataset.LAST_WEEK_KM * 1000, m.lastWeekMeters, "last week km on $t")
+            assertEquals(14, m.changePercent)
         }
+    }
+
+    @Test fun sevenDaysOfHrvHeartRateAndStress() {
+        val t = days[0]
+        val d = DemoDataset.build(t, now, zone)
+        assertEquals(7, d.hrv.size); assertEquals(7, d.vitals.size)
+        assertEquals(setOf("Normal", "Elevated", "Low"), d.hrv.mapNotNull { it.assessment }.toSet())
+        d.hrv.forEach {
+            val word = if (it.avgMs!! > it.normalHighMs!!) "Elevated" else if (it.avgMs!! < it.normalLowMs!!) "Low" else "Normal"
+            assertEquals(word, it.assessment, "assessment on ${it.date}")
+        }
+        assertTrue(d.vitals.all { it.restingHr != null && it.avgHr != null && it.minHr != null && it.maxHr != null && it.avgStress != null })
+        assertTrue(d.vitals.map { it.avgHr }.toSet().size > 3 && d.vitals.map { it.avgStress }.toSet().size > 3)
+        assertTrue(d.vitals.all { it.minHr!! < it.restingHr!! && it.restingHr!! < it.avgHr!! && it.avgHr!! < it.maxHr!! })
+        val bands = d.vitals.map { app.cairn.core.model.StressBand.of(it.avgStress!!) }.toSet()
+        assertTrue(bands.size >= 3, "stress bands $bands")
     }
 
     @Test fun neverContainsRealLookingIdentifiers() {

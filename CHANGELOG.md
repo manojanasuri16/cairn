@@ -2,6 +2,20 @@
 
 All notable changes to Cairn are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.0] - Unreleased
+
+### Added
+- Four new widgets, each with three styles, the 11 looks, the sync button and freshness dot, a live-preview editor and size variants (2x2, 4x2, 4x3):
+  - **Overnight HRV**: `65 ms` with COROS's own assessment word as a coloured pill and "Normal range 46-58 ms". Range bar (default), 7 nights, or number and pill.
+  - **Heart rate**: Resting HR as the main number with its 7-day average, plus today's average and min-max. Resting and 7-day line (default), min / average / max bar, or a pair.
+  - **Stress**: today's average with a level word (Relaxed, Low, Medium, High). Number and level (default), 7-day bars coloured by level, or a gauge arc. The level bands are an assumption, as COROS does not publish them.
+  - **Weekly mileage**: this week's distance Monday to Sunday (`25.10 km`), the activity count and the change against last week. Bars per day (default), goal ring, or number and trend. Per-widget weekly goal (30 km or 20 mi to start) and km or miles override.
+- Overview can show Weekly mileage (HRV, Heart rate and Stress were already there). Existing stats keep their ids.
+- Debug demo data now fills the four widgets (7 nights of HRV, 7 days of heart rate and stress, runs this week and last week).
+
+### Changed
+- Demo data: last month's runs now sit on days 1 to 14 so they never overlap "last week".
+
 ## [1.3.0]
 
 ### Changed

@@ -34,4 +34,20 @@
     <string name="widget_overview_label_small">Overview (2x2)</string>
     <string name="widget_overview_label_wide">Overview (4x2)</string>
     <string name="widget_overview_label_large">Overview (4x3)</string>
+    <string name="widget_hrv_desc">Last night\'s HRV with COROS\'s assessment, your normal range and a week of nights.</string>
+    <string name="widget_hrv_label_small">Overnight HRV (2x2)</string>
+    <string name="widget_hrv_label_wide">Overnight HRV (4x2)</string>
+    <string name="widget_hrv_label_large">Overnight HRV (4x3)</string>
+    <string name="widget_heart_desc">Resting heart rate with its 7-day average, plus today\'s average, lowest and highest.</string>
+    <string name="widget_heart_label_small">Heart rate (2x2)</string>
+    <string name="widget_heart_label_wide">Heart rate (4x2)</string>
+    <string name="widget_heart_label_large">Heart rate (4x3)</string>
+    <string name="widget_stress_desc">Today\'s average stress with its level, and seven days of stress bars.</string>
+    <string name="widget_stress_label_small">Stress (2x2)</string>
+    <string name="widget_stress_label_wide">Stress (4x2)</string>
+    <string name="widget_stress_label_large">Stress (4x3)</string>
+    <string name="widget_mileage_desc">Distance this week from Monday to Sunday, the activity count and the change from last week.</string>
+    <string name="widget_mileage_label_small">Weekly mileage (2x2)</string>
+    <string name="widget_mileage_label_wide">Weekly mileage (4x2)</string>
+    <string name="widget_mileage_label_large">Weekly mileage (4x3)</string>
 </resources>
