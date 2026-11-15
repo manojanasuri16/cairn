@@ -27,6 +27,17 @@ class OAuthClient(
     private val refreshLock = Mutex()
 
     companion object {
+        fun buildAuthorizeUrl(endpoint: String, clientId: String, redirectUri: String, state: String, verifier: String): String =
+            endpoint.toHttpUrl().newBuilder()
+                .addQueryParameter("response_type", "code")
+                .addQueryParameter("client_id", clientId)
+                .addQueryParameter("redirect_uri", redirectUri)
+                .addQueryParameter("scope", SCOPE)
+                .addQueryParameter("state", state)
+                .addQueryParameter("code_challenge", Pkce.challenge(verifier))
+                .addQueryParameter("code_challenge_method", "S256")
+                .build().toString()
+
         const val SCOPE = "openid offline_access mcp.tools"
         private val JSON = "application/json".toMediaType()
         private const val SKEW_MS = 60_000L
@@ -67,29 +78,34 @@ class OAuthClient(
         val clientId = register(meta, redirectUri)
         val verifier = Pkce.newVerifier()
         val state = Pkce.newState()
-        val url = meta.authorizationEndpoint.toHttpUrl().newBuilder()
-            .addQueryParameter("response_type", "code")
-            .addQueryParameter("client_id", clientId)
-            .addQueryParameter("redirect_uri", redirectUri)
-            .addQueryParameter("scope", SCOPE)
-            .addQueryParameter("state", state)
-            .addQueryParameter("code_challenge", Pkce.challenge(verifier))
-            .addQueryParameter("code_challenge_method", "S256")
-            .build().toString()
+        val url = buildAuthorizeUrl(meta.authorizationEndpoint, clientId, redirectUri, state, verifier)
         return PendingAuthorization(url, clientId, redirectUri, state, verifier, meta)
     }
 
-    suspend fun completeAuthorization(p: PendingAuthorization, code: String) {
+    suspend fun completeAuthorization(p: PendingAuthorization, code: String) =
+        exchangeCode(p.metadata.tokenEndpoint, p.metadata.issuer, p.clientId, p.redirectUri, p.verifier, code)
+
+    /** Exchanges the single-use [code] using the persisted verifier and redirect URI; saves tokens. */
+    suspend fun exchangeCode(r: PendingRecord, code: String) =
+        exchangeCode(r.tokenEndpoint, r.issuer, r.clientId, r.redirectUri, r.codeVerifier, code)
+
+    private suspend fun exchangeCode(tokenEndpoint: String, issuer: String, clientId: String, redirectUri: String, verifier: String, code: String) {
         val form = FormBody.Builder()
             .add("grant_type", "authorization_code")
             .add("code", code)
-            .add("redirect_uri", p.redirectUri)
-            .add("client_id", p.clientId)
-            .add("code_verifier", p.verifier)
+            .add("redirect_uri", redirectUri)
+            .add("client_id", clientId)
+            .add("code_verifier", verifier)
             .build()
-        val tr = tokenCall(p.metadata.tokenEndpoint, form)
-        persist(p.clientId, p.metadata.issuer, tr, previousRefresh = null)
+        persist(clientId, issuer, tokenCall(tokenEndpoint, form), previousRefresh = null)
     }
+
+    /** Registers for [redirectUri], persists nothing; the caller stores the [PendingRecord] before opening the browser. */
+    fun toRecord(p: PendingAuthorization, region: Region, now: Long, forced: Boolean) = PendingRecord(
+        clientId = p.clientId, region = region, host = region.host, redirectUri = p.redirectUri, codeVerifier = p.verifier,
+        state = p.state, createdAt = now, authorizeUrl = p.authorizeUrl, tokenEndpoint = p.metadata.tokenEndpoint,
+        issuer = p.metadata.issuer, forced = forced,
+    )
 
     // ---- device code ----
 

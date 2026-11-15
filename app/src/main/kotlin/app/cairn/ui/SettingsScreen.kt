@@ -237,8 +237,11 @@ fun SettingsContent(
             Text("Health Connect", style = MaterialTheme.typography.titleMedium)
             Text(SourceStatus.label(state.hc), style = MaterialTheme.typography.bodyMedium)
             if (SourceStatus.canGrant(state.hc)) Button(onClick = onGrantHc) { Text("Grant Health Connect access") }
-            Text("COROS account", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = Spacing.xs))
-            Text(if (corosSignedIn) "Signed in" else corosStatus.ifBlank { "Not signed in" }, style = MaterialTheme.typography.bodyMedium)
+            LinkRow(
+                "COROS account",
+                if (corosSignedIn) "Signed in. Manage sign-in, diagnostics or sign in again" else corosStatus.ifBlank { "Not signed in" } + ". Tap to sign in",
+                nav.onAccount,
+            )
             signInHint?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
             if (!corosSignedIn) Button(onClick = onCorosSignIn, enabled = !corosBusy) { Text("Sign in to COROS") }
         }
@@ -265,7 +268,7 @@ fun SettingsContent(
         }
 
         SettingsGroup(AppIcons.Build, "Tools", "Diagnostics, data sources and tips.") {
-            LinkRow("Tools", "Sync diagnostics, data sources, keep data fresh", nav.onTools)
+            LinkRow("Open tools", "Sync diagnostics, data sources, keep data fresh", nav.onTools)
         }
 
         AboutGroup()

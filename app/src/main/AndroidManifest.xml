@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <!-- AppDrop self-update: lets the user install a downloaded update after confirming. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
@@ -50,6 +52,30 @@
             </intent-filter>
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- OAuth result from the HTTPS bounce page (https://manojanasuri16.github.io/cairn/callback/). -->
+        <activity
+            android:name=".OAuthRedirectActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="app.cairn.oauth" android:host="callback" />
+            </intent-filter>
+        </activity>
+
+        <!-- Keeps the process alive during the local-method loopback sign-in only. -->
+        <service
+            android:name=".SignInService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Short-lived OAuth loopback receiver while the user signs in to COROS in the browser" />
+        </service>
 
         <!-- Widget configuration: shown when placing and re-openable from the launcher (reconfigurable). -->
         <activity

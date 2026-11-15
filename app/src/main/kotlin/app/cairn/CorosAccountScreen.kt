@@ -1,5 +1,16 @@
 package app.cairn
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import app.cairn.source.corosmcp.SignInDiag
+import app.cairn.source.corosmcp.SignInMachine
+import app.cairn.source.corosmcp.SignInMethod
+import app.cairn.source.corosmcp.SignInState
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -33,31 +44,69 @@ import app.cairn.source.corosmcp.Region
 fun CorosAccountScreen(vm: CorosViewModel, modifier: Modifier = Modifier) {
     val s by vm.state.collectAsState()
     val context = LocalContext.current
+    // Tell the coordinator when we are back in front (drives the gentle "no result yet" hint).
+    LifecycleResumeEffect(Unit) { vm.onResumed(); onPauseOrDispose { } }
+    // Notifications are optional: the local method's foreground service runs either way.
+    val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { vm.signInLocal() }
+    fun startLocal() {
+        val needs = Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        if (needs) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) else vm.signInLocal()
+    }
+    val flow = s.signIn
     Column(
         modifier.padding(16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(s.status, style = MaterialTheme.typography.titleMedium)
-        s.signInHint?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
-        s.deviceCode?.let { Text("Code: $it", style = MaterialTheme.typography.headlineSmall) }
         var advanced by rememberSaveable { mutableStateOf(false) }
+        var trouble by rememberSaveable { mutableStateOf(false) }
+        if (s.signedIn && s.needsSignIn) {
+            Text("COROS needs you to sign in again before Cairn can refresh.", color = MaterialTheme.colorScheme.error)
+            Button(onClick = { vm.signIn(context) }, modifier = Modifier.fillMaxWidth()) { Text("Sign in again") }
+        }
         if (!s.signedIn) {
+            when (flow) {
+                is SignInState.WaitingForBrowser -> {
+                    s.deviceCode?.let { Text("Code: $it", style = MaterialTheme.typography.headlineSmall) }
+                    Text(
+                        if (flow.method == SignInMethod.DEVICE) "Enter the code on the COROS page that opened, then approve. Cairn will notice by itself."
+                        else "Finish signing in in the browser, then tap the button on the COROS page if Cairn doesn't open by itself.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (s.resumeHint) Text(
+                        "Still nothing? You can open the sign-in page again, or try the options under \"Having trouble signing in?\".",
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary,
+                    )
+                    if (flow.method != SignInMethod.DEVICE) OutlinedButton(onClick = vm::reopenSignInPage, modifier = Modifier.fillMaxWidth()) { Text("Open the sign-in page again") }
+                }
+                is SignInState.Failed -> Text(flow.reason.message, color = MaterialTheme.colorScheme.error)
+                else -> Unit
+            }
+            if (SignInMachine.cancelVisible(flow)) OutlinedButton(onClick = vm::cancelSignIn, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
             TextButton(onClick = { advanced = !advanced }) { Text(if (advanced) "Advanced (hide)" else "Advanced") }
             if (advanced) {
                 Text("Force a region (no automatic fallback)", style = MaterialTheme.typography.bodySmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Region.entries.forEach { r ->
-                        FilterChip(selected = s.region == r, enabled = !s.busy, onClick = { vm.setRegion(r) }, label = { Text(r.label) })
+                        FilterChip(selected = s.region == r, onClick = { vm.setRegion(r) }, label = { Text(r.label) })
                     }
                 }
             }
-        }
-        if (!s.signedIn) {
-            Button(onClick = { vm.signIn(context, forced = advanced) }, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("Sign in") }
-            if (s.failedRegion != null && !s.busy && RegionPolicy.next(s.failedRegion!!) != null) {
-                OutlinedButton(onClick = { vm.tryAnotherRegion(context) }, modifier = Modifier.fillMaxWidth()) { Text("Try another region") }
+            val enabled = SignInMachine.startEnabled(flow)
+            Button(onClick = { vm.signIn(context, forced = advanced) }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+                Text(if (flow is SignInState.Failed) "Try again" else "Sign in")
             }
-            OutlinedButton(onClick = { vm.signInDeviceCode(context) }, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("Sign in with device code") }
+            val failedRegion = s.failedRegion
+            if (flow is SignInState.Failed && failedRegion != null && RegionPolicy.next(failedRegion) != null) {
+                OutlinedButton(onClick = { vm.tryAnotherRegion(context) }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Try another region") }
+            }
+            TextButton(onClick = { trouble = !trouble }) { Text(if (trouble) "Having trouble signing in? (hide)" else "Having trouble signing in?") }
+            if (trouble || s.resumeHint || flow is SignInState.Failed) {
+                Text("These cancel the current attempt and start a new one.", style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = ::startLocal, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Try the local method") }
+                OutlinedButton(onClick = { vm.signInDeviceCode(context) }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Sign in with device code") }
+            }
         } else {
             OutlinedButton(onClick = vm::signOut, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }
             Button(onClick = vm::listTools, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("List tools") }
@@ -80,5 +129,17 @@ fun CorosAccountScreen(vm: CorosViewModel, modifier: Modifier = Modifier) {
                 }, modifier = Modifier.fillMaxWidth()) { Text("Copy redacted sample") }
             }
         }
+        SignInDiagLines(s.diag)
+    }
+}
+
+/** Secret-free sign-in diagnostics (method, stage, last failure) for bug reports. */
+@Composable
+fun SignInDiagLines(d: SignInDiag, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text("Sign-in diagnostics", style = MaterialTheme.typography.titleSmall)
+        Text("Method: ${d.method ?: "none yet"}", style = MaterialTheme.typography.bodySmall)
+        Text("Stage reached: ${d.stage}", style = MaterialTheme.typography.bodySmall)
+        Text("Last failure: ${d.failure ?: "none"}", style = MaterialTheme.typography.bodySmall)
     }
 }

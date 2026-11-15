@@ -25,6 +25,7 @@
 <p align="center">
   <img src="appdrop/screenshots/05-widgets.png" width="19%" alt="Home screen with Today, Recovery, Last activity and Training load widgets">
   <img src="appdrop/screenshots/06-widgets-more.png" width="19%" alt="Home screen with Sleep, Recovery and Fitness race grid widgets">
+  <img src="appdrop/screenshots/09-widgets-health.png" width="19%" alt="Overnight HRV, Stress and Weekly mileage widgets">
   <img src="appdrop/screenshots/07-customise.png" width="19%" alt="Widget editor with Style, Colour, Content, Size and Tap sections">
   <img src="appdrop/screenshots/08-dark.png" width="19%" alt="Dark mode">
 </p>
@@ -99,6 +100,12 @@ To keep things fresh:
 - In Android's battery settings, set COROS to **unrestricted** (or "don't optimise"), so it can keep syncing in the background.
 - Tap a widget to open COROS. Cairn refreshes right after you return.
 
+## Troubleshooting
+
+- **Sign-in stuck:** tap the button on the COROS page, or open the COROS account screen from Settings and try the local method or the device code.
+- **A widget shows "Loading" or looks old:** tap its sync button, or remove and re-add it. Cairn refreshes all widgets after an update.
+- **Numbers look old:** see "How fresh is the data?" above.
+
 ## Install
 
 1. Get the APK from [AppDrop](https://appdrop-store.vercel.app/apps/cairn) or from the [latest release on GitHub](https://github.com/manojanasuri16/cairn/releases/latest).
@@ -110,6 +117,8 @@ The release APK is signed with the Cairn release key, so each new version instal
 ## Privacy
 
 - **On your phone.** Data is cached on the device and the widgets read that cache. There is no Cairn server, no analytics, no ads and no crash-reporting service.
+- **Sign-in and the bounce page.** COROS only accepts `https` or loopback redirect URIs, so Cairn registers `https://manojanasuri16.github.io/cairn/callback/`. After you approve, that static page (hosted on GitHub Pages, source in `docs/callback/`) immediately hands the result to Cairn through an `app.cairn.oauth://` link. It only forwards the one-time code, stores nothing and runs no analytics; the code is protected by PKCE and is useless without a secret that never leaves your phone.
+- **Troubleshooting sign-in.** If Cairn doesn't open after you approve, tap the button on the COROS page, or use "Open the sign-in page again". Under "Having trouble signing in?" you can try the local method (a short notification "Signing in to COROS" appears) or the device code. Sign-in diagnostics (method, stage, last failure) are on the COROS account and Sync diagnostics screens and contain no secrets. Sign-in sessions expire after a few minutes.
 - **Official sign-in.** You sign in on COROS's own OAuth page for its MCP server. Cairn never sees or stores your password. Tokens are encrypted with the Android Keystore, excluded from backups, and sent only to COROS.
 - **Health Connect is read-only.** It is optional and used only as a fallback source.
 - **AppDrop.** Cairn contacts the AppDrop store only to check for updates and to send feedback if you choose to. No health data is ever sent.

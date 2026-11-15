@@ -82,6 +82,12 @@ class AppGraph(private val context: Context) : SyncComponent {
     val tokenStore: TokenStore by lazy { EncryptedFileTokenStore(File(datastoreDir, "coros_tokens.bin"), KeystoreAesGcmCipher()) }
     val oauth: OAuthClient by lazy { OAuthClient(http, tokenStore) }
     val regionStore: RegionStore by lazy { RegionStore(File(datastoreDir, "coros_region.txt")) }
+    val pendingStore: app.cairn.source.corosmcp.PendingStore by lazy {
+        app.cairn.source.corosmcp.EncryptedFilePendingStore(File(datastoreDir, "coros_pending.bin"), KeystoreAesGcmCipher())
+    }
+    val signIn: SignInCoordinator by lazy {
+        SignInCoordinator(context, oauth, tokenStore, pendingStore, regionStore, appScope, File(datastoreDir, "signin_diag.json"), onSignedIn = ::onSignedIn)
+    }
 
     val database: CairnDatabase by lazy { Room.databaseBuilder(context, CairnDatabase::class.java, CairnDatabase.NAME).addMigrations(*app.cairn.core.database.ALL_MIGRATIONS).build() }
     val dailyRepository by lazy { DailyRepository(database.daily()) }

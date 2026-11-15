@@ -35,6 +35,8 @@ internal object MorePlans {
         val inner = (w - 2 * pad).coerceAtLeast(0f)
         val side = w >= 200f
         val pillText = values.firstOrNull().orEmpty()
+        // The mileage subtitle ("+14% vs last week") must fit beside the chart, so it sizes the left column like a pill does.
+        val leftText = if (style.kind == WidgetKind.WeeklyMileage) "+99% vs last week" else pillText
 
         fun hero(width: Float) = Layouts.fitHero(heroText, Layouts.heroSp(sc, fs), width, fs, avail * 0.45f)
         fun make(side: Boolean, heroDp: Int, heroSp: Float, blocks: Set<String>, used: Float, perRow: Int = 1, heroAvail: Float = inner) =
@@ -54,7 +56,7 @@ internal object MorePlans {
 
         /** Hero and [left] rows in a column on the left, the chart and [right] rows on the right. */
         fun beside(left: List<Layouts.Block>, right: List<Layouts.Block>, chartMin: Float, chartMax: Float, extra: Float): Layouts.Plan {
-            val lw = leftWidth(w, pillText, fs)
+            val lw = leftWidth(w, leftText, fs)
             val hs = hero(lw)
             val heroCost = Layouts.heroLineDp(hs, fs)
             val lb = Layouts.budget(avail - heroCost, left)
@@ -68,26 +70,26 @@ internal object MorePlans {
 
         fun blk(id: String, dp: Float) = Layouts.Block(id, dp)
         val pillStack = pillDp(pillText, inner, fs)
-        val pillLeft = pillDp(pillText, leftWidth(w, pillText, fs), fs)
+        val pillLeft = pillDp(pillText, leftWidth(w, leftText, fs), fs)
         val row = 18f * t
         val lab = 14f * t
         val letters = 12f * t
 
         return when (style) {
             WidgetStyle.HrvRange ->
-                if (side) beside(listOf(blk("pill", pillLeft), blk("label", lab)), listOf(blk("chart", 22f + 6f), blk("range", row), blk("base", 16f * t)), 22f, 22f, 0f)
-                else stacked(listOf(blk("pill", pillStack), blk("chart", 22f + 6f), blk("range", row), blk("label", lab), blk("base", 16f * t)), 22f, 22f)
+                if (side) beside(listOf(blk("pill", pillLeft), blk("label", lab)), listOf(blk("chart", 22f + 6f), blk("range", row), blk("base", 16f * t)), 22f, 44f, 0f)
+                else stacked(listOf(blk("pill", pillStack), blk("chart", 22f + 6f), blk("range", row), blk("label", lab), blk("base", 16f * t)), 22f, 44f)
             WidgetStyle.HrvNights ->
-                if (side) beside(listOf(blk("pill", pillLeft), blk("label", lab)), listOf(blk("chart", 36f + letters + 6f), blk("range", row)), 36f, 110f, letters)
-                else stacked(listOf(blk("pill", pillStack), blk("chart", 36f + letters + 6f), blk("range", row), blk("label", lab)), 36f, 110f, letters)
+                if (side) beside(listOf(blk("pill", pillLeft), blk("label", lab)), listOf(blk("chart", 36f + letters + 6f), blk("range", row)), 36f, 170f, letters)
+                else stacked(listOf(blk("pill", pillStack), blk("chart", 36f + letters + 6f), blk("range", row), blk("label", lab)), 36f, 170f, letters)
             WidgetStyle.HrvPill -> stacked(listOf(blk("pill", pillStack), blk("range", row), blk("base", 16f * t), blk("label", lab)))
 
             WidgetStyle.HeartSpark ->
-                if (side) beside(listOf(blk("avg7", row), blk("label", lab)), listOf(blk("chart", 28f + 6f), blk("avgrow", row)), 28f, 120f, 0f)
-                else stacked(listOf(blk("avg7", row), blk("chart", 28f + 6f), blk("avgrow", row), blk("label", lab)), 28f, 90f)
+                if (side) beside(listOf(blk("avg7", row), blk("label", lab)), listOf(blk("chart", 28f + 6f), blk("avgrow", row)), 28f, 170f, 0f)
+                else stacked(listOf(blk("avg7", row), blk("chart", 28f + 6f), blk("avgrow", row), blk("label", lab)), 28f, 130f)
             WidgetStyle.HeartRange ->
-                if (side) beside(listOf(blk("avg7", row), blk("label", lab)), listOf(blk("chart", 22f + 6f), blk("labels", 16f * t)), 22f, 22f, 0f)
-                else stacked(listOf(blk("chart", 22f + 6f), blk("labels", 16f * t), blk("avg7", row), blk("label", lab)), 22f, 22f)
+                if (side) beside(listOf(blk("avg7", row), blk("label", lab)), listOf(blk("chart", 22f + 6f), blk("labels", 16f * t)), 22f, 40f, 0f)
+                else stacked(listOf(blk("chart", 22f + 6f), blk("labels", 16f * t), blk("avg7", row), blk("label", lab)), 22f, 40f)
             WidgetStyle.HeartPair -> {
                 val half = ((inner - 8f) / 2f).coerceAtLeast(40f)
                 val unitless = heroText.isNotEmpty() && !TextFit.fits(heroText, hero(half), fs, half, Layouts.HERO_CAP)
@@ -101,8 +103,8 @@ internal object MorePlans {
 
             WidgetStyle.StressPill -> stacked(listOf(blk("pill", pillStack), blk("avg7", row), blk("label", lab)))
             WidgetStyle.StressBars ->
-                if (side) beside(listOf(blk("pill", pillLeft), blk("label", lab)), listOf(blk("chart", 36f + letters + 6f), blk("avg7", row)), 36f, 110f, letters)
-                else stacked(listOf(blk("pill", pillStack), blk("chart", 36f + letters + 6f), blk("avg7", row), blk("label", lab)), 36f, 110f, letters)
+                if (side) beside(listOf(blk("pill", pillLeft), blk("label", lab)), listOf(blk("chart", 36f + letters + 6f), blk("avg7", row)), 36f, 170f, letters)
+                else stacked(listOf(blk("pill", pillStack), blk("chart", 36f + letters + 6f), blk("avg7", row), blk("label", lab)), 36f, 170f, letters)
             WidgetStyle.StressGauge -> {
                 // The level word must stay visible: below a gauge of 72 dp plus its word, fall back to number and pill.
                 var chosen: Layouts.Plan? = null
@@ -120,11 +122,11 @@ internal object MorePlans {
             }
 
             WidgetStyle.MileageBars ->
-                if (side) beside(listOf(blk("count", row), blk("cmp", row), blk("label", lab)), listOf(blk("chart", 36f + letters + 6f)), 36f, 130f, letters)
-                else stacked(listOf(blk("count", row), blk("chart", 36f + letters + 6f), blk("cmp", row), blk("label", lab)), 36f, 110f, letters)
+                if (side) beside(listOf(blk("count", row), blk("cmp", row), blk("label", lab)), listOf(blk("chart", 36f + letters + 6f)), 36f, 190f, letters)
+                else stacked(listOf(blk("count", row), blk("chart", 36f + letters + 6f), blk("cmp", row), blk("label", lab)), 36f, 170f, letters)
             WidgetStyle.MileageTrend ->
-                if (side) beside(listOf(blk("cmp", row), blk("count", row), blk("label", lab)), listOf(blk("chart", 30f + 6f)), 30f, 130f, 0f)
-                else stacked(listOf(blk("cmp", row), blk("chart", 30f + 6f), blk("count", row), blk("label", lab)), 30f, 90f)
+                if (side) beside(listOf(blk("cmp", row), blk("count", row), blk("label", lab)), listOf(blk("chart", 30f + 6f)), 30f, 190f, 0f)
+                else stacked(listOf(blk("cmp", row), blk("chart", 30f + 6f), blk("count", row), blk("label", lab)), 30f, 130f)
             WidgetStyle.MileageGoal -> {
                 if (side) {
                     val ring = minOf(avail, inner * 0.42f, 200f).coerceAtLeast(minOf(48f, avail)).toInt()

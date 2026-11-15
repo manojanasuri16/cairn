@@ -10,7 +10,8 @@ import androidx.glance.LocalContext
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
-import androidx.glance.layout.size
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.TextAlign
@@ -42,7 +43,7 @@ internal fun BigValue(number: String, unit: String, sp: Float, modifier: GlanceM
 @Composable
 internal fun Letters(letters: List<String>, todayIdx: Int, width: Dp) {
     val p = skin.p
-    Row(GlanceModifier.width(width)) {
+    Row(GlanceModifier.fillMaxWidth()) {
         letters.forEachIndexed { i, l ->
             Txt(l, 9f, if (i == todayIdx) FontWeight.Bold else FontWeight.Normal, if (i == todayIdx) p.ink else p.inkSub, align = TextAlign.Center, modifier = GlanceModifier.defaultWeight())
         }
@@ -51,7 +52,8 @@ internal fun Letters(letters: List<String>, todayIdx: Int, width: Dp) {
 
 @Composable
 internal fun ChartImage(bmp: android.graphics.Bitmap, width: Dp, height: Dp) =
-    Image(ImageProvider(bmp), contentDescription = null, modifier = GlanceModifier.size(width, height))
+    // The bitmap is drawn for the width the rule assumed; stretching it to the real column keeps charts edge to edge in any cell.
+    Image(ImageProvider(bmp), contentDescription = null, modifier = GlanceModifier.fillMaxWidth().height(height), contentScale = androidx.glance.layout.ContentScale.FillBounds)
 
 /** The first of [candidates] (longest first) that fits [availW] at [sp]; the last one otherwise, so a value is shortened, never cut. */
 @Composable

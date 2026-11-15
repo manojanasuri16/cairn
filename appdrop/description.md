@@ -5,7 +5,7 @@ Cairn shows the numbers your COROS watch has already sent to COROS (steps, sleep
 ## Widgets
 
 - **Today**, **Recovery**, **Last activity**, **Training load** (Intensity Trend), **Sleep**, **Fitness** (race grid) and **Overview** (a grid of 1 to 6 stats you choose).
-- **Overnight HRV**, **Heart rate**, **Stress** and **Weekly mileage** (Monday to Sunday, with an optional goal ring), each with three styles.
+- **Overnight HRV**, **Heart rate**, **Stress** and **Weekly mileage** (Monday to Sunday, with an optional goal ring), each with three styles. The COROS account (sign-in methods and diagnostics) is one tap from Settings.
 - 11 looks: Clean (the default), Dusk, Dawn, Forest, Midnight, Sunrise, Minimal, Ocean, Violet, Berry and Transparent.
 - A per-widget editor with a live preview, and sizes from 2x2 to 4x3.
 - Every widget has a freshness dot (green, amber or red) and a sync button. Tapping a widget opens COROS and syncs.

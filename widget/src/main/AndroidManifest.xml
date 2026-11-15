@@ -26,6 +26,9 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_fitness_info" />
         </receiver>
         <receiver android:name=".WidgetPinnedReceiver" android:exported="false" />
+        <receiver android:name=".PackageReplacedReceiver" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter>
+        </receiver>
         <receiver android:name=".OverviewWidgetReceiver" android:exported="true" android:label="@string/widget_overview_label_wide">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_overview_info" />

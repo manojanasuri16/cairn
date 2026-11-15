@@ -36,7 +36,7 @@ class WeeklyMileageWidget : CairnWidget<MileageUi>(WidgetKind.WeeklyMileage) {
         val lineW = if (plan.side) w - 2f * plan.pad - plan.heroAvailDp - 12f else w - 2f * plan.pad
         val textW = if (plan.side) plan.heroAvailDp else w - 2f * plan.pad
         val count = if (cfg.shows(Part.ActivityCount) && plan.has("count")) b.countText else null
-        val cmp = if (cfg.shows(Part.VsLastWeek) && plan.has("cmp")) b.comparison?.let { fitLine(listOf(it, it.removeSuffix(" last week")), textW, 11f) } else null
+        val cmp = if (cfg.shows(Part.VsLastWeek) && plan.has("cmp")) b.comparison?.let { fitLine(listOf(it, it.replace("last week", "last wk"), it.substringBefore(" vs")), textW, 11f) } else null
         Framed(ui, kind, plan) {
             when (style) {
                 WidgetStyle.MileageGoal -> GoalStyle(b, plan, unit, goal!!, count, cmp, textW)

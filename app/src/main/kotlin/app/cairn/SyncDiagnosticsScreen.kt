@@ -62,6 +62,7 @@ fun SyncDiagnosticsScreen(modifier: Modifier = Modifier) {
             if (state.needsSignIn) Text("COROS needs sign-in. MCP calls are paused until you sign in again.", color = MaterialTheme.colorScheme.error)
             Line("COROS requests today", "${state.mcpCallsToday} of ${app.cairn.sync.McpPlanner.DAILY_CAP}")
         }
+        Section("Sign-in") { SignInDiagLines(graph.signIn.diag.collectAsState().value) }
         Section("Data age") {
             Line("Health Connect", at(state.lastHcDataMs))
             Line("COROS MCP (last change)", at(state.lastMcpDataChangeMs))

@@ -21,6 +21,7 @@ import app.cairn.core.designsystem.ThemeId
 import app.cairn.core.model.DistanceUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.catch
 
 /**
  * Common shell for the six widgets: reads this widget's stored configuration (inheriting the app-wide appearance),
@@ -61,7 +62,26 @@ abstract class CairnWidget<T>(val kind: WidgetKind) : GlanceAppWidget() {
     @Composable
     fun RenderSample(cfg: ResolvedConfig) = Render(sample(), cfg)
 
+    /**
+     * Never leaves a placed widget on its initial "Loading" layout: whatever goes wrong while preparing or composing (an exception
+     * is logged by class name only, never with values), the widget shows a short message and a tap opens Cairn.
+     */
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        try {
+            provide(context, id)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            WidgetLog.d("provide failed kind=$kind ${e::class.java.simpleName}")
+            provideContent {
+                CairnGlanceTheme(WidgetConfig().resolve(kind, AppAppearance())) {
+                    MessageView(WidgetUi.Message(MessageKind.Empty, "Couldn't load this widget", "Tap to open Cairn, or use the sync button on another widget.", Screen.Today))
+                }
+            }
+        }
+    }
+
+    private suspend fun provide(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
         WidgetLog.options(context, appWidgetId, "provide $kind")
         provideContent {
@@ -71,7 +91,7 @@ abstract class CairnWidget<T>(val kind: WidgetKind) : GlanceAppWidget() {
             val cfg = stored.resolve(kind, app)
             WidgetLog.d("provide kind=$kind id=$appWidgetId declaredSizes=${WidgetSizes.byKind[kind]} stored=[style=${stored.style} theme=${stored.theme} metrics=${stored.metrics?.map { it.name }}] resolved=[style=${cfg.style} theme=${cfg.theme} metrics=${cfg.metrics.map { it.name }} hidden=${cfg.hidden.map { it.name }}]")
             val unit = when (cfg.units) { UnitsPref.Km -> DistanceUnit.Km; UnitsPref.Mi -> DistanceUnit.Mi; UnitsPref.Inherit -> null }
-            val ui by remember(unit) { flow(unit) }.collectAsState(WidgetUi.Loading)
+            val ui by remember(unit) { flow(unit).catch { emit(WidgetUi.Message(MessageKind.Empty, "Couldn't load this widget", "Tap to open Cairn.", Screen.Today)) } }.collectAsState(WidgetUi.Loading)
             val sync by remember { WidgetEnvironment.sources?.syncState ?: flowOf(null) }.collectAsState(null)
             androidx.compose.runtime.CompositionLocalProvider(LocalSyncState provides sync) { Render(ui, cfg) }
         }
@@ -129,6 +149,7 @@ object WidgetCatalog {
 
 /** Calls the preview setter so launchers on Android 15+ show the real coloured widgets in the picker. Rate limited by the system; failures are harmless. */
 suspend fun registerWidgetPreviews(context: Context) {
+    if (android.os.Build.VERSION.SDK_INT < 35) return // generated previews are an Android 15+ API
     val mgr = GlanceAppWidgetManager(context)
     runCatching { mgr.setWidgetPreviews(TodayWidgetReceiver::class) }
     runCatching { mgr.setWidgetPreviews(RecoveryWidgetReceiver::class) }

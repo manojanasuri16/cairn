@@ -37,6 +37,8 @@ import app.cairn.core.designsystem.Contrast
 import app.cairn.core.designsystem.FitMath
 import app.cairn.core.model.Freshness
 
+// Glance composes RemoteViews and has no LocalConfiguration, so the font scale is read from its own LocalContext.
+@Suppress("LocalContextConfigurationRead")
 val LocalFontScale: Float @Composable get() = LocalContext.current.resources.configuration.fontScale
 
 /** Text. Sizes follow the system font up to [Layouts.TEXT_CAP] (heroes: [Layouts.HERO_CAP]); beyond that the sp is reduced so the layout holds. */

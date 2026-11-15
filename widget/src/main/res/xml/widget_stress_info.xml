@@ -15,4 +15,5 @@
     android:initialLayout="@layout/widget_loading"
     android:configure="app.cairn.WidgetConfigActivity"
     android:widgetFeatures="reconfigurable"
+    android:previewImage="@drawable/widget_previewimg_stress"
     android:previewLayout="@layout/widget_preview_stress" />

@@ -2,7 +2,7 @@
 
 All notable changes to Cairn are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [1.4.0] - Unreleased
+## [1.4.0] - 2026-11-15
 
 ### Added
 - Four new widgets, each with three styles, the 11 looks, the sync button and freshness dot, a live-preview editor and size variants (2x2, 4x2, 4x3):
@@ -13,7 +13,12 @@ All notable changes to Cairn are listed here. The format follows [Keep a Changel
 - Overview can show Weekly mileage (HRV, Heart rate and Stress were already there). Existing stats keep their ids.
 - Debug demo data now fills the four widgets (7 nights of HRV, 7 days of heart rate and stress, runs this week and last week).
 
+- Sign-in rework: an HTTPS bounce page with a local fallback and code login, plus fixes for sign-in screens that got stuck.
+- Settings: the COROS account row opens the account screen (sign-in methods, diagnostics, sign in again); the Tools entry is now "Open tools".
+- Widgets refresh after an app update, and a widget that fails to load shows a short message instead of staying on "Loading".
+
 ### Changed
+- Charts in the new widgets stretch to the full width of the widget; picker previews and fallback images for all new widgets.
 - Demo data: last month's runs now sit on days 1 to 14 so they never overlap "last week".
 
 ## [1.3.0]

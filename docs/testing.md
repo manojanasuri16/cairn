@@ -83,3 +83,17 @@ v1.2 checks (emulator):
 - [ ] Overview with 4 stats at a 2x2 and 4x2 cell shows four tiles.
 - [ ] Today widget on a wide-font device: no label shown as "S…" (full, short or icon only).
 
+## 6. Manual sign-in tests
+
+Settings > COROS account. Start each case signed out.
+
+1. **Happy path (bounce).** Tap Sign in, authorize on COROS. The COROS page forwards to Cairn (tap "Open Cairn" if it does not). Expect "Finishing sign-in...", then the COROS account screen "Signed in (US)" and a first sync (Sync diagnostics shows a SIGN_IN run).
+2. **Process killed.** Tap Sign in, then `adb shell am kill app.cairn` while Chrome is open, authorize. Cairn must still sign in (pending record restored).
+3. **Slow browser.** Leave the COROS page open 30 s after returning to Cairn: the "Still nothing?" hint appears, nothing is cancelled. After 5 minutes it becomes "Sign-in timed out" with Try again. A page opened more than 15 minutes later says "Sign-in session expired, please start again".
+4. **Airplane mode.** Enable before tapping Sign in: "Network error". Enable after authorizing (before returning): the exchange retries once, then shows the network error; sign in again.
+5. **Cancel / restart.** While waiting: Cancel returns to Sign in; Sign in, the local method and device code stay enabled and restart cleanly.
+6. **Local method.** "Having trouble?" > "Try the local method" (deny notifications once to confirm it still works). The "Signing in to COROS" notification disappears afterwards.
+7. **Device code.** The code shows on screen; approving on COROS signs in.
+8. **Refresh token rejected.** Revoke Cairn in COROS settings, sync: widgets and the account screen say "Sign in again".
+9. **Wrong region.** Account on EU: US attempt falls back to EU automatically only if COROS returns an account_not_found style error; otherwise "Try another region".
+10. **Scripted/emulator:** `adb shell am start -a android.intent.action.VIEW -d "app.cairn.oauth://callback?code=x&state=y"` with no pending sign-in must show "Sign-in session expired".
