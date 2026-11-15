@@ -1,0 +1,7 @@
+Recovery Status
+========================
+
+Recovery: 64%
+Level: Moderate
+Estimated Full Recovery: 18h
+Readiness Hint: take it easy

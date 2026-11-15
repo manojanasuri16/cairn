@@ -1,0 +1,11 @@
+Daily Health Data — Last 2 days
+Some unexpected banner line
+
+--- 20300110 ---
+Steps: 1,000 | Mystery: 5 | Calories: abc kcal
+Heart Variability: high
+Stress: Avg
+Sleep Summary:
+ Total: 8h
+--- 2030011X ---
+Steps: 5

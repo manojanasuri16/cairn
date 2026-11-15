@@ -1,0 +1,31 @@
+Sleep Overview
+========================
+Note: each record below is dated by its wake-up day.
+
+2030-01-02
+Sleep Score: 78
+Daily Sleep: 7h 10min (incl. naps)
+Main Sleep (asleep): 6h 50min
+Main Sleep Period (incl. awake): 7h 20min
+Sleep metrics scope: daily
+Deep Sleep Ratio: 15%
+Light Sleep Ratio: 55%
+REM Ratio: 25%
+Awake Ratio: 5%
+Awake Time: 30 min
+Awake Count (>5 min): 1
+Main Sleep Window: 2030-01-01T23:30 - 2030-01-02T06:50
+Naps Total: 20 min
+
+2030-01-03
+Sleep Score: 91
+Main Sleep (asleep): 8h 0min
+Main Sleep Period (incl. awake): 8h 15min
+Deep Sleep Ratio: 20%
+Light Sleep Ratio: 50%
+REM Ratio: 28%
+Awake Ratio: 2%
+Awake Time: 15 min
+Main Sleep Window: 2030-01-02T22:45 - 2030-01-03T07:00
+Naps Total: 0 min
+Brand New Metric: 42

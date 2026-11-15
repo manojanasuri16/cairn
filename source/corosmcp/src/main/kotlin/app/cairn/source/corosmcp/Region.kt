@@ -8,6 +8,15 @@ enum class Region(val label: String, val host: String) {
 
 open class CorosException(message: String) : Exception(message)
 
+/** The loopback wait for the browser redirect ran out; the COROS authorize state has likely expired too. */
+class SignInTimeoutException : CorosException(SignInMessages.TIMEOUT)
+
+/** User-facing sign-in strings shared by the app and tests. */
+object SignInMessages {
+    const val HINT = "Finish signing in within a couple of minutes."
+    const val TIMEOUT = "Sign-in timed out. Please try again and finish signing in within a couple of minutes."
+}
+
 /** The browser callback carried an OAuth `error=` code. */
 class AuthorizationException(val code: String) : CorosException("Authorization failed: $code")
 

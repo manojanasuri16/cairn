@@ -1,0 +1,7 @@
+Fitness Assessment Overview
+========================
+
+VO2max: 44
+Threshold Pace: 7:30 /mi
+Unknown Prediction: 1:00
+5 km Prediction: --

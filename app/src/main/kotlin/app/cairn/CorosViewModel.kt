@@ -17,6 +17,7 @@ import app.cairn.source.corosmcp.Redactor
 import app.cairn.source.corosmcp.Region
 import app.cairn.source.corosmcp.RegionPolicy
 import app.cairn.source.corosmcp.Shape
+import app.cairn.source.corosmcp.SignInMessages
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Job
@@ -36,6 +37,7 @@ data class CorosUiState(
     val tools: List<String> = emptyList(),
     val shape: Pair<String, String>? = null, // tool to shape text
     val canCopy: Boolean = false,
+    val signInHint: String? = null, // visible while waiting for the browser redirect
 )
 
 val INTERESTING_TOOLS = listOf(
@@ -124,8 +126,8 @@ class CorosViewModel(app: Application) : AndroidViewModel(app) {
             CustomTabsIntent.Builder().build().apply {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }.launchUrl(context, Uri.parse(pending.authorizeUrl))
-            _state.update { it.copy(status = "Waiting for sign-in in browser (${region.label})") }
-            val code = rx.awaitCode(pending.state)
+            _state.update { it.copy(status = "Waiting for sign-in in browser (${region.label})", signInHint = SignInMessages.HINT) }
+            val code = try { rx.awaitCode(pending.state) } finally { _state.update { it.copy(signInHint = null) } }
             oauth.completeAuthorization(pending, code)
         }
     }

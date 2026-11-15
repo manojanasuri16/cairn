@@ -12,12 +12,12 @@ class LoopbackReceiver private constructor(private val server: ServerSocket) : A
     val redirectUri: String get() = "http://127.0.0.1:${server.localPort}/callback"
 
     /** Waits for the redirect; returns the authorization code after verifying [expectedState]. */
-    suspend fun awaitCode(expectedState: String, timeoutMs: Int = 300_000): String = withContext(Dispatchers.IO) {
+    suspend fun awaitCode(expectedState: String, timeoutMs: Int = DEFAULT_TIMEOUT_MS): String = withContext(Dispatchers.IO) {
         server.soTimeout = timeoutMs
         val deadline = System.currentTimeMillis() + timeoutMs
         while (true) {
             val remaining = (deadline - System.currentTimeMillis()).toInt()
-            if (remaining <= 0) throw CorosException("Timed out waiting for sign-in")
+            if (remaining <= 0) throw SignInTimeoutException()
             server.soTimeout = remaining
             try {
                 server.accept().use { s ->
@@ -36,7 +36,7 @@ class LoopbackReceiver private constructor(private val server: ServerSocket) : A
                     }
                 }
             } catch (e: SocketTimeoutException) {
-                throw CorosException("Timed out waiting for sign-in")
+                throw SignInTimeoutException()
             }
         }
         @Suppress("UNREACHABLE_CODE") error("unreachable")
@@ -45,6 +45,12 @@ class LoopbackReceiver private constructor(private val server: ServerSocket) : A
     override fun close() = server.close()
 
     companion object {
+        /**
+         * COROS expires the authorize `state` quickly (an ~8 min login ended in "Invalid state parameter"),
+         * so waiting longer than a few minutes is pointless. Fail fast and let the user retry.
+         */
+        const val DEFAULT_TIMEOUT_MS = 180_000
+
         fun open(): LoopbackReceiver = LoopbackReceiver(ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")))
 
         /** Returns query params for "GET /callback?..." else null. */

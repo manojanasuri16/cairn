@@ -1,0 +1,15 @@
+Training Load Assessment
+========================
+
+2030-01-03
+Comment: Optimal
+Short-Term Load: 55
+Long-Term Load: 48
+Load Ratio: 1.15
+
+2030-01-02
+Comment: Increasing
+Short-Term Load: 40
+Long-Term Load: 47
+Load Ratio: 0.85
+Extra Field: 9

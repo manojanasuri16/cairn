@@ -1,0 +1,21 @@
+Sport Records — 2030-01-01 to 2030-01-03 (3 records)
+====
+
+1. Outdoor Run — 2030-01-03
+ Location: Testville Park
+ Start Coordinates: 12.3456, 65.4321
+ Time Window: startTimestamp=1893571200 | endTimestamp=1893574800
+ Duration: 54:37 | Distance: 5.55 km
+ Average Pace: 9:50 /km | Avg HR: 151 bpm | Calories: 703 kcal
+ LabelId: L1001 | SportType: 100
+
+2. Indoor Cycling — 2030-01-02
+ Time Window: startTimestamp=1893484800 | endTimestamp=1893488400
+ Duration: 1:05:10 | Distance: 800 m
+ Avg HR: 130 bpm | Calories: 450 kcal
+ LabelId: L1002 | SportType: 200
+ Weather: sunny
+
+3. Walk — 2030-01-01
+ Duration: 20:00 | Distance: 1.5 mi
+ LabelId: L1003

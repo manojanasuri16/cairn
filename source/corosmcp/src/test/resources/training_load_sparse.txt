@@ -1,0 +1,8 @@
+Training Load Assessment
+========================
+
+2030-01-03
+Short-Term Load: 12
+
+2030-01-02
+Load Ratio: n/a

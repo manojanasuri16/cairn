@@ -38,6 +38,7 @@ fun CorosAccountScreen(vm: CorosViewModel, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(s.status, style = MaterialTheme.typography.titleMedium)
+        s.signInHint?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
         s.deviceCode?.let { Text("Code: $it", style = MaterialTheme.typography.headlineSmall) }
         var advanced by rememberSaveable { mutableStateOf(false) }
         if (!s.signedIn) {

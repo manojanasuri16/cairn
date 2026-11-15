@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
     api(project(":core:datastore"))
+    api(project(":core:model"))
     api(libs.okhttp)
     api(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)

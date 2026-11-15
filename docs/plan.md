@@ -264,6 +264,16 @@ Keep modules coarse; this is a one-person app. The split exists mainly to keep `
 4. Store only `client_id`, the refresh token, the access token and its expiry, plus the issuer URL, in the Keystore-encrypted store. **Never store the COROS password.** Exclude the store from backup and device transfer (`dataExtractionRules`). Never log tokens. Use OkHttp/Ktor logging with header redaction.
 5. "Sign out" calls the revocation endpoint, wipes the token store, and optionally wipes the cache.
 
+### 4.7 Merge rules (implemented in `data/Merge.kt`)
+
+Room stores raw per-source rows; repositories merge on read and stamp `sourceUpdatedAt` (when the data was fetched or valid) plus `Freshness`.
+
+- **Daily** (steps, calories, HR, ...): per field, the newest `sourceUpdatedAt` wins; ties go to COROS_MCP. So Health Connect fills steps/HR when MCP is older; stress, floors and exercise minutes only exist in MCP.
+- **Sleep**: MCP preferred wholesale (it has the score); Health Connect only fills fields MCP left null (stage minutes, start/end) or supplies the night when MCP has none. Freshness follows the MCP stamp.
+- **Recovery, training load, fitness**: MCP only in practice; if a non-MCP record ever exists, MCP wins, else the newest.
+- **Activities**: union of both sources; duplicates (same day and start within 5 min, or durations within 90 s when a start is unknown) collapse to the MCP record, Health Connect fills null fields.
+- Same-source writes coalesce (newer field wins), so partial fetches never erase cached fields.
+
 ### 4.6 Sync engine details
 
 - `PeriodicSyncWorker` (unique, KEEP). Its steps:

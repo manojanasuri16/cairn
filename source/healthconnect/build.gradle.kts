@@ -4,6 +4,7 @@ plugins {
 }
 
 dependencies {
+    api(project(":core:model"))
     api(libs.health.connect.client)
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit)
