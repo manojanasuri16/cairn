@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -24,7 +23,6 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import app.cairn.core.common.RelativeAge
 import app.cairn.sync.StopReasons
-import app.cairn.sync.SyncReason
 import app.cairn.sync.SyncScheduler
 import app.cairn.sync.SyncSettings
 import java.time.Instant
@@ -47,7 +45,7 @@ fun SyncDiagnosticsScreen(modifier: Modifier = Modifier) {
     fun at(ms: Long?) = ms?.let { Instant.ofEpochMilli(it) }?.let { "${clockFmt.format(it.atZone(ZoneId.systemDefault()))} (${RelativeAge.format(it, now).removePrefix("Updated ")})" } ?: "never"
 
     Column(modifier.padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = { graph.syncScheduler.requestNow(SyncReason.MANUAL) }, modifier = Modifier.fillMaxWidth()) { Text("Sync now") }
+        SyncNowButton()
 
         Text("Interval", style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

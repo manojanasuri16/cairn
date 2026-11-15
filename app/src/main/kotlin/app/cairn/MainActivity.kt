@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import app.cairn.widget.EXTRA_COROS_MISSING
 import app.cairn.widget.EXTRA_SCREEN
 import app.cairn.widget.PinnableWidget
 import app.cairn.widget.Screen
@@ -37,25 +38,27 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { CairnApp(coros, intent?.getStringExtra(EXTRA_SCREEN) == Screen.Account.name) }
+        setContent { CairnApp(coros, intent?.getStringExtra(EXTRA_SCREEN), intent?.getBooleanExtra(EXTRA_COROS_MISSING, false) == true) }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CairnApp(coros: CorosViewModel, openAccount: Boolean) {
+private fun CairnApp(coros: CorosViewModel, startScreen: String?, corosMissing: Boolean) {
     val context = LocalContext.current
     val dark = isSystemInDarkTheme()
     // minSdk 34, so dynamic colour is always available.
     val colors = if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     var inspector by rememberSaveable { mutableStateOf(false) }
-    var account by rememberSaveable { mutableStateOf(openAccount) }
+    var account by rememberSaveable { mutableStateOf(startScreen == Screen.Account.name) }
     var diagnostics by rememberSaveable { mutableStateOf(false) }
-    BackHandler(enabled = inspector || account || diagnostics) { inspector = false; account = false; diagnostics = false }
+    var fresh by rememberSaveable { mutableStateOf(startScreen == Screen.Freshness.name) }
+    var settings by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = inspector || account || diagnostics || fresh || settings) { inspector = false; account = false; diagnostics = false; fresh = false; settings = false }
     MaterialTheme(colorScheme = colors) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            topBar = { CenterAlignedTopAppBar(title = { Text(if (inspector) "Data sources" else if (account) "COROS account" else if (diagnostics) "Sync diagnostics" else "Cairn") }) },
+            topBar = { CenterAlignedTopAppBar(title = { Text(if (inspector) "Data sources" else if (account) "COROS account" else if (diagnostics) "Sync diagnostics" else if (fresh) "Keep data fresh" else if (settings) "Settings" else "Cairn") }) },
         ) { padding ->
             if (inspector) {
                 InspectorScreen(Modifier.padding(padding))
@@ -63,8 +66,14 @@ private fun CairnApp(coros: CorosViewModel, openAccount: Boolean) {
                 CorosAccountScreen(coros, Modifier.padding(padding))
             } else if (diagnostics) {
                 SyncDiagnosticsScreen(Modifier.padding(padding))
+            } else if (fresh) {
+                FreshnessScreen(corosMissing, Modifier.padding(padding))
+            } else if (settings) {
+                SettingsScreen({ settings = false; fresh = true }, Modifier.padding(padding))
             } else {
                 Column(Modifier.padding(padding)) {
+                    TextButton(onClick = { fresh = true }) { Text("Keep data fresh") }
+                    TextButton(onClick = { settings = true }) { Text("Settings") }
                     TextButton(onClick = { inspector = true }) { Text("Data sources") }
                     TextButton(onClick = { account = true }) { Text("COROS account") }
                     TextButton(onClick = { diagnostics = true }) { Text("Sync diagnostics") }

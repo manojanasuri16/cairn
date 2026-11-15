@@ -6,7 +6,7 @@ import app.cairn.core.model.Freshness
 enum class AuthState { Ok, SignedOut, NeedsSignIn }
 
 /** Which Cairn screen a tap opens (read by MainActivity from [EXTRA_SCREEN]). */
-enum class Screen { Today, Activities, Account }
+enum class Screen { Today, Activities, Account, Freshness }
 
 enum class MessageKind { Empty, SignedOut, NeedsSignIn }
 

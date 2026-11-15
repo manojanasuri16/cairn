@@ -19,6 +19,8 @@ import app.cairn.source.corosmcp.OAuthClient
 import app.cairn.source.corosmcp.Region
 import app.cairn.source.corosmcp.RegionPolicy
 import app.cairn.source.healthconnect.HealthConnectReader
+import app.cairn.sync.DataStoreNudgeSettings
+import app.cairn.sync.StaleNudgeEvaluator
 import app.cairn.sync.DataStoreSyncSettings
 import app.cairn.sync.DataStoreSyncStateStore
 import app.cairn.sync.HealthConnectSource
@@ -90,6 +92,8 @@ class AppGraph(private val context: Context) : SyncComponent {
     }
     override val syncSettings by lazy { DataStoreSyncSettings(prefs) }
     override val syncState by lazy { DataStoreSyncStateStore(prefs) }
+    val nudgeSettings by lazy { DataStoreNudgeSettings(prefs) }
+    val notifier by lazy { StaleNudgeNotifier(context) }
 
     @Volatile var widgetUpdater: WidgetUpdater = GlanceWidgetUpdater(context)
 
@@ -100,6 +104,7 @@ class AppGraph(private val context: Context) : SyncComponent {
             writer = RepositorySyncWriter(dailyRepository, sleepRepository, recoveryRepository, trainingLoadRepository, fitnessRepository, activityRepository),
             store = syncState,
             widgets = object : WidgetUpdater { override suspend fun updateAll() = widgetUpdater.updateAll() },
+            nudge = StaleNudgeEvaluator(nudgeSettings, syncState, notifier),
         )
     }
     override val syncScheduler: SyncScheduler by lazy { SyncScheduler(WorkManager.getInstance(context), syncSettings, syncState) }

@@ -42,6 +42,14 @@ class SyncScheduler(private val work: WorkManager, private val settings: SyncSet
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
                 .build()
 
+        fun corosRefreshRequest(delaySeconds: Long): OneTimeWorkRequest =
+            OneTimeWorkRequest.Builder(OneTimeSyncWorker::class.java)
+                .setConstraints(CONSTRAINTS)
+                .setInitialDelay(delaySeconds, TimeUnit.SECONDS)
+                .setInputData(Data.Builder().putString(KEY_REASON, SyncReason.COROS_REFRESH.name).build())
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
+                .build()
+
         /** Expedited when quota allows, otherwise a normal one-time job. */
         fun oneTimeRequest(reason: SyncReason): OneTimeWorkRequest =
             OneTimeWorkRequest.Builder(OneTimeSyncWorker::class.java)
@@ -60,6 +68,13 @@ class SyncScheduler(private val work: WorkManager, private val settings: SyncSet
     /** KEEP: a tap while a run is queued or running does not stack another. */
     fun requestNow(reason: SyncReason = SyncReason.MANUAL) {
         work.enqueueUniqueWork(ONE_TIME_NAME, ExistingWorkPolicy.KEEP, oneTimeRequest(reason))
+    }
+
+    /** Two delayed refreshes after COROS was opened; REPLACE so re-opening restarts the countdown. */
+    fun scheduleCorosRefreshes() {
+        CorosRefreshPlanner.delaysSeconds().forEachIndexed { i, d ->
+            work.enqueueUniqueWork(CorosRefreshPlanner.workName(i), ExistingWorkPolicy.REPLACE, corosRefreshRequest(d))
+        }
     }
 
     suspend fun setInterval(minutes: Int) { settings.setInterval(minutes); ensurePeriodic() }

@@ -11,7 +11,14 @@ fun cairnIntent(context: Context, screen: Screen): Intent =
         .putExtra(EXTRA_SCREEN, screen.name)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
 
-/** Stale footer opens COROS when installed (so it can sync), otherwise Cairn. */
+const val EXTRA_COROS_MISSING = "cairn.coros_missing"
+const val OPEN_COROS_CLASS = "app.cairn.OpenCorosActivity"
+
+/** Trampoline that opens COROS (or Cairn if it is missing) and schedules the delayed refreshes. */
+fun openCorosIntent(context: Context): Intent =
+    Intent(Intent.ACTION_MAIN).setClassName(context.packageName, OPEN_COROS_CLASS)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+
+/** Stale footer opens COROS via the trampoline (which also schedules refreshes), otherwise Cairn. */
 fun footerIntent(context: Context, footer: FooterUi?, screen: Screen): Intent =
-    (if (footer?.opensCoros == true) context.packageManager.getLaunchIntentForPackage(COROS_PACKAGE) else null)
-        ?: cairnIntent(context, screen)
+    if (footer?.opensCoros == true) openCorosIntent(context) else cairnIntent(context, screen)

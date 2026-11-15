@@ -33,7 +33,7 @@ object McpPlanner {
 
     /** Minimum time between MCP runs for [reason] given how long MCP data has been unchanged. */
     fun minGap(reason: SyncReason, state: SyncState, now: Instant): Duration = when {
-        reason == SyncReason.SIGN_IN -> Duration.ZERO
+        reason == SyncReason.SIGN_IN || reason == SyncReason.COROS_REFRESH -> Duration.ZERO
         reason == SyncReason.MANUAL -> MANUAL_GAP
         // Adaptive: if the MCP replies have not changed for 6 h the phone probably has not synced; poll hourly.
         state.lastMcpDataChangeMs?.let { Duration.between(Instant.ofEpochMilli(it), now) >= STALE_DATA_AFTER } == true -> SLOW_GAP

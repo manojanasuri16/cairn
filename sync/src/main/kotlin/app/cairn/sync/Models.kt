@@ -3,7 +3,11 @@ package app.cairn.sync
 import kotlinx.serialization.Serializable
 
 /** Why a sync run was requested. */
-enum class SyncReason { PERIODIC, MANUAL, APP_START, SIGN_IN, PERMISSION }
+enum class SyncReason {
+    PERIODIC, MANUAL, APP_START, SIGN_IN, PERMISSION,
+    /** Delayed refresh after the user opened COROS; the only reason (besides SIGN_IN) that bypasses the MCP gap. */
+    COROS_REFRESH,
+}
 
 enum class SyncOutcome {
     /** Everything that was due ran and succeeded. */

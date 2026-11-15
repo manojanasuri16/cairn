@@ -2,6 +2,7 @@ package app.cairn.sync
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -35,4 +36,19 @@ class DataStoreSyncSettings(private val ds: DataStore<Preferences>) : SyncSettin
     override val intervalMinutes: Flow<Int> = ds.data.map { SyncSettings.normalize(it[INTERVAL_KEY]) }
     override suspend fun interval(): Int = intervalMinutes.first()
     override suspend fun setInterval(minutes: Int) { ds.edit { it[INTERVAL_KEY] = SyncSettings.normalize(minutes) } }
+}
+
+private val NUDGE_ON = booleanPreferencesKey("stale_nudge_on")
+private val NUDGE_HOURS = intPreferencesKey("stale_nudge_hours")
+private val NUDGE_DAY = stringPreferencesKey("stale_nudge_last_day")
+
+class DataStoreNudgeSettings(private val ds: DataStore<Preferences>) : NudgeSettings {
+    override val enabled: Flow<Boolean> = ds.data.map { it[NUDGE_ON] ?: false }
+    override val thresholdHours: Flow<Int> = ds.data.map { NudgeSettings.normalize(it[NUDGE_HOURS]) }
+    override suspend fun isEnabled() = enabled.first()
+    override suspend fun threshold() = thresholdHours.first()
+    override suspend fun setEnabled(on: Boolean) { ds.edit { it[NUDGE_ON] = on } }
+    override suspend fun setThreshold(hours: Int) { ds.edit { it[NUDGE_HOURS] = NudgeSettings.normalize(hours) } }
+    override suspend fun lastNotifiedDay(): String? = ds.data.first()[NUDGE_DAY]
+    override suspend fun setLastNotifiedDay(day: String?) { ds.edit { if (day == null) it.remove(NUDGE_DAY) else it[NUDGE_DAY] = day } }
 }

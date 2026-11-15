@@ -43,6 +43,7 @@ class SyncEngine(
     private val widgets: WidgetUpdater = NoOpWidgetUpdater,
     private val clock: Clock = Clock { Instant.now() },
     private val zone: ZoneId = ZoneId.systemDefault(),
+    private val nudge: StaleNudgeEvaluator? = null,
 ) {
     private val mapper = HealthConnectMapper(zone)
     private val json = Json { ignoreUnknownKeys = true }
@@ -274,6 +275,7 @@ class SyncEngine(
             )
         }
         runCatching { widgets.updateAll() }
+        runCatching { nudge?.evaluate() }
     }
 
     private fun parseSchemas(text: String?): Map<String, JsonObject> =
