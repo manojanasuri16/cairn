@@ -64,6 +64,17 @@ class McpClient(
         return out
     }
 
+    /** tools/list with description and schema per tool (developer explorer). */
+    suspend fun listToolInfo(): List<ToolInfo> {
+        ensureInit()
+        val result = rpc("tools/list", buildJsonObject {})
+        return (result["tools"] as? JsonArray).orEmpty().mapNotNull { t ->
+            val o = t as? JsonObject ?: return@mapNotNull null
+            val name = (o["name"] as? JsonPrimitive)?.content ?: return@mapNotNull null
+            ToolInfo(name, (o["description"] as? JsonPrimitive)?.content.orEmpty(), (o["inputSchema"] as? JsonObject) ?: JsonObject(emptyMap()))
+        }
+    }
+
     /** Returns the raw `result` object of tools/call. Callers must not persist or log it. */
     suspend fun callTool(name: String, arguments: JsonObject = buildJsonObject {}): JsonObject {
         ensureInit()
@@ -125,6 +136,8 @@ class McpClient(
         }
     }
 }
+
+data class ToolInfo(val name: String, val description: String, val inputSchema: JsonObject)
 
 object McpParsing {
     private val json = Json { ignoreUnknownKeys = true }

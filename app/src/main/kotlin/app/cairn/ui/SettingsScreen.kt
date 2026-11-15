@@ -47,6 +47,8 @@ import app.cairn.core.model.DisplayPrefs
 import app.cairn.core.model.DistanceUnit
 import app.cairn.source.healthconnect.HealthConnectReader
 import app.cairn.source.healthconnect.syncReadPermissions
+import app.cairn.BuildConfig
+import app.cairn.ExplorerFeature
 import app.cairn.sync.NudgeSettings
 import app.cairn.sync.SyncSettings
 import app.cairn.widget.PinnableWidget
@@ -60,6 +62,7 @@ class SettingsNav(
     val onDiagnostics: () -> Unit,
     val onFreshness: () -> Unit,
     val onAccount: () -> Unit,
+    val onExplorer: () -> Unit = {},
 )
 
 @Composable
@@ -232,6 +235,7 @@ fun SettingsContent(
             SectionTitle("Tools")
             LinkRow("Data sources inspector", nav.onInspector)
             LinkRow("Sync diagnostics", nav.onDiagnostics)
+            if (BuildConfig.DEBUG && ExplorerFeature.available) LinkRow("Tool explorer (debug)", nav.onExplorer)
             LinkRow("Keep data fresh", nav.onFreshness)
             LinkRow("COROS account", nav.onAccount)
         }

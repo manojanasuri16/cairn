@@ -46,6 +46,8 @@ import androidx.navigation.compose.rememberNavController
 import app.cairn.CorosAccountScreen
 import app.cairn.CorosViewModel
 import app.cairn.FreshnessScreen
+import app.cairn.BuildConfig
+import app.cairn.ExplorerFeature
 import app.cairn.InspectorScreen
 import app.cairn.SyncDiagnosticsScreen
 import app.cairn.core.designsystem.CairnMotion
@@ -62,6 +64,7 @@ object Routes {
     const val DIAGNOSTICS = "diagnostics"
     const val FRESHNESS = "freshness"
     const val ACCOUNT = "account"
+    const val EXPLORER = "explorer"
 
     val tabs = listOf(TODAY, ACTIVITIES, FITNESS)
 
@@ -72,6 +75,7 @@ object Routes {
         SETTINGS -> "Settings"
         INSPECTOR -> "Data sources"
         DIAGNOSTICS -> "Sync diagnostics"
+        EXPLORER -> "Tool explorer"
         FRESHNESS -> "Keep data fresh"
         ACCOUNT -> "COROS account"
         else -> "Cairn"
@@ -181,13 +185,14 @@ private fun CairnScaffold(coros: CorosViewModel, start: String, corosMissing: Bo
             composable(Routes.SETTINGS) {
                 SettingsScreen(
                     coros,
-                    SettingsNav({ go(Routes.INSPECTOR) }, { go(Routes.DIAGNOSTICS) }, { go(Routes.FRESHNESS) }, { go(Routes.ACCOUNT) }),
+                    SettingsNav({ go(Routes.INSPECTOR) }, { go(Routes.DIAGNOSTICS) }, { go(Routes.FRESHNESS) }, { go(Routes.ACCOUNT) }, { go(Routes.EXPLORER) }),
                     m,
                 )
             }
             composable(Routes.INSPECTOR) { InspectorScreen(m) }
             composable(Routes.DIAGNOSTICS) { SyncDiagnosticsScreen(m) }
             composable(Routes.FRESHNESS) { FreshnessScreen(corosMissing, m) }
+            if (BuildConfig.DEBUG && ExplorerFeature.available) composable(Routes.EXPLORER) { ExplorerFeature.Screen(m) }
             composable(Routes.ACCOUNT) { CorosAccountScreen(coros, m) }
         }
     }

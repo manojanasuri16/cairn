@@ -17,7 +17,7 @@ object Redactor {
     private val prettyJson = Json { prettyPrint = true }
 
     private val maskKeys = Regex(
-        "(name|email|mail|phone|avatar|photo|birth|address|token|nick)|^(lat|lon|lng|latitude|longitude|userid|openid|uid|sn|mac|imei|deviceid|devicesn|city|country)$",
+        "(name|email|mail|phone|avatar|photo|birth|address|token|nick|serial|place|location)|^(lat|lon|lng|latitude|longitude|userid|openid|uid|sn|mac|imei|deviceid|devicesn|city|country)$",
         RegexOption.IGNORE_CASE,
     )
     private val idKeys = Regex("(^id$|Id$|Uuid|uuid)")
@@ -67,8 +67,19 @@ object Redactor {
         .replace(isoTime) { "${it.groupValues[1]}T${it.groupValues[2]}:00" }
         .replace(coordPair, "<coord>")
         .replace(longDigits, "<id>")
-        .lines().joinToString("\n") { line ->
-            val m = Regex("^(\\s*)(name|nickname|user|email|device)\\s*[:=]\\s*.+$", RegexOption.IGNORE_CASE).find(line)
-            if (m != null) "${m.groupValues[1]}${m.groupValues[2]}: <masked>" else line
-        }
+        .lines().joinToString("\n") { redactLine(it) }
+
+    private val labelLine = Regex("^(\\s*)(name|nickname|user|email|device)\\s*[:=]\\s*.+$", RegexOption.IGNORE_CASE)
+    private val locationInline = Regex("(location|place|venue)\\s*[:=]\\s*[^|;\\n]+", RegexOption.IGNORE_CASE)
+    private val serialInline = Regex("((?:device\\s+)?(?:serial(?:\\s*(?:number|no\\.?))?|sn|imei|mac))\\s*[:=#]\\s*[A-Za-z0-9:_-]{4,}", RegexOption.IGNORE_CASE)
+    private val personInline = Regex("(athlete|owner|nickname|full\\s*name|first\\s*name|last\\s*name|user\\s*name)\\s*[:=]\\s*[^|;\\n]+", RegexOption.IGNORE_CASE)
+
+    private fun redactLine(line: String): String {
+        val m = labelLine.find(line)
+        if (m != null) return "${m.groupValues[1]}${m.groupValues[2]}: <masked>"
+        return line
+            .replace(locationInline) { "${it.groupValues[1]}: <place>" }
+            .replace(serialInline) { "${it.groupValues[1]}: <serial>" }
+            .replace(personInline) { "${it.groupValues[1]}: <name>" }
+    }
 }
