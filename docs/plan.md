@@ -225,7 +225,8 @@ Keep modules coarse; this is a one-person app. The split exists mainly to keep `
 
 ### 4.3 Platform targets
 
-- **minSdk 28 (Android 9).** That is the Health Connect floor; on 9 to 13 it is an APK, and from 14 on it is a framework module. If the user only ever uses a modern phone, **minSdk 34** removes Health Connect APK edge cases (decision D7).
+- **Decided: minSdk 34** (see §9). Build environment: SDK at `/home/manoja/android-sdk` (referenced by the gitignored `local.properties`), Gradle wrapper, JDK 21 with `jvmTarget = 17`, same toolchain family as the user's other apps (Daymark: AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1; bump if Glance requires it).
+- ~~minSdk 28 (Android 9).~~ (original recommendation, superseded) That is the Health Connect floor; on 9 to 13 it is an APK, and from 14 on it is a framework module. If the user only ever uses a modern phone, **minSdk 34** removes Health Connect APK edge cases (decision D7).
 - **compileSdk/targetSdk 36** (Android 16). Bump to the newest stable SDK at M0 if a newer one is out.
 - Kotlin 2.x, JDK 17+, R8 enabled, 16 KB page-size aligned (no native libs planned).
 
@@ -248,9 +249,11 @@ Keep modules coarse; this is a one-person app. The split exists mainly to keep `
 
 ### 4.5 OAuth on Android (to validate in M2)
 
-1. Discover the regional issuer from `https://mcp.coros.com/.well-known/openid-configuration`.
-2. Dynamic client registration once per install, with `redirect_uris: ["app.cairn:/oauth2redirect"]` (custom scheme) and `token_endpoint_auth_method: none`.
-3. **If the server rejects non-loopback redirects** (it is unknown whether it accepts them), fall back to the **device-code grant**: Cairn opens the verification URL in a Custom Tab and polls `/oauth2/token`. This avoids redirect URIs entirely.
+1. Pick the regional MCP host (US `mcpus.coros.com`, EU `mcpeu.coros.com`, CN `mcpcn.coros.com`; `mcp.coros.com` also documented). Laps (see Reference below) registers at `/connect/register` and authorizes at `/oauth2/authorize`. Verify against `/.well-known/openid-configuration` in M2.
+2. Dynamic client registration once per install (RFC 7591), scope `mcp.tools offline_access`, `token_endpoint_auth_method: none`, PKCE S256. **Loopback redirect first**: an ephemeral `http://127.0.0.1:<port>/callback` receiver plus a Custom Tab. Laps shows COROS accepts this. A custom scheme (`app.cairn:/oauth2redirect`) is untested.
+3. **If loopback fails on device**, fall back to the **device-code grant**: Cairn opens the verification URL in a Custom Tab and polls `/oauth2/token`. This avoids redirect URIs entirely.
+
+> **Reference: Laps** (github.com/coderang-gk/Laps, MIT, read-only). A similar COROS widget app. Use it only to cross-check the OAuth flow, regional hosts and MCP text parsing (`parseMcpSportRecords`). Do not copy its hardcoded fallback IPs, its direct password login (`/account/login`, ToS-violating, rejected in D2), or its plain-SharedPreferences token storage. Re-implement; do not fork.
 4. Store only `client_id`, the refresh token, the access token and its expiry, plus the issuer URL, in the Keystore-encrypted store. **Never store the COROS password.** Exclude the store from backup and device transfer (`dataExtractionRules`). Never log tokens. Use OkHttp/Ktor logging with header redaction.
 5. "Sign out" calls the revocation endpoint, wipes the token store, and optionally wipes the cache.
 
@@ -352,6 +355,8 @@ Each milestone ends with the user's commit and push of the listed work. Claude d
 ---
 
 ## 9. Decisions needed from the user
+
+> **Resolved by the user (2026-11-15):** D1 = MCP + Health Connect. D2 = no unofficial API (M10 dropped). D3/D4/D5 = MCP polling OK every 30 to 60 min; refresh token in Keystore-encrypted storage. D7 = **minSdk 34**. D8 = **personal sideload** (no Play review). Still open: D6, D9 to D12 (defaults used until answered: stale nudge opt-in at 12 h, 30 days of history, Material You dynamic colour, W1/W2/W4 first). Scope: Cairn stays focused on recovery and daily health, not training plans.
 
 1. **D1. Primary source.** Recommended: **COROS MCP (official OAuth) primary plus Health Connect fallback.** Alternatives:
    - (b) **Health Connect only**: no account and fully offline, but no recovery, HRV, load or VO2max.
