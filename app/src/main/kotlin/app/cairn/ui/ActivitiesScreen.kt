@@ -46,20 +46,20 @@ import app.cairn.widget.FooterUi
 @Composable
 fun ActivitiesScreen(onOpenAccount: () -> Unit, modifier: Modifier = Modifier, vm: ActivitiesViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
-    ActivitiesContent(state, onOpenAccount, modifier)
+    ActivitiesContent(state, onOpenAccount, modifier, header = { SyncStatusBar(state.footer) })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ActivitiesContent(state: ActivitiesState, onOpenAccount: () -> Unit, modifier: Modifier = Modifier) {
+fun ActivitiesContent(state: ActivitiesState, onOpenAccount: () -> Unit, modifier: Modifier = Modifier, header: @Composable () -> Unit = {}) {
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = state.rows.firstOrNull { it.id == selectedId }
     Box(modifier.fillMaxSize()) {
         if (state.empty != null) {
-            EmptyState(state.empty, onOpenAccount, Modifier.padding(top = Spacing.xl))
+            Column { Box(Modifier.padding(horizontal = Spacing.md)) { header() }; EmptyState(state.empty, onOpenAccount, Modifier.padding(top = Spacing.xl)) }
         } else {
             LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                state.footer?.let { item { AgeLine(it) } }
+                item { header() }
                 items(state.rows, key = { it.id }) { row -> ActivityRow(row) { selectedId = row.id } }
             }
         }

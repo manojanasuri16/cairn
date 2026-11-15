@@ -97,26 +97,6 @@ fun WidgetFrame(
     }
 }
 
-/** Data age. Always shown; a compact style is the only alternative. Stale is bold, uses the warning colour and says so in words. */
-@Composable
-fun FooterView(footer: FooterUi, screen: Screen, compact: Boolean) {
-    val context = LocalContext.current
-    val p = skin.p
-    val stale = footer.tier == Freshness.Stale
-    val dot = when (footer.tier) { Freshness.Fresh -> p.good; Freshness.Aging -> p.warn; Freshness.Stale -> p.bad }
-    val color = if (stale) p.stale else p.inkSub
-    Row(
-        modifier = GlanceModifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = if (compact) 8.dp else 10.dp)
-            .semantics { contentDescription = footer.text + if (footer.opensCoros) ". Opens COROS to sync" else ". Opens Cairn" }
-            .clickable(actionStartActivity(footerIntent(context, footer, screen))),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(GlanceModifier.size(6.dp).background(cp(dot)).cornerRadius(3.dp)) {}
-        Spacer(GlanceModifier.width(6.dp))
-        Txt(if (compact) footer.shortText else footer.text, if (compact) 10f else 11f, if (stale) FontWeight.Bold else FontWeight.Medium, color)
-    }
-}
-
 @Composable
 fun MessageView(m: WidgetUi.Message) {
     val context = LocalContext.current

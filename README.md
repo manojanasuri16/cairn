@@ -41,6 +41,12 @@ Adding a real release keystore, versioning and R8 notes are in [docs/plan.md](do
 
 Cairn uses COROS's official OAuth sign-in for its MCP server. You sign in on COROS's own page in a browser tab; Cairn never sees your password. The resulting tokens are stored encrypted on the phone (Android Keystore) and are only ever sent to COROS. Signing out revokes them and "Delete data" clears the cache. Nothing is sent to any server run by Cairn: there isn't one.
 
+## Syncing and widgets
+
+- Every widget footer and app header has a small sync button: it syncs in the background without opening any app. A coloured dot shows freshness (green, amber, red) and a short age appears only when data is old.
+- Sync anytime: only a 10 second debounce and a generous daily limit (600 COROS requests) apply. Auto refresh can be every 5, 15, 30 or 60 minutes; 5 minutes uses more battery and requests and Android may delay it.
+- Add widget (Settings, long-press the app icon, or long-press a card) opens a studio where you pick the widget, its look and its size (2x2, 4x2, 4x3) with a live preview, then places it on your home screen already configured.
+
 ## Honest limits
 
 - Cairn cannot force your watch to sync. Data is only as fresh as COROS's last sync from the watch to its cloud. Open the COROS app to sync, then Cairn catches up.

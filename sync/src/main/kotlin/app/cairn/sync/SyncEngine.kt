@@ -148,7 +148,7 @@ class SyncEngine(
         if (!McpPlanner.gapElapsed(run.reason, s1, run.now)) { run.note = "inside minimum gap"; return }
         run.mcpStarted = true
 
-        val plan = McpPlanner.plan(s1, run.now, zone, newExercise)
+        val plan = McpPlanner.plan(s1, run.now, zone, newExercise, run.reason)
         var schemas: Map<String, JsonObject> = parseSchemas(s1.schemasJson)
         if (plan.refreshSchemas) {
             try {
@@ -264,6 +264,7 @@ class SyncEngine(
                 needsSignIn = if (run.needsSignIn) true else if (run.reason == SyncReason.SIGN_IN && run.mcpStarted) false else s.needsSignIn,
                 mcpCallsDay = day,
                 mcpCallsToday = (if (sameDay) s.mcpCallsToday else 0) + run.calls.size,
+                userSyncRequestedMs = null,
                 schemasJson = run.schemas?.first ?: s.schemasJson,
                 schemasFetchedMs = run.schemas?.second ?: s.schemasFetchedMs,
                 runs = (listOf(

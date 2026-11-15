@@ -4,6 +4,11 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import app.cairn.core.designsystem.ThemeMode
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.heading
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -67,6 +72,9 @@ class SettingsNav(
     val onFreshness: () -> Unit,
     val onAccount: () -> Unit,
     val onExplorer: () -> Unit = {},
+    val onAddWidget: () -> Unit = {},
+    val onTapTargets: () -> Unit = {},
+    val onTools: () -> Unit = {},
 )
 
 @Composable
@@ -117,7 +125,7 @@ fun SettingsScreen(coros: CorosViewModel, nav: SettingsNav, modifier: Modifier =
             else notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         },
         onNudgeHours = { scope.launch { graph.nudgeSettings.setThreshold(it) } },
-        onPin = { WidgetPinner.pin(context, it) },
+        onPin = { },
         tapTargets = tapTargets,
         onEditTapTarget = { editingTarget = it.name },
         nav = nav,
@@ -195,11 +203,35 @@ fun SettingsContent(
     onAppearance: (Bg, Int) -> Unit = { _, _ -> },
 ) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        ThemeCard(look, onLook)
-        WidgetAppearanceCard(appearance, onWidgetStyle, onAppearance)
+        SettingsGroup(AppIcons.Palette, "Appearance", "Colours and light or dark mode for the app.") {
+            AccentPicker(look, onLook)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                ThemeMode.entries.forEach { m ->
+                    FilterChip(selected = look.mode == m, onClick = { onLook(look.copy(mode = m)) }, label = { Text(m.label) }, modifier = Modifier.semantics { role = Role.RadioButton })
+                }
+                FilterChip(selected = look.dynamic, onClick = { onLook(look.copy(dynamic = !look.dynamic)) }, label = { Text("Material You colours") })
+            }
+        }
 
-        SectionCard {
-            SectionTitle("Sources")
+        SettingsGroup(AppIcons.Sync, "Sync", "How often Cairn checks COROS, and when data counts as old.") {
+            Text("Refresh every", style = MaterialTheme.typography.titleMedium)
+            ChoiceRow(SyncSettings.CHOICES, state.intervalMinutes, { "$it min" }, onInterval)
+            if (state.intervalMinutes == SyncSettings.FAST) {
+                Text(
+                    "Every 5 minutes uses more battery and COROS requests, and Android may delay it. Cairn keeps those runs light (recovery and daily numbers only).",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text("You can always sync right away with the sync button. 30 minutes is a good balance.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("Getting old after", style = MaterialTheme.typography.titleMedium)
+            ChoiceRow(DisplayPrefs.FRESH_CHOICES, state.display.freshHours, { "$it h" }, onFresh)
+            Text("Stale after", style = MaterialTheme.typography.titleMedium)
+            ChoiceRow(DisplayPrefs.AGING_CHOICES, state.display.agingHours, { "$it h" }, onAging)
+            Text("The dot beside the sync button turns amber, then red, at these ages.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        SettingsGroup(AppIcons.Link, "Sources", "Where your numbers come from.") {
             Text("Health Connect", style = MaterialTheme.typography.titleMedium)
             Text(SourceStatus.label(state.hc), style = MaterialTheme.typography.bodyMedium)
             if (SourceStatus.canGrant(state.hc)) Button(onClick = onGrantHc) { Text("Grant Health Connect access") }
@@ -209,62 +241,32 @@ fun SettingsContent(
             if (!corosSignedIn) Button(onClick = onCorosSignIn, enabled = !corosBusy) { Text("Sign in to COROS") }
         }
 
-        SectionCard {
-            SectionTitle("Refresh")
-            Text("Refresh interval", style = MaterialTheme.typography.titleMedium)
-            ChoiceRow(SyncSettings.CHOICES, state.intervalMinutes, { "$it min" }, onInterval)
-            Text("Mark data as getting old after", style = MaterialTheme.typography.titleMedium)
-            ChoiceRow(DisplayPrefs.FRESH_CHOICES, state.display.freshHours, { "$it h" }, onFresh)
-            Text("Mark data as stale after", style = MaterialTheme.typography.titleMedium)
-            ChoiceRow(DisplayPrefs.AGING_CHOICES, state.display.agingHours, { "$it h" }, onAging)
-            Text("These tiers also drive the age line on widgets.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        SectionCard {
-            SectionTitle("Reminder")
+        SettingsGroup(AppIcons.Bell, "Notifications", "An optional quiet reminder when COROS has not synced.") {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Text("Remind me when COROS hasn't synced", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                Text("Remind me", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 Switch(checked = nudgeOn, onCheckedChange = onNudge)
             }
-            Text(
-                "Cairn shows at most one quiet notification per day, between 08:00 and 22:00, when the newest data is older than the threshold. Tapping it opens COROS so it can sync. Nothing is sent anywhere.",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            Text("At most one a day, between 08:00 and 22:00. Tapping it opens COROS so it can sync.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (notifDenied) Text("Notifications are blocked for Cairn, so the reminder stays off. Allow them in system settings to use it.", color = MaterialTheme.colorScheme.error)
-            Text("Remind me after", style = MaterialTheme.typography.titleMedium)
-            ChoiceRow(NudgeSettings.CHOICES, nudgeHours, { "$it h" }, onNudgeHours, enabled = nudgeOn)
+            if (nudgeOn) { Text("After", style = MaterialTheme.typography.titleMedium); ChoiceRow(NudgeSettings.CHOICES, nudgeHours, { "$it h" }, onNudgeHours) }
         }
 
-        SectionCard {
-            SectionTitle("Units")
-            Text("Distance and pace", style = MaterialTheme.typography.titleMedium)
+        SettingsGroup(AppIcons.Ruler, "Units", "Distance and pace.") {
             ChoiceRow(DistanceUnit.entries, state.display.unit, { if (it == DistanceUnit.Km) "Kilometres" else "Miles" }, onUnit)
         }
 
-        if (widgetsSupported) {
-            SectionCard {
-                SectionTitle("Add a widget")
-                Text("Pick a style and colours when you place a widget; long-press it later to reconfigure.", style = MaterialTheme.typography.bodySmall)
-                PinnableWidget.entries.forEach { w ->
-                    OutlinedButton(onClick = { onPin(w) }, modifier = Modifier.fillMaxWidth()) { Text("Add ${w.label} widget") }
-                    Text(w.styles, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+        SettingsGroup(AppIcons.Widgets, "Widgets", "Add a widget and choose how new ones look.") {
+            if (widgetsSupported) Button(onClick = nav.onAddWidget, modifier = Modifier.fillMaxWidth()) { Icon(AppIcons.Add, null, Modifier.padding(end = Spacing.xs)); Text("Add widget") }
+            else Text("Your launcher cannot add widgets from an app. Long-press the home screen and choose Widgets.", style = MaterialTheme.typography.bodySmall)
+            WidgetAppearanceCard(appearance, onWidgetStyle, onAppearance, framed = false)
+            LinkRow("Widget tap targets", "What opens when you tap each widget", nav.onTapTargets)
         }
 
-        TapTargetsCard(tapTargets, onEditTapTarget)
-
-        SectionCard {
-            SectionTitle("Tools")
-            LinkRow("Data sources inspector", nav.onInspector)
-            LinkRow("Sync diagnostics", nav.onDiagnostics)
-            if (BuildConfig.DEBUG && ExplorerFeature.available) LinkRow("Tool explorer (debug)", nav.onExplorer)
-            LinkRow("Keep data fresh", nav.onFreshness)
-            LinkRow("COROS account", nav.onAccount)
+        SettingsGroup(AppIcons.Build, "Tools", "Diagnostics, data sources and tips.") {
+            LinkRow("Tools", "Sync diagnostics, data sources, keep data fresh", nav.onTools)
         }
 
-        SectionCard {
-            SectionTitle("Your data")
+        SettingsGroup(AppIcons.Delete, "Your data", "Everything stays on this phone.") {
             OutlinedButton(onClick = onCorosSignOut, enabled = corosSignedIn && !corosBusy, modifier = Modifier.fillMaxWidth()) { Text("Sign out of COROS") }
             OutlinedButton(
                 onClick = onDeleteRequest, enabled = !state.deleting, modifier = Modifier.fillMaxWidth(),
@@ -273,9 +275,51 @@ fun SettingsContent(
     }
 }
 
+/** A settings card with an icon, a title and a one-line description. */
 @Composable
-private fun LinkRow(label: String, onClick: () -> Unit) {
-    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(label, Modifier.fillMaxWidth()) }
+private fun SettingsGroup(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, description: String, content: @Composable () -> Unit) {
+    SectionCard {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Icon(icon, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+            Column {
+                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        content()
+    }
+}
+
+/** Sub-screen: what each widget opens when tapped. */
+@Composable
+fun TapTargetsScreen(modifier: Modifier = Modifier) {
+    val graph = (LocalContext.current.applicationContext as CairnApp).graph
+    val tapTargets by graph.appSettings.tapTargets.collectAsStateWithLifecycle(initialValue = emptyMap())
+    val scope = rememberCoroutineScope()
+    var editing by rememberSaveable { mutableStateOf<String?>(null) }
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.md)) { TapTargetsCard(tapTargets) { editing = it.name } }
+    WidgetKind.parse(editing)?.let { kind ->
+        TapTargetPickerDialog(kind, tapTargets[kind] ?: TapTarget.CorosHome, onSave = { t -> scope.launch { graph.appSettings.setTapTarget(kind, t) }; editing = null }, onDismiss = { editing = null })
+    }
+}
+
+/** Sub-screen: diagnostics and helpers, out of the main settings list. */
+@Composable
+fun ToolsScreen(nav: SettingsNav, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        SectionCard {
+            LinkRow("Sync diagnostics", "Last runs, scheduler state, request count", nav.onDiagnostics)
+            LinkRow("Data sources inspector", "What Cairn can read from Health Connect", nav.onInspector)
+            LinkRow("Keep data fresh", "Open COROS and battery tips", nav.onFreshness)
+            LinkRow("COROS account", "Sign in or out", nav.onAccount)
+            if (BuildConfig.DEBUG && ExplorerFeature.available) LinkRow("Tool explorer (debug)", "Call COROS tools by hand", nav.onExplorer)
+        }
+    }
+}
+
+@Composable
+private fun LinkRow(label: String, subtitle: String, onClick: () -> Unit) {
+    ActionRow(AppIcons.ChevronRight, label, subtitle, onClick)
 }
 
 @OptIn(ExperimentalLayoutApi::class)

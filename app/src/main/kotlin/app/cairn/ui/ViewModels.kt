@@ -57,44 +57,6 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
             AppMapper.today(d.map { it.value }, s.map { it.value }, r?.value, l.map { it.value }, graph.authState(), Instant.now(), today, p)
         }
     }.hot(viewModelScope, TodayState())
-
-    private val _refreshing = MutableStateFlow(false)
-    val refreshing: StateFlow<Boolean> = _refreshing
-    private val results = Channel<RefreshResult>(Channel.BUFFERED)
-    /** One result per finished pull-to-refresh: the screen shows it and fires the haptic. */
-    val refreshResults: Flow<RefreshResult> = results.receiveAsFlow()
-
-    private fun online(): Boolean {
-        val cm = getApplication<Application>().getSystemService(ConnectivityManager::class.java)
-        return cm.getNetworkCapabilities(cm.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-    }
-
-    /** Same gating and wording as the Sync-now button. */
-    fun refresh() {
-        if (_refreshing.value) return
-        _refreshing.value = true
-        viewModelScope.launch {
-            val r = try { runRefresh() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { RefreshResult("Sync could not start.", false) }
-            _refreshing.value = false
-            results.send(r)
-        }
-    }
-
-    private suspend fun runRefresh(): RefreshResult {
-        val now = Instant.now()
-        val st = graph.syncState.get()
-        val signedIn = withContext(Dispatchers.IO) { graph.tokenStore.load() != null }
-        return when (val g = ManualSync.gate(st, now, signedIn, online())) {
-            is ManualSync.Gate.Skipped -> RefreshResult(g.message, false)
-            ManualSync.Gate.Allowed -> {
-                val started = now.toEpochMilli()
-                graph.syncScheduler.requestNow(SyncReason.MANUAL)
-                val done = withTimeoutOrNull(90_000) { graph.syncState.state.first { ManualSync.result(it, started) != null } }
-                    ?: return RefreshResult("Still syncing in the background. Data updates when it finishes.", false)
-                RefreshResult(ManualSync.result(done, started).orEmpty(), RefreshFeedback.positive(done.runs.firstOrNull(), started))
-            }
-        }
-    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

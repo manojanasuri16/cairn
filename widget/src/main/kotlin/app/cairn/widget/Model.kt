@@ -11,7 +11,7 @@ enum class Screen { Today, Activities, Fitness, Account, Freshness }
 enum class MessageKind { Empty, SignedOut, NeedsSignIn }
 
 /** Shared footer: data age with a freshness tier. Stale wording is explicit, never colour alone. */
-data class FooterUi(val text: String, val tier: Freshness, val shortText: String = text) {
+data class FooterUi(val text: String, val tier: Freshness, val shortText: String = text, val ageMs: Long = 0L) {
     val opensCoros: Boolean get() = tier == Freshness.Stale
 }
 

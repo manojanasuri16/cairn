@@ -25,8 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -68,6 +66,9 @@ object Routes {
     const val FRESHNESS = "freshness"
     const val ACCOUNT = "account"
     const val EXPLORER = "explorer"
+    const val STUDIO = "studio"
+    const val TAP_TARGETS = "tap_targets"
+    const val TOOLS = "tools"
 
     val tabs = listOf(TODAY, ACTIVITIES, FITNESS)
 
@@ -80,6 +81,9 @@ object Routes {
         DIAGNOSTICS -> "Sync diagnostics"
         EXPLORER -> "Tool explorer"
         FRESHNESS -> "Keep data fresh"
+        STUDIO -> "Add widget"
+        TAP_TARGETS -> "Widget tap targets"
+        TOOLS -> "Tools"
         ACCOUNT -> "COROS account"
         else -> "Cairn"
     }
@@ -90,6 +94,7 @@ object Routes {
         Screen.Fitness.name -> FITNESS
         Screen.Account.name -> ACCOUNT
         Screen.Freshness.name -> FRESHNESS
+        "Studio" -> STUDIO
         else -> TODAY
     }
 }
@@ -124,7 +129,7 @@ private fun CairnScaffold(coros: CorosViewModel, start: String, corosMissing: Bo
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: start
     val isTab = route in Routes.tabs
-    val snackbar = remember { SnackbarHostState() }
+    val topRoute = route?.substringBefore('?')
     val reduced = LocalReducedMotion.current
 
     fun go(r: String) { nav.navigate(r) { launchSingleTop = true } }
@@ -151,7 +156,6 @@ private fun CairnScaffold(coros: CorosViewModel, start: String, corosMissing: Bo
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             if (isTab) {
                 CenterAlignedTopAppBar(
@@ -160,7 +164,7 @@ private fun CairnScaffold(coros: CorosViewModel, start: String, corosMissing: Bo
                 )
             } else {
                 TopAppBar(
-                    title = { Text(Routes.title(route)) },
+                    title = { Text(Routes.title(route.substringBefore('?'))) },
                     navigationIcon = { IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
                 )
             }
@@ -180,17 +184,18 @@ private fun CairnScaffold(coros: CorosViewModel, start: String, corosMissing: Bo
     ) { padding ->
         val m = Modifier.padding(padding)
         val openAccount = { go(Routes.ACCOUNT) }
+        val openStudio: (app.cairn.widget.WidgetKind?) -> Unit = { k -> go(if (k == null) Routes.STUDIO else "${Routes.STUDIO}?kind=${k.name}") }
         NavHost(
             nav, startDestination = start, modifier = Modifier.fillMaxSize(),
             enterTransition = enter, exitTransition = exit, popEnterTransition = popEnter, popExitTransition = popExit,
         ) {
-            composable(Routes.TODAY) { TodayScreen(snackbar, openAccount, m) }
+            composable(Routes.TODAY) { TodayScreen(openAccount, openStudio, m) }
             composable(Routes.ACTIVITIES) { ActivitiesScreen(openAccount, m) }
-            composable(Routes.FITNESS) { FitnessScreen(openAccount, m) }
+            composable(Routes.FITNESS) { FitnessScreen(openAccount, openStudio, m) }
             composable(Routes.SETTINGS) {
                 SettingsScreen(
                     coros,
-                    SettingsNav({ go(Routes.INSPECTOR) }, { go(Routes.DIAGNOSTICS) }, { go(Routes.FRESHNESS) }, { go(Routes.ACCOUNT) }, { go(Routes.EXPLORER) }),
+                    SettingsNav({ go(Routes.INSPECTOR) }, { go(Routes.DIAGNOSTICS) }, { go(Routes.FRESHNESS) }, { go(Routes.ACCOUNT) }, { go(Routes.EXPLORER) }, { go(Routes.STUDIO) }, { go(Routes.TAP_TARGETS) }, { go(Routes.TOOLS) }),
                     m,
                 )
             }
@@ -199,6 +204,11 @@ private fun CairnScaffold(coros: CorosViewModel, start: String, corosMissing: Bo
             composable(Routes.FRESHNESS) { FreshnessScreen(corosMissing, m) }
             if (BuildConfig.DEBUG && ExplorerFeature.available) composable(Routes.EXPLORER) { ExplorerFeature.Screen(m) }
             composable(Routes.ACCOUNT) { CorosAccountScreen(coros, m) }
+            composable("${Routes.STUDIO}?kind={kind}", arguments = listOf(androidx.navigation.navArgument("kind") { type = androidx.navigation.NavType.StringType; nullable = true; defaultValue = null })) { e ->
+                WidgetStudioScreen(app.cairn.widget.WidgetKind.parse(e.arguments?.getString("kind")), m)
+            }
+            composable(Routes.TAP_TARGETS) { TapTargetsScreen(m) }
+            composable(Routes.TOOLS) { ToolsScreen(SettingsNav({ go(Routes.INSPECTOR) }, { go(Routes.DIAGNOSTICS) }, { go(Routes.FRESHNESS) }, { go(Routes.ACCOUNT) }, { go(Routes.EXPLORER) }), m) }
         }
     }
 }

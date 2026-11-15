@@ -28,7 +28,7 @@ object WidgetMapper {
         val rel = RelativeAge.format(age)
         val text = if (tier == Freshness.Stale) "Stale, last synced ${rel.removePrefix("Updated ")}" else rel
         val short = rel.removePrefix("Updated ").let { if (tier == Freshness.Stale) "Stale $it" else it }
-        return FooterUi(text, tier, short)
+        return FooterUi(text, tier, short, age.toMillis())
     }
 
     fun today(

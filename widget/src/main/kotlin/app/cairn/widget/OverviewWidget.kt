@@ -34,6 +34,13 @@ import kotlinx.coroutines.flow.Flow
  * a progress ring or 7-day trend in the same colour.
  */
 class OverviewWidget : CairnWidget<OverviewUi>(WidgetKind.Overview) {
+    /**
+     * Exact, not Responsive: with a size map the host picks one layout for every reported size (portrait min width x max height AND
+     * landscape max width x min height), so a short landscape entry such as 361x125 beat the portrait 176x223 and a 4-stat grid came
+     * out as 2 tiles. Exact reads the size for the current orientation only. Previews still use the size list in [WidgetSizes].
+     */
+    override val sizeMode: androidx.glance.appwidget.SizeMode = androidx.glance.appwidget.SizeMode.Exact
+
     override fun flow(unit: DistanceUnit?): Flow<WidgetUi<OverviewUi>> = WidgetEnvironment.overview(unit)
     override fun sample() = Samples.overview()
 

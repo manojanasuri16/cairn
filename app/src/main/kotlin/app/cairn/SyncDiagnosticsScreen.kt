@@ -53,13 +53,14 @@ fun SyncDiagnosticsScreen(modifier: Modifier = Modifier) {
                 FilterChip(selected = interval == m, onClick = { scope.launch { graph.syncScheduler.setInterval(m) } }, label = { Text("$m min") })
             }
         }
+        if (interval == SyncSettings.FAST) Text("Every 5 minutes uses more battery and COROS requests, and Android may delay it. Those runs are light (recovery and daily only).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         Section("Status") {
             Line("Last attempt", at(state.lastAttemptMs))
             Line("Last success", at(state.lastSuccessMs))
             Line("Last error", state.lastErrorType ?: "none")
             if (state.needsSignIn) Text("COROS needs sign-in. MCP calls are paused until you sign in again.", color = MaterialTheme.colorScheme.error)
-            Line("MCP calls today", "${state.mcpCallsToday}")
+            Line("COROS requests today", "${state.mcpCallsToday} of ${app.cairn.sync.McpPlanner.DAILY_CAP}")
         }
         Section("Data age") {
             Line("Health Connect", at(state.lastHcDataMs))
@@ -68,7 +69,7 @@ fun SyncDiagnosticsScreen(modifier: Modifier = Modifier) {
         }
         Section("Scheduler") {
             val info = periodic.firstOrNull()
-            Line("Periodic job", info?.state?.name ?: "not scheduled")
+            Line(if (interval == SyncSettings.FAST) "5 minute chain" else "Periodic job", if (interval == SyncSettings.FAST) "self-rescheduling, best effort" else (info?.state?.name ?: "not scheduled"))
             Line("Platform stop reason", info?.stopReason?.let { StopReasons.name(it) } ?: "n/a")
             if (state.stops.isEmpty()) Line("Recorded stops", "none")
             state.stops.forEach { Line(at(it.atMs), it.name) }

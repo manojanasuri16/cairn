@@ -7,6 +7,13 @@ enum class SyncReason {
     PERIODIC, MANUAL, APP_START, SIGN_IN, PERMISSION,
     /** Delayed refresh after the user opened COROS; the only reason (besides SIGN_IN) that bypasses the MCP gap. */
     COROS_REFRESH,
+    /** The user asked (widget sync button, widget tap, pull-to-refresh): no gap, only a tiny debounce. */
+    USER,
+    /** The self-rescheduling 5 minute chain: a light run (recovery and daily only). */
+    FAST_PERIODIC;
+
+    /** A person asked for this run, so it must never be held back by the MCP gap. */
+    val userInitiated: Boolean get() = this == MANUAL || this == USER
 }
 
 enum class SyncOutcome {
@@ -74,4 +81,6 @@ data class SyncState(
     /** tools/list result as `{name: inputSchema}` JSON text; refreshed daily. */
     val schemasJson: String? = null,
     val schemasFetchedMs: Long? = null,
+    /** Set when a person asked for a sync and no run has finished since; drives the "Syncing" state. */
+    val userSyncRequestedMs: Long? = null,
 )

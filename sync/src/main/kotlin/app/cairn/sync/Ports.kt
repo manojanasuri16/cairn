@@ -54,7 +54,9 @@ interface SyncSettings {
     suspend fun setInterval(minutes: Int)
 
     companion object {
-        val CHOICES = listOf(15, 30, 60)
+        /** 5 minutes is a self-rescheduling chain of one-time work (WorkManager's periodic floor is 15). */
+        val CHOICES = listOf(5, 15, 30, 60)
+        const val FAST = 5
         const val DEFAULT = 30
         fun normalize(m: Int?): Int = if (m in CHOICES) m!! else DEFAULT
     }

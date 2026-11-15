@@ -22,9 +22,15 @@ object TextFit {
     /** How much the system font scale really enlarges text drawn at [sp] (it is capped by `Txt`). */
     fun effectiveScale(fontScale: Float, cap: Float = Layouts.TEXT_CAP): Float = min(max(fontScale, 1f), cap)
 
+    /**
+     * Wider system fonts (large Chinese-OEM launchers ship their own default font) run about 10 to 12 percent wider than the
+     * Roboto-ish averages above, so every estimate carries this safety factor; a label then falls back before it can ellipsize.
+     */
+    const val WIDE_FONT_FACTOR = 1.11f
+
     /** Estimated rendered width in dp of [text] at [sp] under [fontScale]. */
     fun widthDp(text: String, sp: Float, fontScale: Float, cap: Float = Layouts.TEXT_CAP): Float =
-        text.sumOf { glyph(it).toDouble() }.toFloat() * sp * effectiveScale(fontScale, cap) + 2f
+        text.sumOf { glyph(it).toDouble() }.toFloat() * WIDE_FONT_FACTOR * sp * effectiveScale(fontScale, cap) + 2f
 
     fun fits(text: String, sp: Float, fontScale: Float, availDp: Float, cap: Float = Layouts.TEXT_CAP): Boolean =
         widthDp(text, sp, fontScale, cap) <= availDp

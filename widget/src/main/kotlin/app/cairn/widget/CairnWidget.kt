@@ -72,7 +72,8 @@ abstract class CairnWidget<T>(val kind: WidgetKind) : GlanceAppWidget() {
             WidgetLog.d("provide kind=$kind id=$appWidgetId declaredSizes=${WidgetSizes.byKind[kind]} stored=[style=${stored.style} theme=${stored.theme} metrics=${stored.metrics?.map { it.name }}] resolved=[style=${cfg.style} theme=${cfg.theme} metrics=${cfg.metrics.map { it.name }} hidden=${cfg.hidden.map { it.name }}]")
             val unit = when (cfg.units) { UnitsPref.Km -> DistanceUnit.Km; UnitsPref.Mi -> DistanceUnit.Mi; UnitsPref.Inherit -> null }
             val ui by remember(unit) { flow(unit) }.collectAsState(WidgetUi.Loading)
-            Render(ui, cfg)
+            val sync by remember { WidgetEnvironment.sources?.syncState ?: flowOf(null) }.collectAsState(null)
+            androidx.compose.runtime.CompositionLocalProvider(LocalSyncState provides sync) { Render(ui, cfg) }
         }
     }
 
@@ -85,16 +86,7 @@ abstract class CairnWidget<T>(val kind: WidgetKind) : GlanceAppWidget() {
 object WidgetCatalog {
 
     /** Which widget a launcher provider (receiver class name) belongs to. */
-    fun kindOf(receiverClassName: String?): WidgetKind? = when (receiverClassName?.substringAfterLast('.')) {
-        "TodayWidgetReceiver" -> WidgetKind.Today
-        "RecoveryWidgetReceiver" -> WidgetKind.Recovery
-        "LastActivityWidgetReceiver" -> WidgetKind.LastActivity
-        "TrainingLoadWidgetReceiver" -> WidgetKind.TrainingLoad
-        "SleepWidgetReceiver" -> WidgetKind.Sleep
-        "FitnessWidgetReceiver" -> WidgetKind.Fitness
-        "OverviewWidgetReceiver" -> WidgetKind.Overview
-        else -> null
-    }
+    fun kindOf(receiverClassName: String?): WidgetKind? = WidgetVariants.kindOf(receiverClassName)
 
     fun widget(kind: WidgetKind): CairnWidget<*> = when (kind) {
         WidgetKind.Today -> TodayWidget()

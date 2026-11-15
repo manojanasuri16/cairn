@@ -12,11 +12,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.BoxWithConstraints
+import app.cairn.widget.WidgetKind
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,37 +47,33 @@ import app.cairn.widget.FooterUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TodayScreen(snackbar: SnackbarHostState, onOpenAccount: () -> Unit, modifier: Modifier = Modifier, vm: TodayViewModel = viewModel()) {
+fun TodayScreen(onOpenAccount: () -> Unit, onAddWidget: (WidgetKind) -> Unit, modifier: Modifier = Modifier, vm: TodayViewModel = viewModel(), sync: SyncStatusViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
-    val refreshing by vm.refreshing.collectAsStateWithLifecycle()
-    val view = LocalView.current
-    LaunchedEffect(vm) {
-        vm.refreshResults.collect { r ->
-            // Haptic on the same frame the result is shown.
-            if (r.positive) view.confirmHaptic() else view.rejectHaptic()
-            snackbar.showSnackbar(r.message)
-        }
-    }
-    PullToRefreshBox(isRefreshing = refreshing, onRefresh = vm::refresh, modifier = modifier.fillMaxSize()) {
-        TodayContent(state, onOpenAccount)
+    val syncUi by sync.ui.collectAsStateWithLifecycle()
+    // Pull to refresh syncs right away (no 5 minute wait); progress and failures show in the header, not in a bottom toast.
+    PullToRefreshBox(isRefreshing = syncUi.syncing, onRefresh = sync::sync, modifier = modifier.fillMaxSize()) {
+        TodayContent(state, onOpenAccount, onAddWidget, header = { SyncStatusBar(state.footer) })
     }
 }
 
 @Composable
-fun TodayContent(state: TodayState, onOpenAccount: () -> Unit) {
+fun TodayContent(state: TodayState, onOpenAccount: () -> Unit, onAddWidget: (WidgetKind) -> Unit = {}, header: @Composable () -> Unit = {}) {
+    var sheet by remember { mutableStateOf<WidgetKind?>(null) }
+    sheet?.let { CardActionsSheet(it, onAddWidget, onDismiss = { sheet = null }) }
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.md),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.md).padding(bottom = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        state.footer?.let { AgeLine(it) }
+        header()
         state.empty?.let { EmptyState(it, onOpenAccount) }
         state.recovery?.let { r ->
             val p = LocalCairnPalette.current
             val color = Color(p.recovery((r.fraction * 100).roundToInt()))
-            HeroCard {
+            HeroCard(onLongPress = { sheet = WidgetKind.Recovery }) {
                 SectionTitle("Recovery", onHero = true)
-                // The ring grows with the font scale so the numeral never clips at 200%.
-                val ring = (168 * LocalDensity.current.fontScale.coerceIn(1f, 1.75f)).dp
+                // The ring fills the card: about 70 percent of its width, never above 240 dp, so no dead bands left and right.
+                BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                val ring = HeroFit.ringSize(maxWidth.value).dp
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     ProgressRing(r.fraction, r.description, size = ring, color = color, track = Color(p.track)) {
                         FitText(r.valueText, MaterialTheme.typography.displayMedium, Modifier.widthIn(max = ring * 0.62f), color = Color(p.ink), floor = 20.sp, textAlign = TextAlign.Center)
@@ -81,10 +81,11 @@ fun TodayContent(state: TodayState, onOpenAccount: () -> Unit) {
                     state.recoveryLevel?.let { LevelPill(it, color) }
                     state.timeToFull?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Color(p.inkSub)) }
                 }
+                }
             }
         }
         state.steps?.let { s ->
-            SectionCard {
+            SectionCard(onLongPress = { sheet = WidgetKind.Today }) {
                 SectionTitle("Steps")
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProgressRing(s.fraction, s.description, size = 80.dp, stroke = 8.dp, color = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)) {}
@@ -95,7 +96,7 @@ fun TodayContent(state: TodayState, onOpenAccount: () -> Unit) {
                 }
             }
         }
-        state.sleep?.let { SleepCard(it) }
+        state.sleep?.let { SleepCard(it) { sheet = WidgetKind.Sleep } }
         if (state.metrics.isNotEmpty()) {
             SectionCard {
                 SectionTitle("Vitals")
@@ -121,8 +122,8 @@ fun TodayContent(state: TodayState, onOpenAccount: () -> Unit) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SleepCard(s: SleepUi) {
-    SectionCard {
+private fun SleepCard(s: SleepUi, onLongPress: () -> Unit) {
+    SectionCard(onLongPress = onLongPress) {
         SectionTitle("Sleep")
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xxs), itemVerticalAlignment = Alignment.Bottom) {
             Text(s.durationText, style = MaterialTheme.typography.headlineLarge)
@@ -162,4 +163,11 @@ private fun TodayPreview() = CairnTheme {
         ),
         onOpenAccount = {},
     )
+}
+
+/** Sizing rule for the Recovery hero so the ring wraps the card with even padding. */
+object HeroFit {
+    const val MAX_DP = 240f
+    const val MIN_DP = 120f
+    fun ringSize(contentWidthDp: Float): Float = (contentWidthDp * 0.7f).coerceIn(MIN_DP, MAX_DP).coerceAtMost(contentWidthDp.coerceAtLeast(MIN_DP))
 }

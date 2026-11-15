@@ -13,4 +13,25 @@
     <string name="widget_fitness_desc">VO2max, threshold pace and race predictions.</string>
     <string name="widget_overview_label">Cairn Overview</string>
     <string name="widget_overview_desc">Up to six of your stats in one tidy grid: steps, sleep, recovery, heart rate and more.</string>
+    <string name="widget_today_label_small">Today (2x2)</string>
+    <string name="widget_today_label_wide">Today (4x2)</string>
+    <string name="widget_today_label_large">Today (4x3)</string>
+    <string name="widget_recovery_label_small">Recovery (2x2)</string>
+    <string name="widget_recovery_label_wide">Recovery (4x2)</string>
+    <string name="widget_recovery_label_large">Recovery (4x3)</string>
+    <string name="widget_activity_label_small">Last activity (2x2)</string>
+    <string name="widget_activity_label_wide">Last activity (4x2)</string>
+    <string name="widget_activity_label_large">Last activity (4x3)</string>
+    <string name="widget_load_label_small">Training load (2x2)</string>
+    <string name="widget_load_label_wide">Training load (4x2)</string>
+    <string name="widget_load_label_large">Training load (4x3)</string>
+    <string name="widget_sleep_label_small">Sleep (2x2)</string>
+    <string name="widget_sleep_label_wide">Sleep (4x2)</string>
+    <string name="widget_sleep_label_large">Sleep (4x3)</string>
+    <string name="widget_fitness_label_small">Fitness (2x2)</string>
+    <string name="widget_fitness_label_wide">Fitness (4x2)</string>
+    <string name="widget_fitness_label_large">Fitness (4x3)</string>
+    <string name="widget_overview_label_small">Overview (2x2)</string>
+    <string name="widget_overview_label_wide">Overview (4x2)</string>
+    <string name="widget_overview_label_large">Overview (4x3)</string>
 </resources>

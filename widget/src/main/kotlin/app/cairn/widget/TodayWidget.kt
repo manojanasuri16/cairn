@@ -61,8 +61,9 @@ private fun Rows(shown: List<Metric>, count: Int, compact: Boolean, emptyHint: B
     shown.take(count).forEach { m ->
         // The value is never cut: the label shortens ("RHR") and is dropped only when even that would not fit beside the value.
         // Labels are low priority and never dropped: full, else shortened. The weighted label may clip before the value ever does.
-        val label = Layouts.rowLabel(m.label, m.value, availW, scale) ?: Layouts.shortLabel(m.label)
-        MetricLine(label, m.value, metricIcon(m.id), metricTint(m.id, p), false, GlanceModifier.height(20.dp))
+        // Full label, else the short one, else icon only: never an ellipsized stub such as "S…".
+        val label = Layouts.rowLabel(m.label, m.value, availW, scale)
+        MetricLine(label.orEmpty(), m.value, metricIcon(m.id), metricTint(m.id, p), label == null, GlanceModifier.height(20.dp))
     }
 }
 

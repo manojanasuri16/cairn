@@ -115,8 +115,9 @@ class AppGraph(private val context: Context) : SyncComponent {
     fun installWidgets() {
         app.cairn.widget.WidgetLog.enabled = BuildConfig.DEBUG
         WidgetEnvironment.install(
-            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository, trainingLoadRepository, fitnessRepository, prefs = { appSettings.displayNow() }, settings = appSettings.widgetSettings) { authState() },
+            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository, trainingLoadRepository, fitnessRepository, prefs = { appSettings.displayNow() }, settings = appSettings.widgetSettings, auth = { authState() }, syncState = syncState.state),
         )
+        WidgetEnvironment.requestSync = { syncScheduler.requestUserSync() }
         runCatching { KeepAliveWorker.schedule(context) }
         // Android 15+: show the coloured, synthetic-data previews in the launcher's widget picker.
         appScope.launch { runCatching { app.cairn.widget.registerWidgetPreviews(context) } }

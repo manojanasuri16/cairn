@@ -31,6 +31,8 @@ class WidgetDataSources(
     /** Per-widget configuration and the app-wide appearance. Null in tests. */
     val settings: WidgetSettings? = null,
     val auth: suspend () -> AuthState,
+    /** Persisted sync state, for the Syncing and error indicator. Null in tests. */
+    val syncState: Flow<app.cairn.sync.SyncState>? = null,
 )
 
 /** Installed by the app at start-up; widgets are instantiated by the system so they cannot be injected. */
@@ -42,6 +44,9 @@ object WidgetEnvironment {
     val ticks = MutableSharedFlow<Unit>(replay = 1, extraBufferCapacity = 1).also { it.tryEmit(Unit) }
 
     fun install(s: WidgetDataSources) { sources = s }
+
+    /** Set by the app: marks "syncing" and queues an expedited user sync. Widgets are created by the system so this is a hook. */
+    @Volatile var requestSync: (suspend () -> Unit)? = null
 
     val settings: WidgetSettings? get() = sources?.settings
 

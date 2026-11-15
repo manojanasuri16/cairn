@@ -27,6 +27,18 @@ class WidgetPinnedReceiver : BroadcastReceiver() {
         val app = context.applicationContext
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
+                val kind = WidgetKind.parse(intent.getStringExtra(WidgetPinner.EXTRA_PIN_KIND))
+                val pins = PendingPins(SharedPrefsPinKv(app))
+                val now = System.currentTimeMillis()
+                val claimed = if (kind != null && id != AppWidgetManager.INVALID_APPWIDGET_ID) pins.claim(kind, now) else null
+                if (claimed != null && settings != null) {
+                    // Already customised in the studio: store the choices for this widget id and skip the configure screen.
+                    settings.save(id, claimed.config)
+                    settings.markConfigShown(id)
+                    pins.markClaimed(id, now)
+                    runCatching { WidgetCatalog.updateOne(app, claimed.kind, id) }
+                    return@launch
+                }
                 val shown = settings?.configShown(id) ?: false
                 if (ConfigLaunch.shouldLaunch(id, shown)) {
                     app.startActivity(

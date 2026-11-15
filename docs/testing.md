@@ -73,3 +73,13 @@ Accessibility:
 App:
 - [ ] Onboarding, Today, Activities, Fitness, Settings, Diagnostics, sign out and delete data.
 - [ ] Rotate and process death (`adb shell am kill app.cairn`) keep state.
+
+v1.2 checks (emulator):
+- [ ] Widget sync icon: tap it on every style and size; no app opens; footer shows "Syncing…" then the dot returns to green. Airplane mode: "Couldn't sync, tap to retry".
+- [ ] Widget body tap opens COROS and Cairn syncs at once (Sync diagnostics shows a USER run) plus the 90 s and 6.5 min runs.
+- [ ] Today pull-to-refresh and header sync icon: no snackbar, icon spins (still clock with animations off), "Up to date" for a few seconds, failure as an inline banner with Retry.
+- [ ] Sync every 5 min: chain visible in diagnostics ("5 minute chain"); switching to 15 min cancels it.
+- [ ] Add widget (Settings, app-icon long-press, card long-press): pick Wide 4x2, Add to home screen: the widget lands wide and already styled.
+- [ ] Overview with 4 stats at a 2x2 and 4x2 cell shows four tiles.
+- [ ] Today widget on a wide-font device: no label shown as "S…" (full, short or icon only).
+

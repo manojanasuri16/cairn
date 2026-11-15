@@ -1,34 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
-        <receiver android:name=".TodayWidgetReceiver" android:exported="true" android:label="@string/widget_today_label">
+        <receiver android:name=".TodayWidgetReceiver" android:exported="true" android:label="@string/widget_today_label_small">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_today_info" />
         </receiver>
-        <receiver android:name=".RecoveryWidgetReceiver" android:exported="true" android:label="@string/widget_recovery_label">
+        <receiver android:name=".RecoveryWidgetReceiver" android:exported="true" android:label="@string/widget_recovery_label_small">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_recovery_info" />
         </receiver>
-        <receiver android:name=".LastActivityWidgetReceiver" android:exported="true" android:label="@string/widget_activity_label">
+        <receiver android:name=".LastActivityWidgetReceiver" android:exported="true" android:label="@string/widget_activity_label_wide">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_activity_info" />
         </receiver>
-        <receiver android:name=".TrainingLoadWidgetReceiver" android:exported="true" android:label="@string/widget_load_label">
+        <receiver android:name=".TrainingLoadWidgetReceiver" android:exported="true" android:label="@string/widget_load_label_wide">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_load_info" />
         </receiver>
-        <receiver android:name=".SleepWidgetReceiver" android:exported="true" android:label="@string/widget_sleep_label">
+        <receiver android:name=".SleepWidgetReceiver" android:exported="true" android:label="@string/widget_sleep_label_small">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_sleep_info" />
         </receiver>
-        <receiver android:name=".FitnessWidgetReceiver" android:exported="true" android:label="@string/widget_fitness_label">
+        <receiver android:name=".FitnessWidgetReceiver" android:exported="true" android:label="@string/widget_fitness_label_wide">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_fitness_info" />
         </receiver>
         <receiver android:name=".WidgetPinnedReceiver" android:exported="false" />
-        <receiver android:name=".OverviewWidgetReceiver" android:exported="true" android:label="@string/widget_overview_label">
+        <receiver android:name=".OverviewWidgetReceiver" android:exported="true" android:label="@string/widget_overview_label_wide">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_overview_info" />
+        </receiver>
+        <receiver android:name=".TodayWideWidgetReceiver" android:exported="true" android:label="@string/widget_today_label_wide">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_today_wide_info" />
+        </receiver>
+        <receiver android:name=".TodayLargeWidgetReceiver" android:exported="true" android:label="@string/widget_today_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_today_large_info" />
+        </receiver>
+        <receiver android:name=".RecoveryWideWidgetReceiver" android:exported="true" android:label="@string/widget_recovery_label_wide">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_recovery_wide_info" />
+        </receiver>
+        <receiver android:name=".RecoveryLargeWidgetReceiver" android:exported="true" android:label="@string/widget_recovery_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_recovery_large_info" />
+        </receiver>
+        <receiver android:name=".LastActivitySmallWidgetReceiver" android:exported="true" android:label="@string/widget_activity_label_small">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_activity_small_info" />
+        </receiver>
+        <receiver android:name=".LastActivityLargeWidgetReceiver" android:exported="true" android:label="@string/widget_activity_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_activity_large_info" />
+        </receiver>
+        <receiver android:name=".TrainingLoadSmallWidgetReceiver" android:exported="true" android:label="@string/widget_load_label_small">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_load_small_info" />
+        </receiver>
+        <receiver android:name=".TrainingLoadLargeWidgetReceiver" android:exported="true" android:label="@string/widget_load_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_load_large_info" />
+        </receiver>
+        <receiver android:name=".SleepWideWidgetReceiver" android:exported="true" android:label="@string/widget_sleep_label_wide">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_sleep_wide_info" />
+        </receiver>
+        <receiver android:name=".SleepLargeWidgetReceiver" android:exported="true" android:label="@string/widget_sleep_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_sleep_large_info" />
+        </receiver>
+        <receiver android:name=".FitnessSmallWidgetReceiver" android:exported="true" android:label="@string/widget_fitness_label_small">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_fitness_small_info" />
+        </receiver>
+        <receiver android:name=".FitnessLargeWidgetReceiver" android:exported="true" android:label="@string/widget_fitness_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_fitness_large_info" />
+        </receiver>
+        <receiver android:name=".OverviewSmallWidgetReceiver" android:exported="true" android:label="@string/widget_overview_label_small">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_overview_small_info" />
+        </receiver>
+        <receiver android:name=".OverviewLargeWidgetReceiver" android:exported="true" android:label="@string/widget_overview_label_large">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_overview_large_info" />
         </receiver>
     </application>
 </manifest>

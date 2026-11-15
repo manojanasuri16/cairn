@@ -4,8 +4,8 @@ import app.cairn.core.model.Freshness
 
 /** Synthetic sample data for previews. Made up; never derived from the user's data. */
 object Samples {
-    val footer = FooterUi("Updated 5m ago", Freshness.Fresh, "5m ago")
-    val staleFooter = FooterUi("Not updated for 2 days. Tap to sync", Freshness.Stale, "Stale")
+    val footer = FooterUi("Updated 5m ago", Freshness.Fresh, "5m ago", 5 * 60_000L)
+    val staleFooter = FooterUi("Not updated for 2 days. Tap to sync", Freshness.Stale, "Stale", 2 * 86_400_000L)
 
     private fun <T> content(body: T, desc: String, screen: Screen = Screen.Today) = WidgetUi.Content(body, footer, desc, screen)
 

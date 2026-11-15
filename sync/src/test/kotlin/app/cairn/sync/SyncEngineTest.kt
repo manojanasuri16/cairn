@@ -76,8 +76,8 @@ class SyncEngineTest {
 
     @Test fun manualRunUsesShortGapSignInHasNone() = runTest {
         engine.syncOnce(SyncReason.PERIODIC)
-        clock.advance(Duration.ofMinutes(6)); coros.reset()
-        engine.syncOnce(SyncReason.MANUAL)
+        clock.advance(Duration.ofSeconds(30)); coros.reset()
+        engine.syncOnce(SyncReason.USER)
         assertTrue(coros.calls.isNotEmpty())
     }
 

@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,21 +27,23 @@ import app.cairn.core.model.Freshness
 import app.cairn.widget.FooterUi
 
 @Composable
-fun FitnessScreen(onOpenAccount: () -> Unit, modifier: Modifier = Modifier, vm: FitnessViewModel = viewModel()) {
+fun FitnessScreen(onOpenAccount: () -> Unit, onAddWidget: (app.cairn.widget.WidgetKind) -> Unit, modifier: Modifier = Modifier, vm: FitnessViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
-    FitnessContent(state, onOpenAccount, modifier)
+    FitnessContent(state, onOpenAccount, modifier, onAddWidget, header = { SyncStatusBar(state.footer) })
 }
 
 @Composable
-fun FitnessContent(state: FitnessState, onOpenAccount: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        state.footer?.let { AgeLine(it) }
+fun FitnessContent(state: FitnessState, onOpenAccount: () -> Unit, modifier: Modifier = Modifier, onAddWidget: (app.cairn.widget.WidgetKind) -> Unit = {}, header: @Composable () -> Unit = {}) {
+    var sheet by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<app.cairn.widget.WidgetKind?>(null) }
+    sheet?.let { CardActionsSheet(it, onAddWidget, onDismiss = { sheet = null }) }
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.md).padding(bottom = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        header()
         state.empty?.let { EmptyState(it, onOpenAccount) }
         state.chart?.let { c ->
             val p = LocalCardColors.current
             val ratioValue = state.ratio?.replace(',', '.')?.toDoubleOrNull()
             val color = Color(when { ratioValue == null -> p.cool; ratioValue < 0.8 -> p.cool; ratioValue <= 1.3 -> p.good; ratioValue <= 1.5 -> p.warn; else -> p.bad })
-            SectionCard {
+            SectionCard(onLongPress = { sheet = app.cairn.widget.WidgetKind.TrainingLoad }) {
                 SectionTitle("Training load, last 7 days")
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     state.ratio?.let { FitText(it, MaterialTheme.typography.displaySmall) }

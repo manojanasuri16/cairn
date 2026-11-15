@@ -2,4 +2,8 @@
     <string name="app_name">Cairn</string>
     <string name="rationale_title">Why Cairn reads health data</string>
     <string name="rationale_body">Cairn reads your health data from Health Connect only to show it on your phone. It never changes your data and does not send it anywhere.</string>
+    <string name="shortcut_add_widget_short">Add widget</string>
+    <string name="shortcut_add_widget_long">Add a Cairn widget</string>
+    <string name="shortcut_open_coros_short">Open COROS</string>
+    <string name="shortcut_open_coros_long">Open COROS and refresh Cairn</string>
 </resources>

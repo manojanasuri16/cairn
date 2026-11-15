@@ -27,7 +27,7 @@ object Layouts {
     fun pad(sizeClass: SizeClass): Int = WidgetTokens.PAD_COMPACT + 2
 
     /** Height the footer takes: 11sp text (capped) plus its padding. */
-    fun footerDp(fontScale: Float): Float = 10f + 11f * 1.25f * ts(fontScale)
+    fun footerDp(fontScale: Float): Float = maxOf(FooterRules.HEIGHT_DP, 10f + 11f * 1.25f * ts(fontScale))
 
     fun availDp(w: Float, h: Float, fontScale: Float): Float {
         val p = pad(SizeClass.of(w, h), h)

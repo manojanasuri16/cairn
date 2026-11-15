@@ -143,10 +143,11 @@ private fun MiniWidget(p: Palette, bg: Bg, opacity: Int, label: String, modifier
 /** App-wide default for new widgets: style, background and opacity, on a preview strip. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun WidgetAppearanceCard(appearance: AppAppearance, onStyle: (ThemeId) -> Unit, onChange: (Bg, Int) -> Unit) {
+fun WidgetAppearanceCard(appearance: AppAppearance, onStyle: (ThemeId) -> Unit, onChange: (Bg, Int) -> Unit, framed: Boolean = true) {
     val p = rememberPalette(appearance.theme)
-    SectionCard {
-        SectionTitle("Widget appearance")
+    val wrap: @Composable (@Composable () -> Unit) -> Unit = { c -> if (framed) SectionCard { c() } else Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { c() } }
+    wrap {
+        if (framed) SectionTitle("Widget appearance")
         Text("New widgets start with this style and background. You can change each widget on its own when you place or edit it.", style = MaterialTheme.typography.bodySmall)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             MiniWidget(p, appearance.bg, appearance.opacity, "8,432", Modifier.weight(1f))

@@ -65,8 +65,8 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, onHero: Boolean = 
 
 /** The one hero per screen: a vivid gradient card, content in the palette's ink. */
 @Composable
-fun HeroCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    HeroSurface(modifier) { Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() } }
+fun HeroCard(modifier: Modifier = Modifier, onLongPress: (() -> Unit)? = null, content: @Composable () -> Unit) {
+    HeroSurface(if (onLongPress != null) modifier.onLongPress("Card options", onLongPress) else modifier) { Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() } }
 }
 
 /** Solid semantic pill (level words stay in the text). */
@@ -87,8 +87,8 @@ fun LegendItem(color: Color, text: String, textColor: Color = MaterialTheme.colo
 }
 
 @Composable
-fun SectionCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Card(modifier.fillMaxWidth(), colors = cairnCardColors()) {
+fun SectionCard(modifier: Modifier = Modifier, onLongPress: (() -> Unit)? = null, content: @Composable () -> Unit) {
+    Card((if (onLongPress != null) modifier.onLongPress("Card options", onLongPress) else modifier).fillMaxWidth(), colors = cairnCardColors()) {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() }
     }
 }

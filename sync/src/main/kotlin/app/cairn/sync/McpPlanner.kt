@@ -20,9 +20,13 @@ data class McpPlan(val refreshSchemas: Boolean, val tools: List<String>)
 object McpPlanner {
     /** Hard cap per run, counting a `tools/list` refresh. (Session initialize/notify are protocol overhead, not counted.) */
     const val MAX_CALLS_PER_RUN = 4
-    const val DAILY_CAP = 120
+    /** Generous: manual use is never blocked in practice. Reaching it is reported, never silent. */
+    const val DAILY_CAP = 600
     val MIN_GAP: Duration = Duration.ofMinutes(25)
-    val MANUAL_GAP: Duration = Duration.ofMinutes(5)
+    /** Only stops double taps stacking; a person can sync again almost at once. */
+    val USER_DEBOUNCE: Duration = Duration.ofSeconds(10)
+    /** Minimum between 5 minute chain runs (a little under 5 min so timing jitter never skips one). */
+    val FAST_GAP: Duration = Duration.ofMinutes(4)
     val SLOW_GAP: Duration = Duration.ofMinutes(60)
     val STALE_DATA_AFTER: Duration = Duration.ofHours(6)
     val LOAD_EVERY: Duration = Duration.ofHours(6)
@@ -33,8 +37,8 @@ object McpPlanner {
 
     /** Minimum time between MCP runs for [reason] given how long MCP data has been unchanged. */
     fun minGap(reason: SyncReason, state: SyncState, now: Instant): Duration = when {
-        reason == SyncReason.SIGN_IN || reason == SyncReason.COROS_REFRESH -> Duration.ZERO
-        reason == SyncReason.MANUAL -> MANUAL_GAP
+        reason == SyncReason.SIGN_IN || reason == SyncReason.COROS_REFRESH || reason.userInitiated -> Duration.ZERO
+        reason == SyncReason.FAST_PERIODIC -> FAST_GAP
         // Adaptive: if the MCP replies have not changed for 6 h the phone probably has not synced; poll hourly.
         state.lastMcpDataChangeMs?.let { Duration.between(Instant.ofEpochMilli(it), now) >= STALE_DATA_AFTER } == true -> SLOW_GAP
         else -> MIN_GAP
@@ -49,6 +53,11 @@ object McpPlanner {
         val last = state.toolLastRunMs[tool] ?: return true
         return Duration.between(Instant.ofEpochMilli(last), now) >= every
     }
+
+    /** Light run (the 5 minute chain): recovery and daily only, a schema refresh only when none is cached. */
+    fun plan(state: SyncState, now: Instant, zone: ZoneId, newExercise: Boolean, reason: SyncReason): McpPlan =
+        if (reason == SyncReason.FAST_PERIODIC) McpPlan(state.schemasJson == null, listOf(McpTools.DAILY, McpTools.RECOVERY))
+        else plan(state, now, zone, newExercise)
 
     fun plan(state: SyncState, now: Instant, zone: ZoneId, newExercise: Boolean): McpPlan {
         val today = LocalDate.ofInstant(now, zone)

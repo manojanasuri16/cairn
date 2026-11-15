@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Long-press the app icon. Add widget opens the in-app widget studio; Open COROS opens COROS and schedules Cairn's refresh. -->
+    <shortcut
+        android:shortcutId="add_widget"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add"
+        android:shortcutShortLabel="@string/shortcut_add_widget_short"
+        android:shortcutLongLabel="@string/shortcut_add_widget_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="app.cairn"
+            android:targetClass="app.cairn.MainActivity">
+            <extra android:name="cairn.screen" android:value="Studio" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="open_coros"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_open"
+        android:shortcutShortLabel="@string/shortcut_open_coros_short"
+        android:shortcutLongLabel="@string/shortcut_open_coros_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="app.cairn"
+            android:targetClass="app.cairn.OpenCorosActivity" />
+    </shortcut>
+</shortcuts>

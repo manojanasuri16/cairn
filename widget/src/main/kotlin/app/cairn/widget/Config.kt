@@ -88,6 +88,8 @@ data class WidgetConfig(
     val units: UnitsPref = UnitsPref.Inherit,
     /** Compact footer style. The footer itself can never be hidden. */
     val compactFooter: Boolean = false,
+    /** Hide the footer sync button, honoured only on very tiny layouts (see [FooterRules]). Default shown. */
+    val hideSyncIcon: Boolean = false,
     /** Overview only: the chosen stats in order (1 to 6). Null means the default four. */
     val metrics: List<OverviewId>? = null,
 ) {
@@ -104,7 +106,7 @@ data class WidgetConfig(
             opacity = if (b == Bg.Transparent) 0 else op,
             corners = corners, accent = accent,
             hidden = hidden.filter { it in Part.forKind(kind) }.toSet(),
-            units = units, compactFooter = compactFooter,
+            units = units, compactFooter = compactFooter, hideSyncIcon = hideSyncIcon,
             metrics = (metrics?.distinct()?.take(OverviewId.MAX)?.takeIf { it.isNotEmpty() }) ?: OverviewId.Default,
         )
     }
@@ -119,6 +121,7 @@ data class WidgetConfig(
         if (hidden.isNotEmpty()) add("hide=" + hidden.joinToString(",") { it.name })
         if (units != UnitsPref.Inherit) add("units=${units.name}")
         if (compactFooter) add("cf=1")
+        if (hideSyncIcon) add("hs=1")
         metrics?.let { add("metrics=" + it.joinToString(",") { m -> m.name }) }
     }.joinToString(";")
 
@@ -137,6 +140,7 @@ data class WidgetConfig(
                 hidden = m["hide"]?.split(',')?.mapNotNull { n -> Part.entries.firstOrNull { it.name == n } }?.toSet() ?: emptySet(),
                 units = UnitsPref.parse(m["units"]),
                 compactFooter = m["cf"] == "1",
+                hideSyncIcon = m["hs"] == "1",
                 metrics = m["metrics"]?.split(',')?.mapNotNull { OverviewId.parse(it) }?.distinct()?.take(OverviewId.MAX)?.takeIf { it.isNotEmpty() },
             )
         }
@@ -156,6 +160,7 @@ data class ResolvedConfig(
     val hidden: Set<Part>,
     val units: UnitsPref,
     val compactFooter: Boolean,
+    val hideSyncIcon: Boolean = false,
     val metrics: List<OverviewId> = OverviewId.Default,
 ) {
     fun shows(part: Part) = part !in hidden

@@ -54,43 +54,13 @@ private fun isOnline(context: Context): Boolean {
     return caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
 }
 
-/** Sync-now button with immediate feedback: skipped reason, "Syncing...", then the result. Used on every screen with the button. */
+/** Sync status line plus a Sync now button. Progress and failures show in the line and the inline banner, never in a toast. */
 @Composable
-fun SyncNowButton(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val graph = (context.applicationContext as CairnApp).graph
-    val state by graph.syncState.state.collectAsState(initial = SyncState())
-    val work by remember { WorkManager.getInstance(context).getWorkInfosForUniqueWorkFlow(SyncScheduler.ONE_TIME_NAME) }
-        .collectAsState(initial = emptyList<WorkInfo>())
-    var message by remember { mutableStateOf<String?>(null) }
-    var startedMs by remember { mutableStateOf<Long?>(null) }
-    val active = work.any { it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED }
-    var syncing by remember { mutableStateOf(false) }
-    val signedIn = remember(state) { graph.tokenStore.load() != null }
-
-    // Show the result once the requested run has finished and recorded itself.
-    LaunchedEffect(active, state.runs.firstOrNull()?.atMs) {
-        val started = startedMs ?: return@LaunchedEffect
-        if (syncing && !active) {
-            ManualSync.result(state, started)?.let { message = it; syncing = false; startedMs = null }
-        }
-    }
+fun SyncNowButton(modifier: Modifier = Modifier, vm: app.cairn.ui.SyncStatusViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+    val ui by vm.ui.collectAsState()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Button(
-            enabled = !syncing,
-            onClick = {
-                val now = Instant.now()
-                when (val g = ManualSync.gate(state, now, signedIn, isOnline(context))) {
-                    is ManualSync.Gate.Skipped -> message = g.message
-                    ManualSync.Gate.Allowed -> {
-                        startedMs = now.toEpochMilli(); syncing = true; message = null
-                        graph.syncScheduler.requestNow(SyncReason.MANUAL)
-                    }
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (syncing) "Syncing..." else "Sync now") }
-        (if (syncing) "Syncing..." else message)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        app.cairn.ui.SyncStatusBar(null, vm = vm)
+        Button(enabled = !ui.syncing, onClick = vm::sync, modifier = Modifier.fillMaxWidth()) { Text(if (ui.syncing) "Syncing…" else "Sync now") }
     }
 }
 
@@ -111,7 +81,7 @@ fun FreshnessScreen(corosMissing: Boolean, modifier: Modifier = Modifier) {
         }
         Text(
             "Cairn can only be as fresh as COROS's last sync. COROS syncs your watch only while its app is running, and Cairn cannot force that. " +
-                "Opening COROS lets it sync, and Cairn then refreshes about 90 seconds and 5 minutes later.",
+                "Opening COROS lets it sync, and Cairn then refreshes right away and again about 90 seconds and 6 minutes later.",
             style = MaterialTheme.typography.bodyMedium,
         )
         Button(onClick = { openCorosAndRefresh(context) }, modifier = Modifier.fillMaxWidth()) { Text("Open COROS") }

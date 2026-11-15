@@ -61,6 +61,23 @@ class SchedulingTest {
         assertEquals(TimeUnit.MINUTES.toMillis(30), SyncScheduler.periodicRequest(7).workSpec.intervalDuration) // invalid -> default
     }
 
+    @Test fun fiveMinuteModeUsesSelfReschedulingChain() = runTest {
+        app.scheduler.setInterval(5)
+        assertEquals(0, wm.getWorkInfosForUniqueWork(SyncScheduler.PERIODIC_NAME).get().filter { !it.state.isFinished }.size)
+        val chain = wm.getWorkInfosForUniqueWork(SyncScheduler.FAST_NAME).get()
+        assertEquals(1, chain.size)
+        assertEquals(TimeUnit.MINUTES.toMillis(5), SyncScheduler.fastRequest().workSpec.initialDelay)
+        app.scheduler.setInterval(30)
+        assertTrue(wm.getWorkInfosForUniqueWork(SyncScheduler.FAST_NAME).get().all { it.state.isFinished })
+        assertEquals(1, wm.getWorkInfosForUniqueWork(SyncScheduler.PERIODIC_NAME).get().size)
+    }
+
+    @Test fun userSyncMarksSyncingAndQueuesExpeditedRun() = runTest {
+        app.scheduler.requestUserSync(1234L)
+        assertEquals(1234L, app.store.get().userSyncRequestedMs)
+        assertEquals(1, wm.getWorkInfosForUniqueWork(SyncScheduler.ONE_TIME_NAME).get().size)
+    }
+
     @Test fun oneTimeRequestIsExpeditedWithFallback() {
         val req = SyncScheduler.oneTimeRequest(SyncReason.MANUAL)
         assertTrue(req.workSpec.expedited)

@@ -7,6 +7,7 @@ import app.cairn.widget.Screen
 import app.cairn.widget.TapTarget
 import app.cairn.widget.WidgetKind
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -19,6 +20,11 @@ class OpenCorosActivity : Activity() {
         super.onCreate(savedInstanceState)
         val kind = WidgetKind.parse(intent?.getStringExtra(EXTRA_WIDGET))
         val target = if (kind == null) TapTarget.CorosHome else resolveTarget(kind)
+        // The widget was tapped: sync Cairn right away (no gap) in the background, on top of the delayed follow-ups the launcher schedules.
+        runCatching {
+            val graph = (applicationContext as CairnApp).graph
+            graph.appScope.launch { runCatching { graph.syncScheduler.requestUserSync() } }
+        }
         CorosLauncher(this).launch(target, kind?.cairnScreen ?: Screen.Freshness)
         finish()
     }

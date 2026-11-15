@@ -79,10 +79,72 @@ class FreshnessTest {
         assertTrue(s.gate(st(null), noon, true, true, z) is ManualSync.Gate.Allowed)
         assertTrue((s.gate(st(null), noon, false, true, z) as ManualSync.Gate.Skipped).message.contains("Not signed in"))
         assertTrue((s.gate(st(null), noon, true, false, z) as ManualSync.Gate.Skipped).message.contains("offline"))
-        val inside = s.gate(st(noon.minusSeconds(120).toEpochMilli()), noon, true, true, z) as ManualSync.Gate.Skipped
-        assertTrue(inside.message, inside.message.contains("3 min (at 12:03)"))
-        assertEquals(noon.plusSeconds(180).toEpochMilli(), inside.retryAtMs)
-        assertTrue(s.gate(st(noon.minusSeconds(300).toEpochMilli()), noon, true, true, z) is ManualSync.Gate.Allowed)
+        // No 5 minute gap any more: a sync 2 minutes after the last run is allowed.
+        assertTrue(s.gate(SyncState(lastMcpRunMs = noon.minusSeconds(120).toEpochMilli(), lastAttemptMs = noon.minusSeconds(120).toEpochMilli()), noon, true, true, z) is ManualSync.Gate.Allowed)
+        // Debounce: a second tap within 10 s does not stack, and says so.
+        val deb = s.gate(SyncState(userSyncRequestedMs = noon.minusSeconds(3).toEpochMilli()), noon, true, true, z) as ManualSync.Gate.Skipped
+        assertEquals("Already syncing.", deb.message)
+        assertTrue(s.gate(SyncState(userSyncRequestedMs = noon.minusSeconds(11).toEpochMilli()), noon, true, true, z) is ManualSync.Gate.Allowed)
+        assertTrue(s.gate(SyncState(lastAttemptMs = noon.minusSeconds(4).toEpochMilli()), noon, true, true, z) is ManualSync.Gate.Skipped)
+        // Daily cap is generous but reported, never silent.
+        val capped = SyncState(mcpCallsDay = "2030-01-04", mcpCallsToday = McpPlanner.DAILY_CAP)
+        val cap = s.gate(capped, java.time.Instant.parse("2030-01-04T12:00:00Z"), true, true, java.time.ZoneOffset.UTC) as ManualSync.Gate.Skipped
+        assertTrue(cap.message, cap.message.contains("daily limit"))
+        assertTrue(s.gate(capped, java.time.Instant.parse("2030-01-05T12:00:00Z"), true, true, java.time.ZoneOffset.UTC) is ManualSync.Gate.Allowed)
+        assertEquals(600, McpPlanner.DAILY_CAP)
+    }
+
+    @Test fun indicatorStates() {
+        val min = java.time.Duration.ofMinutes(1)
+        fun d(tier: app.cairn.core.model.Freshness, age: java.time.Duration, st: SyncState? = null) = SyncIndicators.derive(tier, age, st, noon)
+        assertEquals(IndicatorKind.Fresh, d(app.cairn.core.model.Freshness.Fresh, min).kind)
+        assertEquals(null, d(app.cairn.core.model.Freshness.Fresh, min).shortAge)
+        assertEquals("5h", d(app.cairn.core.model.Freshness.Aging, java.time.Duration.ofHours(5)).shortAge)
+        assertEquals("3d", d(app.cairn.core.model.Freshness.Stale, java.time.Duration.ofDays(3)).shortAge)
+        assertTrue(d(app.cairn.core.model.Freshness.Aging, java.time.Duration.ofHours(5)).description.contains("Updated 5h ago"))
+        val syncing = d(app.cairn.core.model.Freshness.Stale, java.time.Duration.ofDays(3), SyncState(userSyncRequestedMs = noon.minusSeconds(5).toEpochMilli()))
+        assertEquals(IndicatorKind.Syncing, syncing.kind); assertEquals(null, syncing.shortAge)
+        // A marker older than the window is not "syncing" any more.
+        assertEquals(IndicatorKind.Fresh, d(app.cairn.core.model.Freshness.Fresh, min, SyncState(userSyncRequestedMs = noon.minusSeconds(600).toEpochMilli())).kind)
+        val failed = SyncState(runs = listOf(RunRecord(noon.minusSeconds(30).toEpochMilli(), "USER", "NETWORK_ERROR")))
+        val err = d(app.cairn.core.model.Freshness.Fresh, min, failed)
+        assertEquals(IndicatorKind.Error, err.kind); assertTrue(err.description.contains("tap to retry"))
+        // A failed background run is not shown as a user error.
+        assertEquals(IndicatorKind.Fresh, d(app.cairn.core.model.Freshness.Fresh, min, SyncState(runs = listOf(RunRecord(noon.minusSeconds(30).toEpochMilli(), "PERIODIC", "FAILED")))).kind)
+        assertTrue(SyncIndicators.justSucceeded(SyncState(runs = listOf(RunRecord(noon.minusSeconds(2).toEpochMilli(), "USER", "SUCCESS"))), noon))
+        assertTrue(!SyncIndicators.justSucceeded(SyncState(runs = listOf(RunRecord(noon.minusSeconds(20).toEpochMilli(), "USER", "SUCCESS"))), noon))
+        assertEquals("now", SyncIndicators.shortAge(java.time.Duration.ofSeconds(20)))
+        assertEquals("14h", SyncIndicators.shortAge(java.time.Duration.ofHours(14)))
+    }
+
+    @Test fun statusLineStates() {
+        fun ind(t: app.cairn.core.model.Freshness, age: java.time.Duration, st: SyncState? = null) = SyncIndicators.derive(t, age, st, noon)
+        assertEquals(null, StatusLine.text(ind(app.cairn.core.model.Freshness.Fresh, java.time.Duration.ofMinutes(2)), false))
+        assertEquals("Up to date", StatusLine.text(ind(app.cairn.core.model.Freshness.Fresh, java.time.Duration.ofMinutes(2)), true))
+        assertEquals("14h", StatusLine.text(ind(app.cairn.core.model.Freshness.Stale, java.time.Duration.ofHours(14)), false))
+        assertEquals("Syncing…", StatusLine.text(ind(app.cairn.core.model.Freshness.Stale, java.time.Duration.ofHours(14), SyncState(userSyncRequestedMs = noon.toEpochMilli())), true))
+        val bad = SyncState(runs = listOf(RunRecord(noon.minusSeconds(10).toEpochMilli(), "MANUAL", "NETWORK_ERROR")))
+        assertTrue(StatusLine.errorMessage(bad, noon, 0)!!.contains("Network"))
+        assertEquals(null, StatusLine.errorMessage(bad, noon, noon.toEpochMilli()))
+        assertEquals(null, StatusLine.errorMessage(SyncState(runs = listOf(RunRecord(noon.minusSeconds(10).toEpochMilli(), "PERIODIC", "FAILED"))), noon, 0))
+        assertEquals(null, StatusLine.errorMessage(bad, noon.plusSeconds(3600), 0))
+        val cap = SyncState(runs = listOf(RunRecord(noon.minusSeconds(10).toEpochMilli(), "USER", "SKIPPED", note = "daily budget reached")))
+        assertTrue(StatusLine.errorMessage(cap, noon, 0)!!.contains("limit"))
+        assertTrue(!StatusLine.errorMessage(bad, noon, 0)!!.contains("again in"))
+    }
+
+    @Test fun lightSyncSelectionAndSchedule() {
+        val s = SyncState(schemasJson = "{}", schemasFetchedMs = noon.toEpochMilli())
+        val light = McpPlanner.plan(s, noon, z, newExercise = true, reason = SyncReason.FAST_PERIODIC)
+        assertEquals(listOf(McpTools.DAILY, McpTools.RECOVERY), light.tools)
+        assertTrue(!light.refreshSchemas)
+        assertTrue(McpPlanner.plan(s, noon, z, true, SyncReason.PERIODIC).tools.size > 2)
+        assertEquals(SyncSchedule.FastChain(5), SyncSchedule.decide(5))
+        assertEquals(SyncSchedule.Periodic(15), SyncSchedule.decide(15))
+        assertEquals(SyncSchedule.Periodic(30), SyncSchedule.decide(7))
+        assertEquals(listOf(5, 15, 30, 60), SyncSettings.CHOICES)
+        assertEquals(java.time.Duration.ofMinutes(4), McpPlanner.minGap(SyncReason.FAST_PERIODIC, s, noon))
+        assertEquals(java.time.Duration.ZERO, McpPlanner.minGap(SyncReason.USER, s, noon))
     }
 
     @Test fun manualResult() {
@@ -104,7 +166,8 @@ class FreshnessTest {
         val recent = st(noon.minusSeconds(60).toEpochMilli())
         assertTrue(McpPlanner.gapElapsed(SyncReason.COROS_REFRESH, recent, noon))
         assertTrue(!McpPlanner.gapElapsed(SyncReason.PERIODIC, recent, noon))
-        assertTrue(!McpPlanner.gapElapsed(SyncReason.MANUAL, recent, noon))
+        assertTrue(McpPlanner.gapElapsed(SyncReason.MANUAL, recent, noon))
+        assertTrue(McpPlanner.gapElapsed(SyncReason.USER, recent, noon))
     }
 
     @Test fun refreshRequestHasDelayAndReason() {

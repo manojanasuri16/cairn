@@ -29,16 +29,39 @@ interface SyncComponent {
     val syncScheduler: SyncScheduler
 }
 
+/** Pure scheduling decision for an interval choice. */
+sealed interface SyncSchedule {
+    data class Periodic(val minutes: Int) : SyncSchedule
+    /** Self-rescheduling one-time chain (best effort under Doze). */
+    data class FastChain(val minutes: Int) : SyncSchedule
+
+    companion object {
+        const val FAST_DELAY_MIN = 5L
+        fun decide(intervalMinutes: Int): SyncSchedule {
+            val m = SyncSettings.normalize(intervalMinutes)
+            return if (m == SyncSettings.FAST) FastChain(m) else Periodic(m)
+        }
+    }
+}
+
 class SyncScheduler(private val work: WorkManager, private val settings: SyncSettings, private val state: SyncStateStore) {
     companion object {
         const val PERIODIC_NAME = "cairn-sync-periodic"
         const val ONE_TIME_NAME = "cairn-sync-now"
+        const val FAST_NAME = "cairn-sync-fast"
         const val KEY_REASON = "reason"
         private val CONSTRAINTS = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
         fun periodicRequest(intervalMinutes: Int): PeriodicWorkRequest =
             PeriodicWorkRequest.Builder(PeriodicSyncWorker::class.java, SyncSettings.normalize(intervalMinutes).toLong(), TimeUnit.MINUTES)
                 .setConstraints(CONSTRAINTS)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
+                .build()
+
+        fun fastRequest(): OneTimeWorkRequest =
+            OneTimeWorkRequest.Builder(FastSyncWorker::class.java)
+                .setConstraints(CONSTRAINTS)
+                .setInitialDelay(SyncSchedule.FAST_DELAY_MIN, TimeUnit.MINUTES)
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
                 .build()
 
@@ -62,12 +85,33 @@ class SyncScheduler(private val work: WorkManager, private val settings: SyncSet
 
     /** UPDATE keeps one unique periodic job and applies a changed interval. */
     suspend fun ensurePeriodic() {
-        work.enqueueUniquePeriodicWork(PERIODIC_NAME, ExistingPeriodicWorkPolicy.UPDATE, periodicRequest(settings.interval()))
+        when (val d = SyncSchedule.decide(settings.interval())) {
+            is SyncSchedule.Periodic -> {
+                work.cancelUniqueWork(FAST_NAME)
+                work.enqueueUniquePeriodicWork(PERIODIC_NAME, ExistingPeriodicWorkPolicy.UPDATE, periodicRequest(d.minutes))
+            }
+            is SyncSchedule.FastChain -> {
+                work.cancelUniqueWork(PERIODIC_NAME)
+                // KEEP: re-ensuring (app start) does not reset a countdown that is already running.
+                work.enqueueUniqueWork(FAST_NAME, ExistingWorkPolicy.KEEP, fastRequest())
+            }
+        }
+    }
+
+    /** Queues the next link of the 5 minute chain; REPLACE so a stale link never lingers. Called by [FastSyncWorker]. */
+    fun scheduleNextFast() {
+        work.enqueueUniqueWork(FAST_NAME, ExistingWorkPolicy.REPLACE, fastRequest())
     }
 
     /** KEEP: a tap while a run is queued or running does not stack another. */
     fun requestNow(reason: SyncReason = SyncReason.MANUAL) {
         work.enqueueUniqueWork(ONE_TIME_NAME, ExistingWorkPolicy.KEEP, oneTimeRequest(reason))
+    }
+
+    /** A person asked: marks "syncing" (widgets and headers show it) and queues an immediate expedited run. */
+    suspend fun requestUserSync(now: Long = System.currentTimeMillis()) {
+        state.update { it.copy(userSyncRequestedMs = now) }
+        requestNow(SyncReason.USER)
     }
 
     /** Two delayed refreshes after COROS was opened; REPLACE so re-opening restarts the countdown. */
@@ -127,6 +171,18 @@ abstract class BaseSyncWorker(context: Context, params: WorkerParameters) : Coro
 
 class PeriodicSyncWorker(context: Context, params: WorkerParameters) : BaseSyncWorker(context, params) {
     override fun reason() = SyncReason.PERIODIC
+}
+
+/** One link of the 5 minute chain: a light run, then queue the next while the 5 minute choice is still on. */
+class FastSyncWorker(context: Context, params: WorkerParameters) : BaseSyncWorker(context, params) {
+    override fun reason() = SyncReason.FAST_PERIODIC
+    override suspend fun doWork(): Result {
+        val result = super.doWork()
+        if (result == Result.retry()) return result
+        val c = (applicationContext as? SyncComponentProvider)?.syncComponent
+        if (c != null && SyncSchedule.decide(c.syncSettings.interval()) is SyncSchedule.FastChain) c.syncScheduler.scheduleNextFast()
+        return result
+    }
 }
 
 class OneTimeSyncWorker(context: Context, params: WorkerParameters) : BaseSyncWorker(context, params) {
