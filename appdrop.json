@@ -1,0 +1,25 @@
+{
+  "slug": "cairn",
+  "kind": "android",
+  "name": "Cairn",
+  "tagline": "Your COROS recovery, sleep and training at a glance, in home-screen widgets",
+  "category": "Health & Fitness",
+  "developer": "Manoj Anasuri",
+  "accentColor": "#FF4A33",
+  "packageName": "app.cairn",
+  "repo": "manojanasuri16/cairn",
+  "visibility": "public",
+  "icon": "appdrop/icon.png",
+  "screenshots": [
+    "appdrop/screenshots/01-today.png",
+    "appdrop/screenshots/02-recovery.png",
+    "appdrop/screenshots/03-activities.png",
+    "appdrop/screenshots/04-fitness.png",
+    "appdrop/screenshots/05-widgets.png",
+    "appdrop/screenshots/06-widgets-more.png",
+    "appdrop/screenshots/07-customise.png",
+    "appdrop/screenshots/08-dark.png"
+  ],
+  "descriptionFile": "appdrop/description.md",
+  "assetPattern": "Cairn-*.apk"
+}

@@ -1,7 +1,10 @@
 package app.cairn.sync
 
 import app.cairn.core.model.Activity
+import app.cairn.core.model.ActivityDetail
 import app.cairn.core.model.DailySummary
+import app.cairn.core.model.HrvDay
+import app.cairn.core.model.VitalsDay
 import app.cairn.core.model.FitnessSnapshot
 import app.cairn.core.model.Recovery
 import app.cairn.core.model.SleepNight
@@ -34,6 +37,11 @@ interface SyncWriter {
     suspend fun storeLoad(days: List<TrainingLoadDay>)
     suspend fun storeFitness(snapshot: FitnessSnapshot)
     suspend fun storeActivities(activities: List<Activity>)
+    suspend fun storeVitals(days: List<VitalsDay>) {}
+    suspend fun storeHrv(days: List<HrvDay>) {}
+    suspend fun storeActivityDetails(details: List<ActivityDetail>) {}
+    /** COROS activities from [since] on that have no cached detail yet (so each activity is fetched once), newest first. */
+    suspend fun activitiesNeedingDetail(since: java.time.LocalDate): List<Activity> = emptyList()
 }
 
 /** Implemented by the widget module in M5; [updateAll] re-renders every widget from Room. */

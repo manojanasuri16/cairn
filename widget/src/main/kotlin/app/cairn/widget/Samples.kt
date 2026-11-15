@@ -17,34 +17,34 @@ object Samples {
         "Today. 8,432 steps. Sleep 7 hours 41 minutes. Resting heart rate 52. Recovery 82 percent.",
     )
 
-    fun recovery() = content(RecoveryUi("82%", 0.82f, "Well recovered", "Full in 4h"), "Recovery 82 percent. Well recovered. Full in 4 hours.")
+    fun recovery() = content(RecoveryUi("82%", 0.82f, "Well recovered", "4 hrs till full recovery"), "Recovery 82 percent. Well recovered. 4 hrs till full recovery.")
 
     fun activity() = content(
-        ActivityUi("Running", "Today", "10.2 km", "52m", "5:07 /km", "152 bpm"),
+        ActivityUi("Running", "Today", "10.20 km", "52 min", "5'07\" /km", "152 bpm"),
         "Last activity. Running. Today. 10.2 kilometres. 52 minutes.", Screen.Activities,
     )
 
     fun load() = content(
         TrainingLoadUi(
             listOf(0.4f, 0.65f, 0f, 0.8f, 0.55f, 1f, 0.7f).mapIndexed { i, f -> LoadBar("MTWTFSS"[i].toString(), f, i == 6, "day ${i + 1}") },
-            "1.12", "Optimal", "VO2max 52", "+1", 1.12,
+            "112%", "Optimal", "VO2max 52", "+1", 1.12,
         ),
-        "Training load. Load ratio 1.12. Optimal. VO2max 52.", Screen.Fitness,
+        "Training load. Intensity Trend 112 percent. Optimal. VO2max 52.", Screen.Fitness,
     )
 
     fun sleep() = content(
         SleepUi(
-            "7h 41m", "Score 84", "23:10–07:02",
+            "7 h 41 min", "Score 84", "23:10–07:02",
             listOf(
-                StageSlice(SleepStage.Deep, 90, "Deep 1h 30m"), StageSlice(SleepStage.Light, 250, "Light 4h 10m"),
-                StageSlice(SleepStage.Rem, 100, "REM 1h 40m"), StageSlice(SleepStage.Awake, 21, "Awake 21m"),
+                StageSlice(SleepStage.Deep, 90, "Deep 1 h 30 min"), StageSlice(SleepStage.Light, 250, "Light 4 h 10 min"),
+                StageSlice(SleepStage.Rem, 100, "REM 1 h 40 min"), StageSlice(SleepStage.Awake, 21, "Awake 21 min"),
             ), null, 461, 84,
         ),
         "Sleep. Slept 7 hours 41 minutes. Score 84.",
     )
 
     fun fitness() = content(
-        FitnessUi("52", "4:21 /km", listOf(RacePrediction("5K", "21:40"), RacePrediction("10K", "45:10"), RacePrediction("HM", "1:39:30"), RacePrediction("M", "3:30:12"))),
+        FitnessUi("52", "4'21\" /km", listOf(RacePrediction("5K", "21:40"), RacePrediction("10K", "45:10"), RacePrediction("HM", "1:39:30"), RacePrediction("M", "3:30:12"))),
         "Fitness. VO2max 52. Threshold pace 4:21 per kilometre.", Screen.Fitness,
     )
 
@@ -52,10 +52,10 @@ object Samples {
         OverviewUi(
             listOf(
                 OverviewItem(OverviewId.Steps, "8,432", "steps", 0.84f),
-                OverviewItem(OverviewId.Sleep, "7h 41m", "", 0.96f),
+                OverviewItem(OverviewId.Sleep, "7 h 41 min", "", 0.96f),
                 OverviewItem(OverviewId.Recovery, "82", "%", 0.82f),
                 OverviewItem(OverviewId.RestingHr, "52", "bpm"),
-                OverviewItem(OverviewId.LoadRatio, "1.12", "", null, 1.12, listOf(0.4f, 0.65f, 0.3f, 0.8f, 0.55f, 1f, 0.7f)),
+                OverviewItem(OverviewId.LoadRatio, "112%", "", null, 1.12, listOf(0.4f, 0.65f, 0.3f, 0.8f, 0.55f, 1f, 0.7f)),
                 OverviewItem(OverviewId.Calories, "1,820", "kcal"),
             ),
         ),

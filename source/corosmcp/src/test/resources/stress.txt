@@ -1,0 +1,13 @@
+Stress Level — Last 7 days
+========================
+
+2030-01-09:
+Average Stress: 28
+Relaxed: No data
+Low: No data
+Medium: No data
+High: No data
+
+2030-01-08:
+Average Stress: 31
+Relaxed: No data

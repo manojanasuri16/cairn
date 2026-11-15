@@ -1,12 +1,19 @@
 package app.cairn.sync
 
 import app.cairn.core.model.Activity
+import app.cairn.core.model.ActivityDetail
 import app.cairn.core.model.DailySummary
+import app.cairn.core.model.DataSource
+import app.cairn.core.model.HrvDay
+import app.cairn.core.model.VitalsDay
 import app.cairn.core.model.FitnessSnapshot
 import app.cairn.core.model.Recovery
 import app.cairn.core.model.SleepNight
 import app.cairn.core.model.TrainingLoadDay
+import app.cairn.data.ActivityDetailRepository
 import app.cairn.data.ActivityRepository
+import app.cairn.data.HrvRepository
+import app.cairn.data.VitalsRepository
 import app.cairn.data.DailyRepository
 import app.cairn.data.FitnessRepository
 import app.cairn.data.RecoveryRepository
@@ -54,6 +61,9 @@ class RepositorySyncWriter(
     private val load: TrainingLoadRepository,
     private val fitness: FitnessRepository,
     private val activities: ActivityRepository,
+    private val vitals: VitalsRepository? = null,
+    private val hrv: HrvRepository? = null,
+    private val details: ActivityDetailRepository? = null,
 ) : SyncWriter {
     override suspend fun storeDaily(days: List<DailySummary>) = daily.store(days)
     override suspend fun storeSleep(nights: List<SleepNight>) = sleep.store(nights)
@@ -61,4 +71,11 @@ class RepositorySyncWriter(
     override suspend fun storeLoad(days: List<TrainingLoadDay>) = load.store(days)
     override suspend fun storeFitness(snapshot: FitnessSnapshot) = fitness.store(snapshot)
     override suspend fun storeActivities(activities: List<Activity>) = this.activities.store(activities)
+    override suspend fun storeVitals(days: List<VitalsDay>) { vitals?.store(days) }
+    override suspend fun storeHrv(days: List<HrvDay>) { hrv?.store(days) }
+    override suspend fun storeActivityDetails(details: List<ActivityDetail>) { this.details?.store(details) }
+    override suspend fun activitiesNeedingDetail(since: java.time.LocalDate): List<Activity> {
+        val have = details?.cachedIds() ?: return emptyList()
+        return activities.recent(since).filter { it.stamp.source == DataSource.COROS_MCP && it.sportType != null && it.id !in have }
+    }
 }

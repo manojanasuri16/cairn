@@ -42,4 +42,13 @@ class ToolArgsTest {
         val b = ToolArgs.build(s("""{"properties":{"endDay":{"type":"integer"}}}"""), ArgRequest(days = 1), today)
         assertEquals(20300104, b.args["endDay"]!!.jsonPrimitive.int)
     }
+
+    @Test fun sportRecordsRangeStartsAtTheFirstOfLastMonth() {
+        val schema = s("""{"properties":{"startDate":{"type":"string","description":"Start date in yyyyMMdd format, defaults to 7 days ago"},"endDate":{"type":"string","description":"End date in yyyyMMdd format, defaults to today"},"limit":{"type":"integer"}}}""")
+        val days = SyncEngine.sportDays(today)
+        val b = ToolArgs.build(schema, ArgRequest(days = days, limit = SyncEngine.SPORT_LIMIT), today)
+        assertEquals("20291201", b.args["startDate"]!!.jsonPrimitive.content)
+        assertEquals("20300104", b.args["endDate"]!!.jsonPrimitive.content)
+        assertEquals(100, b.args["limit"]!!.jsonPrimitive.int)
+    }
 }

@@ -9,7 +9,10 @@ import app.cairn.core.database.CairnDatabase
 import app.cairn.core.datastore.EncryptedFileTokenStore
 import app.cairn.core.datastore.KeystoreAesGcmCipher
 import app.cairn.core.datastore.TokenStore
+import app.cairn.data.ActivityDetailRepository
 import app.cairn.data.ActivityRepository
+import app.cairn.data.HrvRepository
+import app.cairn.data.VitalsRepository
 import app.cairn.data.DailyRepository
 import app.cairn.data.FitnessRepository
 import app.cairn.data.RecoveryRepository
@@ -50,6 +53,8 @@ class CairnApp : Application(), SyncComponentProvider {
 
     override fun onCreate() {
         super.onCreate()
+        app.cairn.appdrop.AppDropUpdater.init(this, "https://appdrop-store.vercel.app", "cairn")
+        DemoFeature.install(graph, this)
         graph.installWidgets()
         // Idempotent (UPDATE policy); also queues one APP_START refresh, which the MCP gap logic may skip.
         graph.appScope.launch { runCatching { graph.syncScheduler.onAppStart() } }
@@ -78,13 +83,16 @@ class AppGraph(private val context: Context) : SyncComponent {
     val oauth: OAuthClient by lazy { OAuthClient(http, tokenStore) }
     val regionStore: RegionStore by lazy { RegionStore(File(datastoreDir, "coros_region.txt")) }
 
-    val database: CairnDatabase by lazy { Room.databaseBuilder(context, CairnDatabase::class.java, CairnDatabase.NAME).build() }
+    val database: CairnDatabase by lazy { Room.databaseBuilder(context, CairnDatabase::class.java, CairnDatabase.NAME).addMigrations(*app.cairn.core.database.ALL_MIGRATIONS).build() }
     val dailyRepository by lazy { DailyRepository(database.daily()) }
     val sleepRepository by lazy { SleepRepository(database.sleep()) }
     val recoveryRepository by lazy { RecoveryRepository(database.recovery()) }
     val trainingLoadRepository by lazy { TrainingLoadRepository(database.trainingLoad()) }
     val fitnessRepository by lazy { FitnessRepository(database.fitness()) }
     val activityRepository by lazy { ActivityRepository(database.activities()) }
+    val vitalsRepository by lazy { VitalsRepository(database.vitals()) }
+    val hrvRepository by lazy { HrvRepository(database.hrv()) }
+    val activityDetailRepository by lazy { ActivityDetailRepository(database.activityDetails()) }
 
     val healthConnect: HealthConnectReader by lazy { HealthConnectReader(context) }
 
@@ -103,7 +111,7 @@ class AppGraph(private val context: Context) : SyncComponent {
         SyncEngine(
             hc = HealthConnectSource(healthConnect),
             coros = McpCorosGateway(http, oauth) { RegionPolicy.start(regionStore.get()) },
-            writer = RepositorySyncWriter(dailyRepository, sleepRepository, recoveryRepository, trainingLoadRepository, fitnessRepository, activityRepository),
+            writer = RepositorySyncWriter(dailyRepository, sleepRepository, recoveryRepository, trainingLoadRepository, fitnessRepository, activityRepository, vitalsRepository, hrvRepository, activityDetailRepository),
             store = syncState,
             widgets = object : WidgetUpdater { override suspend fun updateAll() = widgetUpdater.updateAll() },
             nudge = StaleNudgeEvaluator(nudgeSettings, syncState, notifier),
@@ -115,7 +123,7 @@ class AppGraph(private val context: Context) : SyncComponent {
     fun installWidgets() {
         app.cairn.widget.WidgetLog.enabled = BuildConfig.DEBUG
         WidgetEnvironment.install(
-            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository, trainingLoadRepository, fitnessRepository, prefs = { appSettings.displayNow() }, settings = appSettings.widgetSettings, auth = { authState() }, syncState = syncState.state),
+            WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository, trainingLoadRepository, fitnessRepository, vitals = vitalsRepository, hrv = hrvRepository, details = activityDetailRepository, prefs = { appSettings.displayNow() }, settings = appSettings.widgetSettings, auth = { authState() }, syncState = syncState.state),
         )
         WidgetEnvironment.requestSync = { syncScheduler.requestUserSync() }
         runCatching { KeepAliveWorker.schedule(context) }
@@ -124,6 +132,7 @@ class AppGraph(private val context: Context) : SyncComponent {
     }
 
     suspend fun authState(): AuthState = when {
+        DemoFeature.active -> AuthState.Ok
         syncState.get().needsSignIn -> AuthState.NeedsSignIn
         tokenStore.load() == null -> AuthState.SignedOut
         else -> AuthState.Ok
@@ -133,6 +142,7 @@ class AppGraph(private val context: Context) : SyncComponent {
     suspend fun deleteAllData() {
         dailyRepository.clear(); sleepRepository.clear(); recoveryRepository.clear()
         trainingLoadRepository.clear(); fitnessRepository.clear(); activityRepository.clear()
+        vitalsRepository.clear(); hrvRepository.clear(); activityDetailRepository.clear()
         syncState.update { SyncState() }
         nudgeSettings.setLastNotifiedDay(null)
         notifier.cancel()

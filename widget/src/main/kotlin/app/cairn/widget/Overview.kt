@@ -9,7 +9,10 @@ import kotlin.math.ln
 /** The stats the Overview widget can show. Order here is the picker's canonical order. */
 enum class OverviewId(val label: String) {
     Steps("Steps"), Sleep("Sleep"), SleepScore("Sleep score"), Recovery("Recovery"), RestingHr("Resting HR"),
-    Calories("Calories"), Stress("Stress"), LoadRatio("Load ratio"), Vo2("VO2max"), LastDistance("Last run");
+    Calories("Calories"), Stress("Stress"),
+    /** Id kept as LoadRatio so placed widgets keep their choice; COROS calls it Intensity Trend and shows it as a percent. */
+    LoadRatio("Intensity Trend"), Vo2("VO2max"), LastDistance("Last run"),
+    HeartRate("Heart rate"), Hrv("HRV"), WeeklyLoad("Weekly load"), TodayRun("Today's run");
 
     companion object {
         val Default = listOf(Steps, Sleep, Recovery, RestingHr)
@@ -33,6 +36,9 @@ data class OverviewUi(val items: List<OverviewItem>) {
     fun find(id: OverviewId): OverviewItem? = items.firstOrNull { it.id == id }
 }
 
+/** Overview stats from the newer COROS tools, with their own data-age footer (null when there are none). */
+data class OverviewExtras(val items: List<OverviewItem>, val footer: FooterUi?)
+
 object OverviewMapper {
     /** "52 bpm" -> ("52", "bpm"), "98%" -> ("98", "%"), "7h 41m" stays whole. The number and unit are drawn together on one baseline. */
     fun splitUnit(text: String): Pair<String, String> {
@@ -50,6 +56,7 @@ object OverviewMapper {
     fun build(
         today: WidgetUi<TodayUi>, sleep: WidgetUi<SleepUi>, recovery: WidgetUi<RecoveryUi>,
         load: WidgetUi<TrainingLoadUi>, fitness: WidgetUi<FitnessUi>, activity: WidgetUi<ActivityUi>,
+        extras: OverviewExtras = OverviewExtras(emptyList(), null),
     ): WidgetUi<OverviewUi> {
         val items = mutableListOf<OverviewItem>()
         val footers = mutableListOf<FooterUi>()
@@ -83,6 +90,7 @@ object OverviewMapper {
             footers += c.footer
             c.body.distance?.let { val (n, u) = splitUnit(it); items += OverviewItem(OverviewId.LastDistance, n, u) }
         }
+        extras.footer?.let { footers += it; items += extras.items }
         if (footers.isEmpty()) return (today as? WidgetUi.Message) ?: (listOf(sleep, recovery, load, fitness, activity).firstOrNull { it is WidgetUi.Message } as? WidgetUi.Message) ?: WidgetUi.Loading
         val ordered = items.sortedBy { it.id.ordinal }
         // The data-age line reports the oldest source, so a stale tile never hides behind a fresh one.

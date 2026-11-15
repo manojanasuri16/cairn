@@ -41,12 +41,12 @@ class WidgetsV2Test {
         assertEquals(1f, c.body.bars[5].fraction, 0.001f)
         assertEquals(0f, c.body.bars[1].fraction, 0f)
         assertEquals(0.5f, c.body.bars[0].fraction, 0.001f) // 100/200
-        assertEquals("1.14", c.body.ratioText)
+        assertEquals("114%", c.body.ratioText)
         assertEquals("Optimal", c.body.comment)
         assertEquals("VO2max 52", c.body.vo2Text)
         assertEquals("+1", c.body.vo2Trend)
         assertEquals(Screen.Fitness, c.screen)
-        assertTrue(c.description.contains("Load ratio 1.14"))
+        assertTrue(c.description.contains("Intensity Trend 114 percent"))
     }
 
     @Test fun loadFallbackLabelAndNoTrend() {
@@ -85,7 +85,7 @@ class WidgetsV2Test {
 
     @Test fun sleepContent() {
         val c = content(WidgetMapper.sleep(night(), AuthState.Ok, now, today, utc))
-        assertEquals("8h", c.body.durationText)
+        assertEquals("8 h", c.body.durationText)
         assertEquals("Score 84", c.body.scoreText)
         assertEquals("00:28–08:30", c.body.window)
         assertEquals(listOf(SleepStage.Deep, SleepStage.Light, SleepStage.Rem, SleepStage.Awake), c.body.stages!!.map { it.stage })
@@ -131,14 +131,14 @@ class WidgetsV2Test {
     @Test fun fitnessKm() {
         val c = content(WidgetMapper.fitness(fit, AuthState.Ok, now))
         assertEquals("52", c.body.vo2Text)
-        assertEquals("4:30 /km", c.body.thresholdPace)
+        assertEquals("4'30\" /km", c.body.thresholdPace)
         assertEquals(listOf("5K" to "24:10", "10K" to "50:05", "HM" to "1:50:12", "M" to "3:51:40"), c.body.predictions.map { it.label to it.time })
         assertTrue(c.description.contains("half marathon 1:50:12"))
     }
 
     @Test fun fitnessMilesPace() {
         val c = content(WidgetMapper.fitness(fit, AuthState.Ok, now, DisplayPrefs(unit = DistanceUnit.Mi)))
-        assertEquals("7:15 /mi", c.body.thresholdPace)
+        assertEquals("7'15\" /mi", c.body.thresholdPace)
     }
 
     @Test fun fitnessPartialAndEmpty() {

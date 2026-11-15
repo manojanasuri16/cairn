@@ -1,11 +1,17 @@
 package app.cairn.sync
 
 import app.cairn.core.model.Activity
+import app.cairn.core.model.Derived
 import app.cairn.data.Clock
 import app.cairn.source.corosmcp.CorosAuthException
 import app.cairn.source.corosmcp.CorosException
 import app.cairn.source.corosmcp.CorosNetworkException
+import app.cairn.source.corosmcp.parse.ActivityDetailParser
+import app.cairn.source.corosmcp.parse.AvgHeartRateParser
 import app.cairn.source.corosmcp.parse.DailyHealthParser
+import app.cairn.source.corosmcp.parse.RestingHrParser
+import app.cairn.source.corosmcp.parse.SleepHrvParser
+import app.cairn.source.corosmcp.parse.StressParser
 import app.cairn.source.corosmcp.parse.FitnessParser
 import app.cairn.source.corosmcp.parse.RecoveryParser
 import app.cairn.source.corosmcp.parse.SleepOverviewParser
@@ -24,6 +30,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 
 /**
@@ -54,9 +62,22 @@ class SyncEngine(
         const val MAX_RUNS = 20
         const val MAX_STOPS = 10
         const val MAX_KNOWN_IDS = 60
+        const val SPORT_LIMIT = 100
+
+        /** Days from the first of the previous month to [today], inclusive. */
+        fun sportDays(today: LocalDate): Int =
+            (java.time.temporal.ChronoUnit.DAYS.between(today.withDayOfMonth(1).minusMonths(1), today) + 1).toInt()
     }
 
+    /** Debug hook: when it returns a note the run does nothing but record that note (used by the demo data mode). Null in release. */
+    @Volatile var suppress: (() -> String?)? = null
+
     suspend fun syncOnce(reason: SyncReason): SyncResult = mutex.withLock {
+        suppress?.invoke()?.let { note ->
+            val at = clock.now().toEpochMilli()
+            store.update { s -> s.copy(userSyncRequestedMs = null, runs = (listOf(RunRecord(at, reason.name, SyncOutcome.SKIPPED.name, note = note)) + s.runs).take(MAX_RUNS)) }
+            return@withLock SyncResult(SyncOutcome.SKIPPED, mcpNote = note)
+        }
         val run = Run(clock.now(), reason)
         try {
             execute(run)
@@ -148,7 +169,10 @@ class SyncEngine(
         if (!McpPlanner.gapElapsed(run.reason, s1, run.now)) { run.note = "inside minimum gap"; return }
         run.mcpStarted = true
 
-        val plan = McpPlanner.plan(s1, run.now, zone, newExercise, run.reason)
+        val detailTargets = ArrayDeque(
+            runCatching { writer.activitiesNeedingDetail(today.minusDays((Derived.LOAD_WINDOW_DAYS - 1).toLong())) }.getOrDefault(emptyList()),
+        )
+        val plan = McpPlanner.plan(s1, run.now, zone, newExercise, run.reason, pendingDetails = detailTargets.size)
         var schemas: Map<String, JsonObject> = parseSchemas(s1.schemasJson)
         if (plan.refreshSchemas) {
             try {
@@ -161,30 +185,49 @@ class SyncEngine(
             }
         }
         for (tool in plan.tools) {
-            if (schemas.isNotEmpty() && tool !in schemas) { run.errors += ErrorType.TOOL_MISSING; run.toolRuns[tool] = run.now.toEpochMilli(); continue }
-            val built = ToolArgs.build(schemas[tool], requestFor(tool), today)
-            if (built.unresolved.isNotEmpty()) { run.errors += ErrorType.ARGS; run.toolRuns[tool] = run.now.toEpochMilli(); continue }
+            val name = if (tool == McpTools.SPORT_PREV) McpTools.SPORT else tool
+            if (schemas.isNotEmpty() && name !in schemas) { run.errors += ErrorType.TOOL_MISSING; run.toolRuns[McpTools.gateKey(tool, today)] = run.now.toEpochMilli(); continue }
+            var target: Activity? = null
+            val built = if (tool == McpTools.DETAIL) {
+                target = detailTargets.removeFirstOrNull()
+                if (target == null) continue
+                BuiltArgs(buildJsonObject { put("labelId", JsonPrimitive(target.id)); put("sportType", JsonPrimitive(target.sportType ?: 0)) }, emptyList())
+            } else ToolArgs.build(schemas[name], requestFor(tool, today), today)
+            if (built.unresolved.isNotEmpty()) { run.errors += ErrorType.ARGS; run.toolRuns[McpTools.gateKey(tool, today)] = run.now.toEpochMilli(); continue }
             try {
-                run.calls += tool
-                val reply = coros.call(tool, built.args)
-                run.toolRuns[tool] = run.now.toEpochMilli()
-                if (reply.isError) { run.errors += ErrorType.SERVER; continue }
-                handle(run, tool, reply, known)
+                run.calls += name
+                val reply = coros.call(name, built.args)
+                run.toolRuns[McpTools.gateKey(tool, today)] = run.now.toEpochMilli()
+                if (reply.isError) {
+                    run.errors += ErrorType.SERVER
+                    // A tool-level error for one activity is remembered (empty row) so it is not asked again every run.
+                    if (target != null) { writer.storeActivityDetails(listOf(ActivityDetailParser.parse(reply, target.id, run.now).value)); run.wrote = true }
+                    continue
+                }
+                handle(run, tool, reply, known, target)
             } catch (e: CancellationException) { throw e } catch (e: Exception) {
                 if (classify(run, e)) return
             }
         }
     }
 
-    private fun requestFor(tool: String) = when (tool) {
+    private fun requestFor(tool: String, today: LocalDate) = when (tool) {
         McpTools.DAILY -> ArgRequest(days = 7)
         McpTools.SLEEP -> ArgRequest(days = 3)
-        McpTools.SPORT -> ArgRequest(limit = 5)
+        // From the first of last month to today, so the Activities tab can show the current and the previous month.
+        // Two windows (this month, last month), each its own call, so a server cap per call cannot hide a month.
+        McpTools.SPORT -> ArgRequest(days = today.dayOfMonth, limit = SPORT_LIMIT)
+        McpTools.SPORT_PREV -> {
+            val prevEnd = today.withDayOfMonth(1).minusDays(1)
+            ArgRequest(days = prevEnd.dayOfMonth, limit = SPORT_LIMIT, endDaysAgo = java.time.temporal.ChronoUnit.DAYS.between(prevEnd, today).toInt())
+        }
+        McpTools.RESTING_HR, McpTools.AVG_HR -> ArgRequest(days = 7)
+        McpTools.STRESS, McpTools.HRV -> ArgRequest(days = 3)
         else -> ArgRequest()
     }
 
     /** Parses and writes one reply; a parse that finds nothing (warnings) is not an error. */
-    private suspend fun handle(run: Run, tool: String, reply: ToolReply, known: Set<String>) {
+    private suspend fun handle(run: Run, tool: String, reply: ToolReply, known: Set<String>, target: Activity? = null) {
         val now = run.now
         when (tool) {
             McpTools.DAILY -> {
@@ -217,13 +260,32 @@ class SyncEngine(
                 run.warnings += r.warnings.size
                 r.value?.let { writer.storeFitness(it) }
             }
-            McpTools.SPORT -> {
+            McpTools.SPORT, McpTools.SPORT_PREV -> {
                 val r = SportRecordsParser.parse(reply, now)
                 run.warnings += r.warnings.size
                 writer.storeActivities(r.value)
                 val ids = r.value.map(Activity::id)
-                if (known.isNotEmpty() && ids.any { it !in known }) run.sawNewMcpActivity = true
+                if (tool == McpTools.SPORT && known.isNotEmpty() && ids.any { it !in known }) run.sawNewMcpActivity = true
                 run.newActivityIds = run.newActivityIds + ids
+            }
+            McpTools.RESTING_HR, McpTools.AVG_HR, McpTools.STRESS -> {
+                val r = when (tool) {
+                    McpTools.RESTING_HR -> RestingHrParser.parse(reply, now)
+                    McpTools.AVG_HR -> AvgHeartRateParser.parse(reply, now)
+                    else -> StressParser.parse(reply, now)
+                }
+                run.warnings += r.warnings.size
+                writer.storeVitals(r.value)
+            }
+            McpTools.HRV -> {
+                val r = SleepHrvParser.parse(reply, now)
+                run.warnings += r.warnings.size
+                writer.storeHrv(r.value)
+            }
+            McpTools.DETAIL -> if (target != null) {
+                val r = ActivityDetailParser.parse(reply, target.id, now)
+                run.warnings += r.warnings.size
+                writer.storeActivityDetails(listOf(r.value))
             }
         }
         run.wrote = true

@@ -1,6 +1,9 @@
 package app.cairn.source.corosmcp.parse
 
 import app.cairn.core.model.Activity
+import app.cairn.core.model.ActivityDetail
+import app.cairn.core.model.HrvDay
+import app.cairn.core.model.VitalsDay
 import app.cairn.core.model.DailySummary
 import app.cairn.core.model.DataSource
 import app.cairn.core.model.FitnessSnapshot
@@ -200,7 +203,8 @@ object FitnessParser {
         fun t(k: String) = l[k]?.let { v -> Txt.clockSeconds(v).also { if (it == null) warnings += "cannot read '$k'" } }
         val snap = FitnessSnapshot(
             stamp = stamp(fetchedAt),
-            vo2max = i("vo2max"), runningLevel = i("running level"),
+            vo2max = i("vo2max"),
+            runningLevel = l["running level"]?.let { v -> Txt.double(v).also { if (it == null) warnings += "cannot read 'running level'" } },
             thresholdPaceSecPerKm = l["threshold pace"]?.let { v -> Txt.paceSecPerKm(v).also { if (it == null) warnings += "cannot read 'threshold pace'" } },
             prediction5kSec = t("5 km prediction"), prediction10kSec = t("10 km prediction"),
             predictionHalfSec = t("half marathon prediction"), predictionMarathonSec = t("marathon prediction"),
@@ -251,5 +255,108 @@ object SportRecordsParser {
         if (declared != null && declared != out.size) warnings += "header says $declared records, parsed ${out.size}"
         if (out.isEmpty()) warnings += "no sport records recognized"
         return ParseResult(out, warnings)
+    }
+}
+
+private val DAY_LINE = Regex("""(\d{4}-\d{2}-\d{2}):?""")
+
+/** `queryRestingHeartRate`: lines `YYYY-MM-DD: 51 bpm`. This is the figure the COROS app shows. */
+object RestingHrParser {
+    private val ROW = Regex("""(\d{4}-\d{2}-\d{2})\s*:\s*(\d+)\s*bpm""", RegexOption.IGNORE_CASE)
+
+    fun parse(reply: ToolReply, fetchedAt: Instant) = guard(reply, emptyList<VitalsDay>()) { parse(it, fetchedAt) }
+
+    fun parse(text: String, fetchedAt: Instant): ParseResult<List<VitalsDay>> {
+        emptyWarnings(text)?.let { return ParseResult(emptyList(), it) }
+        val out = text.lines().mapNotNull { l ->
+            ROW.find(l)?.let { m -> runCatching { VitalsDay(LocalDate.parse(m.groupValues[1]), stamp(fetchedAt), restingHr = m.groupValues[2].toInt()) }.getOrNull() }
+        }
+        return ParseResult(out, if (out.isEmpty()) listOf("no resting heart rate rows recognized") else emptyList())
+    }
+}
+
+/** `queryAvgHeartRate`: lines `YYYY-MM-DD: 70 bpm (Min: 44, Max: 154)`. Daily average, not a latest reading. */
+object AvgHeartRateParser {
+    private val ROW = Regex("""(\d{4}-\d{2}-\d{2})\s*:\s*(\d+)\s*bpm(.*)""", RegexOption.IGNORE_CASE)
+    private val MIN = Regex("""Min\w*\s*:\s*(\d+)""", RegexOption.IGNORE_CASE)
+    private val MAX = Regex("""Max\w*\s*:\s*(\d+)""", RegexOption.IGNORE_CASE)
+
+    fun parse(reply: ToolReply, fetchedAt: Instant) = guard(reply, emptyList<VitalsDay>()) { parse(it, fetchedAt) }
+
+    fun parse(text: String, fetchedAt: Instant): ParseResult<List<VitalsDay>> {
+        emptyWarnings(text)?.let { return ParseResult(emptyList(), it) }
+        val out = text.lines().mapNotNull { l ->
+            val m = ROW.find(l) ?: return@mapNotNull null
+            val date = runCatching { LocalDate.parse(m.groupValues[1]) }.getOrNull() ?: return@mapNotNull null
+            VitalsDay(
+                date, stamp(fetchedAt), avgHr = m.groupValues[2].toInt(),
+                minHr = MIN.find(m.groupValues[3])?.groupValues?.get(1)?.toInt(), maxHr = MAX.find(m.groupValues[3])?.groupValues?.get(1)?.toInt(),
+            )
+        }
+        return ParseResult(out, if (out.isEmpty()) listOf("no average heart rate rows recognized") else emptyList())
+    }
+}
+
+/** `queryStressLevel`: `YYYY-MM-DD:` blocks with `Average Stress: N`. The zone breakdown ("No data") is ignored. */
+object StressParser {
+    fun parse(reply: ToolReply, fetchedAt: Instant) = guard(reply, emptyList<VitalsDay>()) { parse(it, fetchedAt) }
+
+    fun parse(text: String, fetchedAt: Instant): ParseResult<List<VitalsDay>> {
+        emptyWarnings(text)?.let { return ParseResult(emptyList(), it) }
+        val out = mutableListOf<VitalsDay>()
+        for ((m, body) in blocks(text, DAY_LINE)) {
+            val date = runCatching { LocalDate.parse(m.groupValues[1]) }.getOrNull() ?: continue
+            val v = Txt.int(Txt.labels(body)["average stress"]) ?: continue
+            out += VitalsDay(date, stamp(fetchedAt), avgStress = v)
+        }
+        return ParseResult(out, if (out.isEmpty()) listOf("no stress rows recognized") else emptyList())
+    }
+}
+
+/** `querySleepHrv`: only the "HRV Assessment" summary; the (huge) raw time series after it is never read. */
+object SleepHrvParser {
+    private val RANGE = Regex("""(\d+)\s*[-\u2013\u2014]\s*(\d+)""")
+    private val DASH = Regex("""\s[\u2014\u2013-]\s""")
+
+    fun parse(reply: ToolReply, fetchedAt: Instant) = guard(reply, emptyList<HrvDay>()) { parse(it, fetchedAt) }
+
+    fun parse(text: String, fetchedAt: Instant): ParseResult<List<HrvDay>> {
+        emptyWarnings(text)?.let { return ParseResult(emptyList(), it) }
+        val lines = text.lines()
+        val end = lines.indexOfFirst { it.trim().startsWith("Sleep HRV Time Series", ignoreCase = true) }.let { if (it < 0) lines.size else it }
+        val summary = lines.take(end).joinToString("\n")
+        val out = mutableListOf<HrvDay>()
+        for ((m, body) in blocks(summary, DAY_LINE)) {
+            val date = runCatching { LocalDate.parse(m.groupValues[1]) }.getOrNull() ?: continue
+            val l = Txt.labels(body)
+            val avgRaw = l["hrv avg"]
+            val avg = Txt.int(avgRaw)
+            val assessment = avgRaw?.split(DASH, limit = 2)?.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() }
+            val range = l["normal range"]?.let { RANGE.find(it) }
+            val day = HrvDay(
+                date, stamp(fetchedAt), avg, assessment,
+                range?.groupValues?.get(1)?.toInt(), range?.groupValues?.get(2)?.toInt(), Txt.int(l["baseline"]),
+            )
+            if (avg != null || assessment != null) out += day
+        }
+        return ParseResult(out, if (out.isEmpty()) listOf("no HRV assessment rows recognized") else emptyList())
+    }
+}
+
+/** `getActivityDetail`: labelled lines. Always returns a row for [id] so an unreadable reply is not fetched again and again. */
+object ActivityDetailParser {
+    fun parse(reply: ToolReply, id: String, fetchedAt: Instant): ParseResult<ActivityDetail> {
+        if (reply.isError) return ParseResult(ActivityDetail(id, stamp(fetchedAt)), listOf("tool returned an error"))
+        val l = Txt.labels(reply.text.lines())
+        val warnings = mutableListOf<String>()
+        val load = l["training load"]?.let { v -> Txt.int(v).also { if (it == null) warnings += "cannot read training load" } }
+        if (load == null) warnings += "no training load in activity detail"
+        return ParseResult(
+            ActivityDetail(
+                id, stamp(fetchedAt), load, Txt.double(l["aerobic te"]), Txt.double(l["anaerobic te"]),
+                l["training focus"]?.takeIf { it.isNotBlank() },
+            ),
+            warnings,
+        )
     }
 }

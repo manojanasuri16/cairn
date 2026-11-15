@@ -12,6 +12,8 @@ import app.cairn.core.database.SleepDao
 import app.cairn.core.database.SleepEntity
 import app.cairn.core.database.TrainingLoadDao
 import app.cairn.core.database.TrainingLoadEntity
+import app.cairn.core.database.VitalsDao
+import app.cairn.core.database.VitalsEntity
 import app.cairn.core.model.Activity
 import app.cairn.core.model.DailySummary
 import app.cairn.core.model.DataSource
@@ -22,6 +24,7 @@ import app.cairn.core.model.SleepNight
 import app.cairn.core.model.SourcedValue
 import app.cairn.core.model.Stamp
 import app.cairn.core.model.TrainingLoadDay
+import app.cairn.core.model.VitalsDay
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -231,5 +234,44 @@ class RepositoriesTest {
         assertEquals(2, repo.observeRecent(day).first().size)
         assertEquals(1, repo.observeRecent(day, limit = 1).first().size)
         assertTrue(repo.observeRecent(day.plusDays(1)).first().isEmpty())
+    }
+}
+
+private class FakeVitalsDao : VitalsDao {
+    val rows = MutableStateFlow<List<VitalsEntity>>(emptyList())
+    override suspend fun clear() { rows.value = emptyList() }
+    override fun observeRange(from: String, to: String) = rows.map { l -> l.filter { it.date in from..to } }
+    override suspend fun get(dates: List<String>, source: String) = rows.value.filter { it.date in dates && it.source == source }
+    override suspend fun upsert(rows: List<VitalsEntity>) { this.rows.value = this.rows.value.filterNot { o -> rows.any { it.date == o.date && it.source == o.source } } + rows }
+    override suspend fun deleteBefore(before: String) { rows.value = rows.value.filter { it.date >= before } }
+}
+
+class CorosCardsTest {
+    private val mcp = { h: Int -> Stamp(DataSource.COROS_MCP, Instant.parse("2030-01-03T0$h:00:00Z")) }
+    private val day = LocalDate.of(2030, 1, 3)
+
+    @Test fun vitalsFromThreeToolsMergeIntoOneDay() = runBlocking {
+        val repo = VitalsRepository(FakeVitalsDao())
+        repo.store(listOf(VitalsDay(day, mcp(1), restingHr = 51)))
+        repo.store(listOf(VitalsDay(day, mcp(2), avgHr = 70, minHr = 44, maxHr = 154)))
+        repo.store(listOf(VitalsDay(day, mcp(3), avgStress = 30)))
+        val v = repo.observe(day, day).first().single().value
+        assertEquals(51, v.restingHr); assertEquals(70, v.avgHr); assertEquals(44, v.minHr); assertEquals(154, v.maxHr); assertEquals(30, v.avgStress)
+    }
+
+    @Test fun laterWakeTimeWinsForSleep() {
+        val early = SleepNight(day, mcp(1), score = 73, asleepMinutes = 364, end = Instant.parse("2030-01-03T05:00:00Z"))
+        val late = SleepNight(day, mcp(2), score = 87, asleepMinutes = 407, end = Instant.parse("2030-01-03T07:00:00Z"))
+        assertEquals(87, Merge.coalesceSleep(early, late).score)
+        // An older reading arriving after a newer one does not overwrite it.
+        val merged = Merge.coalesceSleep(late, early)
+        assertEquals(87, merged.score); assertEquals(407, merged.asleepMinutes); assertEquals(mcp(2), merged.stamp.let { late.stamp })
+    }
+
+    @Test fun sleepWithoutWindowStillTakesNewReading() {
+        val withWindow = SleepNight(day, mcp(1), score = 73, end = Instant.parse("2030-01-03T05:00:00Z"))
+        val daily = SleepNight(day, mcp(2), asleepMinutes = 400)
+        val m = Merge.coalesceSleep(withWindow, daily)
+        assertEquals(400, m.asleepMinutes); assertEquals(73, m.score)
     }
 }

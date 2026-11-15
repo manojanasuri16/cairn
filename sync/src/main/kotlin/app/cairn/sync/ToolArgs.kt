@@ -9,7 +9,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 
 /** What the caller wants, independent of how a tool names its arguments. */
-data class ArgRequest(val days: Int? = null, val limit: Int? = null)
+data class ArgRequest(val days: Int? = null, val limit: Int? = null, /** The window ends this many days before today (0 = today). */ val endDaysAgo: Int = 0)
 
 /** [unresolved] lists required properties that could not be filled; the engine skips such a call. */
 data class BuiltArgs(val args: JsonObject, val unresolved: List<String>)
@@ -38,8 +38,8 @@ object ToolArgs {
             val value: kotlinx.serialization.json.JsonElement? = when (norm) {
                 in DAYS -> req.days?.let { number(def, it) }
                 in LIMIT -> req.limit?.let { number(def, it) }
-                in START -> req.days?.let { date(def, today.minusDays((it - 1).toLong())) }
-                in END -> req.days?.let { date(def, today) }
+                in START -> req.days?.let { date(def, today.minusDays((it - 1 + req.endDaysAgo).toLong())) }
+                in END -> req.days?.let { date(def, today.minusDays(req.endDaysAgo.toLong())) }
                 else -> null
             }
             if (value != null) values[name] = value

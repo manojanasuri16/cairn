@@ -154,7 +154,7 @@ class ParsersTest {
         val r = FitnessParser.parse(fx("fitness.txt"), now)
         assertTrue(r.warnings.isEmpty())
         val f = r.value!!
-        assertEquals(47, f.vo2max); assertEquals(61, f.runningLevel)
+        assertEquals(47, f.vo2max); assertEquals(61.0, f.runningLevel!!, 0.0)
         assertEquals(285, f.thresholdPaceSecPerKm)
         assertEquals(23 * 60 + 40, f.prediction5kSec)
         assertEquals(49 * 60 + 10, f.prediction10kSec)
@@ -258,5 +258,80 @@ class ParsersTest {
         assertEquals(3271, Txt.int("3,271"))
         assertEquals(1000.0, Txt.distanceMeters("1 km")!!, 1e-9)
         assertNull(Txt.distanceMeters("5"))
+    }
+
+    // ---- COROS-card tools ----
+    @Test fun fitnessKeepsRunningLevelDecimal() {
+        val f = FitnessParser.parse("Fitness Assessment Overview\n===\nRunning Level: 73.3\nMarathon Prediction: 4:09:57\n", now).value!!
+        assertEquals(73.3, f.runningLevel!!, 0.0001)
+        assertEquals(4 * 3600 + 9 * 60 + 57, f.predictionMarathonSec)
+    }
+
+    @Test fun restingHr() {
+        val r = RestingHrParser.parse(fx("resting_hr.txt"), now)
+        assertTrue(r.warnings.isEmpty())
+        assertEquals(4, r.value.size)
+        assertEquals(49, r.value.first { it.date == java.time.LocalDate.parse("2030-01-09") }.restingHr)
+        assertNull(r.value.first().avgHr)
+    }
+
+    @Test fun avgHrWithMinMaxAndMissingMax() {
+        val r = AvgHeartRateParser.parse(fx("avg_hr.txt"), now).value
+        val today = r.first { it.date == java.time.LocalDate.parse("2030-01-09") }
+        assertEquals(72, today.avgHr); assertEquals(41, today.minHr); assertEquals(150, today.maxHr)
+        val y = r.first { it.date == java.time.LocalDate.parse("2030-01-08") }
+        assertEquals(44, y.minHr); assertNull(y.maxHr)
+    }
+
+    @Test fun stressIgnoresZoneBreakdown() {
+        val r = StressParser.parse(fx("stress.txt"), now).value
+        assertEquals(listOf(28, 31), r.map { it.avgStress })
+    }
+
+    @Test fun sleepHrvSummaryOnly() {
+        val r = SleepHrvParser.parse(fx("sleep_hrv.txt"), now)
+        assertTrue(r.warnings.isEmpty())
+        assertEquals(2, r.value.size) // time series lines are not rows
+        val d = r.value.first { it.date == java.time.LocalDate.parse("2030-01-09") }
+        assertEquals(61, d.avgMs); assertEquals("Above normal", d.assessment)
+        assertEquals(44, d.normalLowMs); assertEquals(57, d.normalHighMs); assertEquals(50, d.baselineMs)
+    }
+
+    @Test fun activityDetail() {
+        val r = ActivityDetailParser.parse(ToolReply(fx("activity_detail.txt")), "lbl1", now)
+        assertTrue(r.warnings.isEmpty())
+        assertEquals("lbl1", r.value.id)
+        assertEquals(87, r.value.trainingLoad); assertEquals(2.8, r.value.aerobicTe!!, 0.0); assertEquals("Base", r.value.trainingFocus)
+    }
+
+    @Test fun activityDetailWithoutLoadStillReturnsARow() {
+        val r = ActivityDetailParser.parse(ToolReply("Indoor Activity Details\nDistance: 1 km\n"), "x", now)
+        assertNull(r.value.trainingLoad)
+        assertTrue(r.warnings.isNotEmpty())
+        assertNull(ActivityDetailParser.parse(ToolReply("boom", isError = true), "x", now).value.trainingLoad)
+    }
+
+    @Test fun newParsersNeverThrowOnGarbage() {
+        val junk = listOf("", "No data found", "\u0000{{[[", "2030-01-09:\n  HRV Avg: abc")
+        for (j in junk) {
+            RestingHrParser.parse(j, now); AvgHeartRateParser.parse(j, now); StressParser.parse(j, now); SleepHrvParser.parse(j, now)
+            ActivityDetailParser.parse(ToolReply(j), "i", now)
+        }
+    }
+
+    @Test fun sportRecordsMultiRecordReplySpanningTwoMonths() {
+        val sb = StringBuilder("Sport Records \u2014 2030-02-01 to 2030-03-15 (21 records)\n========================\n")
+        for (n in 1..21) {
+            val date = if (n <= 18) "2030-02-%02d".format(n) else "2030-03-%02d".format(n - 17)
+            sb.append("\n$n. Outdoor Run \u2014 $date\n   Location: Place $n Run\n   Time Window: startTimestamp=${1896000000L + n * 86400L} | endTimestamp=${1896003600L + n * 86400L}\n")
+            sb.append("   Duration: 30:00 | Distance: 5.00 km\n   Average Pace: 6:00 /km | Avg HR: 150 bpm | Calories: 300 kcal\n   LabelId: id$n | SportType: 100\n")
+        }
+        val r = SportRecordsParser.parse(sb.toString(), now)
+        assertTrue(r.warnings.toString(), r.warnings.isEmpty())
+        assertEquals(21, r.value.size)
+        assertEquals(21, r.value.map { it.id }.toSet().size)
+        assertEquals(18, r.value.count { it.date.monthValue == 2 }); assertEquals(3, r.value.count { it.date.monthValue == 3 })
+        assertEquals("Place 21 Run", r.value.last().location)
+        assertEquals(100, r.value.sumOf { it.distanceMeters!! }.toInt() / 1050)
     }
 }

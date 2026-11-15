@@ -56,7 +56,7 @@ data class LoadBar(val letter: String, val fraction: Float, val isToday: Boolean
 
 data class TrainingLoadUi(
     val bars: List<LoadBar>,
-    /** Two decimals ("1.20") to match the app, or an en dash when no ratio is cached. */
+    /** Intensity Trend as COROS shows it ("47%"), or an en dash when no ratio is cached. */
     val ratioText: String,
     val comment: String,
     val vo2Text: String?,

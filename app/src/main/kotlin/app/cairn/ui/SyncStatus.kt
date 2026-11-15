@@ -106,7 +106,7 @@ class SyncStatusViewModel(app: Application) : AndroidViewModel(app) {
     fun sync() {
         viewModelScope.launch {
             val st = graph.syncState.get()
-            val signedIn = withContext(Dispatchers.IO) { graph.tokenStore.load() != null }
+            val signedIn = withContext(Dispatchers.IO) { graph.tokenStore.load() != null || app.cairn.DemoFeature.active }
             when (val g = ManualSync.gate(st, Instant.now(), signedIn, online())) {
                 is ManualSync.Gate.Skipped -> if (g.message != "Already syncing.") gateError.value = g.message
                 ManualSync.Gate.Allowed -> { gateError.value = null; graph.syncScheduler.requestUserSync() }

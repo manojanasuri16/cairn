@@ -4,6 +4,8 @@ import app.cairn.core.model.Activity
 import app.cairn.core.model.DailySummary
 import app.cairn.core.model.DataSource
 import app.cairn.core.model.FitnessSnapshot
+import app.cairn.core.model.HrvDay
+import app.cairn.core.model.VitalsDay
 import app.cairn.core.model.FreshValue
 import app.cairn.core.model.Recovery
 import app.cairn.core.model.SleepNight
@@ -62,7 +64,22 @@ object Merge {
     }
 
     /** Same-source write coalescing for sleep (daily summary and overview both write COROS_MCP rows). */
-    fun coalesceSleep(old: SleepNight?, new: SleepNight): SleepNight = if (old == null) new else fill(new, old)
+    fun coalesceSleep(old: SleepNight?, new: SleepNight): SleepNight = when {
+        old == null -> new
+        // Two readings of the same wake-up day: the one that ends later is the more complete night (a later watch sync
+        // can replace an early partial reading). The newer fetch time is kept so freshness stays honest.
+        old.end != null && new.end != null && old.end!! > new.end!! -> fill(old, new).copy(stamp = new.stamp)
+        else -> fill(new, old)
+    }
+
+    /** Same-source write coalescing for vitals: each tool fills its own fields; the incoming value wins when both exist. */
+    fun coalesceVitals(old: VitalsDay?, new: VitalsDay): VitalsDay = if (old == null) new else new.copy(
+        avgHr = new.avgHr ?: old.avgHr, minHr = new.minHr ?: old.minHr, maxHr = new.maxHr ?: old.maxHr,
+        restingHr = new.restingHr ?: old.restingHr, avgStress = new.avgStress ?: old.avgStress,
+    )
+
+    fun vitals(rows: List<VitalsDay>): VitalsDay? = preferMcp(rows) { it.stamp }
+    fun hrv(rows: List<HrvDay>): HrvDay? = preferMcp(rows) { it.stamp }
 
     /** [primary] with null fields taken from [other]. The stamp stays [primary]'s. */
     private fun fill(primary: SleepNight, other: SleepNight) = primary.copy(

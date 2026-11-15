@@ -53,7 +53,8 @@ data class TrainingLoadDay(
 data class FitnessSnapshot(
     val stamp: Stamp,
     val vo2max: Int? = null,
-    val runningLevel: Int? = null,
+    /** Running level exactly as the server gives it (a decimal like 73.3 when it has one). */
+    val runningLevel: Double? = null,
     val thresholdPaceSecPerKm: Int? = null,
     val prediction5kSec: Int? = null,
     val prediction10kSec: Int? = null,
@@ -74,4 +75,39 @@ data class Activity(
     val calories: Int? = null,
     val location: String? = null,
     val sportType: Int? = null,
+)
+
+/** One day of heart rate and stress figures from the dedicated COROS tools (not the daily summary). */
+data class VitalsDay(
+    val date: LocalDate,
+    val stamp: Stamp,
+    val avgHr: Int? = null,
+    val minHr: Int? = null,
+    val maxHr: Int? = null,
+    /** From queryRestingHeartRate: this is the figure COROS shows, which can differ by 1 bpm from the daily summary. */
+    val restingHr: Int? = null,
+    /** From queryStressLevel. */
+    val avgStress: Int? = null,
+)
+
+/** Overnight HRV for the night that ended on [date] (wake-up day). */
+data class HrvDay(
+    val date: LocalDate,
+    val stamp: Stamp,
+    val avgMs: Int? = null,
+    /** The server's own assessment text, unchanged ("Above normal", "Normal", ...). */
+    val assessment: String? = null,
+    val normalLowMs: Int? = null,
+    val normalHighMs: Int? = null,
+    val baselineMs: Int? = null,
+)
+
+/** Per-activity figures from getActivityDetail, cached by [id] (the labelId). A row with a null load means "asked, none given". */
+data class ActivityDetail(
+    val id: String,
+    val stamp: Stamp,
+    val trainingLoad: Int? = null,
+    val aerobicTe: Double? = null,
+    val anaerobicTe: Double? = null,
+    val trainingFocus: String? = null,
 )

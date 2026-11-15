@@ -12,32 +12,52 @@ import java.util.Locale
 object Fmt {
     fun steps(n: Int, locale: Locale = Locale.getDefault()): String = NumberFormat.getIntegerInstance(locale).format(n)
 
-    /** "8h 13m", "45m", "8h". */
+    /** COROS style: "6 h 47 min", "47 min", "6 h". */
     fun duration(totalMinutes: Int): String {
         val m = totalMinutes.coerceAtLeast(0)
         val h = m / 60
         val r = m % 60
         return when {
-            h == 0 -> "${r}m"
-            r == 0 -> "${h}h"
-            else -> "${h}h ${r}m"
+            h == 0 -> "$r min"
+            r == 0 -> "$h h"
+            else -> "$h h $r min"
         }
     }
 
     fun durationSec(sec: Int): String = duration((sec + 30) / 60)
 
-    fun distanceKm(meters: Double, locale: Locale = Locale.getDefault()): String = String.format(locale, "%.1f km", meters / 1000.0)
+    /** Activity time as COROS lists it: "54:37", "1:02:03". */
+    fun clock(totalSec: Int): String = raceTime(totalSec)
+
+    /** Two decimals like COROS: "5.55 km". */
+    fun distanceKm(meters: Double, locale: Locale = Locale.getDefault()): String = String.format(locale, "%.2f km", meters / 1000.0)
 
     fun distance(meters: Double, unit: DistanceUnit, locale: Locale = Locale.getDefault()): String = when (unit) {
         DistanceUnit.Km -> distanceKm(meters, locale)
-        DistanceUnit.Mi -> String.format(locale, "%.1f mi", meters / METERS_PER_MILE)
+        DistanceUnit.Mi -> String.format(locale, "%.2f mi", meters / METERS_PER_MILE)
     }
 
-    /** "5:13 /km", or "8:24 /mi" when [unit] is miles. */
+    /** COROS style: 9'50" /km (or /mi when [unit] is miles). */
     fun pace(secPerKm: Int, unit: DistanceUnit = DistanceUnit.Km): String {
         val sec = if (unit == DistanceUnit.Mi) Math.round(secPerKm * METERS_PER_MILE / 1000.0).toInt() else secPerKm
-        return "${sec / 60}:${(sec % 60).toString().padStart(2, '0')} " + if (unit == DistanceUnit.Mi) "/mi" else "/km"
+        return "${sec / 60}'${(sec % 60).toString().padStart(2, '0')}\" " + if (unit == DistanceUnit.Mi) "/mi" else "/km"
     }
+
+    /** "99 %": the COROS spelling on big cards, with a space. */
+    fun percent(n: Int): String = "$n %"
+
+    /** Intensity Trend: the load ratio as a percent ("0.47" -> "47%"), the way COROS shows it. */
+    fun intensityTrend(ratio: Double): String = "${app.cairn.core.model.Derived.intensityTrendPercent(ratio)}%"
+
+    /** Running level as returned: "73" or "73.3" (one decimal only when the value has one). */
+    fun runningLevel(v: Double, locale: Locale = Locale.getDefault()): String =
+        if (v == Math.rint(v)) v.toInt().toString() else String.format(locale, "%.1f", v)
+
+    /** "Sunday, 15 Nov". */
+    fun dateLong(date: LocalDate, locale: Locale = Locale.getDefault()): String = date.format(DateTimeFormatter.ofPattern("EEEE, d MMM", locale))
+
+    /** "Sunday". */
+    fun weekday(date: LocalDate, locale: Locale = Locale.getDefault()): String = date.format(DateTimeFormatter.ofPattern("EEEE", locale))
 
     /** Race time: "24:10", "1:52:03". */
     fun raceTime(totalSec: Int): String {
@@ -88,10 +108,10 @@ object Fmt {
         return if (s.isEmpty()) "Activity" else s.replaceFirstChar { it.titlecase() }
     }
 
-    /** "Full in 6h", "Full in 1d 4h", null when already full or unknown. */
+    /** COROS wording: "3 hrs till full recovery", "1 hr till full recovery" (days for 24 h and more); null when already full or unknown. */
     fun timeToFull(hours: Int?): String? {
         if (hours == null || hours <= 0) return null
-        return if (hours >= 24) "Full in ${hours / 24}d" + (hours % 24).let { if (it == 0) "" else " ${it}h" } else "Full in ${hours}h"
+        return if (hours == 1) "1 hr till full recovery" else "$hours hrs till full recovery"
     }
 }
 

@@ -65,7 +65,7 @@ class RenderedTreeTest {
     }
 
     @Test fun statGridAndRaceGridShowEveryTileTheRuleShows() {
-        val act = listOf("10.2 km", "52m", "5:07 /km", "152 bpm")
+        val act = listOf("10.20 km", "52 min", "5'07\" /km", "152 bpm")
         val times = listOf("21:40", "45:10", "1:39:30", "3:30:12")
         for ((w, h) in cells + listOf(272f to 75f)) {
             val (aw, ah) = sel(WidgetKind.LastActivity, w.coerceAtLeast(250f), h)

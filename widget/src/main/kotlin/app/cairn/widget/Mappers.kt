@@ -3,10 +3,14 @@ package app.cairn.widget
 import app.cairn.core.common.RelativeAge
 import app.cairn.core.model.Activity
 import app.cairn.core.model.DailySummary
+import app.cairn.core.model.Derived
 import app.cairn.core.model.DisplayPrefs
 import app.cairn.core.model.DataSource
 import app.cairn.core.model.FitnessSnapshot
 import app.cairn.core.model.Freshness
+import app.cairn.core.model.HrvDay
+import app.cairn.core.model.VitalsDay
+import app.cairn.core.model.WeeklyLoad
 import app.cairn.core.model.Recovery
 import app.cairn.core.model.SleepNight
 import app.cairn.core.model.TrainingLoadDay
@@ -40,6 +44,7 @@ object WidgetMapper {
         today: LocalDate,
         locale: Locale = Locale.getDefault(),
         prefs: DisplayPrefs = DisplayPrefs(),
+        vitals: VitalsDay? = null,
     ): WidgetUi<TodayUi> {
         val stamps = mutableListOf<Instant>()
         // Day rollover: a summary from a previous day is not "today".
@@ -51,13 +56,17 @@ object WidgetMapper {
             val score = sleep.score?.let { " · $it" } ?: ""
             metrics += Metric(MetricId.Sleep, "Sleep", Fmt.duration(sleep.asleepMinutes!!) + score)
         }
-        d?.restingHr?.let { stamps += it.sourceUpdatedAt; metrics += Metric(MetricId.RestingHr, "Resting HR", Fmt.bpm(it.value)) }
+        // COROS shows queryRestingHeartRate's figure, which can differ by 1 bpm from the daily summary: prefer it.
+        val v = vitals?.takeIf { it.date == today }
+        val resting = v?.restingHr?.let { it to v.stamp.sourceUpdatedAt } ?: d?.restingHr?.let { it.value to it.sourceUpdatedAt }
+        resting?.let { (bpm, at) -> stamps += at; metrics += Metric(MetricId.RestingHr, "Resting HR", Fmt.bpm(bpm)) }
         if (recovery?.percent != null) {
             stamps += recovery.stamp.sourceUpdatedAt
             metrics += Metric(MetricId.Recovery, "Recovery", "${recovery.percent}%")
         }
         d?.calories?.let { stamps += it.sourceUpdatedAt; metrics += Metric(MetricId.Calories, "Calories", Fmt.steps(it.value, locale) + " kcal") }
-        d?.avgStress?.let { stamps += it.sourceUpdatedAt; metrics += Metric(MetricId.Stress, "Stress", it.value.toString()) }
+        val stress = v?.avgStress?.let { it to v.stamp.sourceUpdatedAt } ?: d?.avgStress?.let { it.value to it.sourceUpdatedAt }
+        stress?.let { (n, at) -> stamps += at; metrics += Metric(MetricId.Stress, "Stress", n.toString()) }
         if (stamps.isEmpty()) return empty(auth, "No data yet today", Screen.Today)
 
         val body = TodayUi(
@@ -146,14 +155,14 @@ object WidgetMapper {
             )
         }
         val ratio = latest?.loadRatio?.takeIf { it > 0 }
-        val comment = latest?.comment?.takeIf { it.isNotBlank() }?.let(Fmt::sport) ?: ratio?.let(::ratioLabel) ?: "No ratio yet"
+        val comment = latest?.comment?.takeIf { it.isNotBlank() }?.let(Fmt::sport) ?: ratio?.let(::ratioLabel) ?: "No trend yet"
         val trend = if (vo2 != null && previousVo2max != null && previousVo2max > 0) Fmt.trend(vo2 - previousVo2max) else null
-        val body = TrainingLoadUi(bars, ratio?.let { String.format(locale, "%.2f", it) } ?: "\u2013", comment, vo2?.let { "VO2max $it" }, trend, ratio)
+        val body = TrainingLoadUi(bars, ratio?.let(Fmt::intensityTrend) ?: "\u2013", comment, vo2?.let { "VO2max $it" }, trend, ratio)
         val stamps = listOfNotNull(latest?.stamp?.sourceUpdatedAt, fitness?.takeIf { vo2 != null }?.stamp?.sourceUpdatedAt)
         val footer = footer(stamps, now, prefs)
         val desc = listOfNotNull(
             "Training load",
-            ratio?.let { "Load ratio ${body.ratioText}" }, comment,
+            ratio?.let { "Intensity Trend ${Derived.intensityTrendPercent(it)} percent" }, comment,
             body.vo2Text, trend?.let { "VO2max trend ${Fmt.trendSpoken(it)}" },
             "Last seven days: " + bars.joinToString(", ") { it.spoken },
             footer.text,
@@ -214,6 +223,30 @@ object WidgetMapper {
             spokenPreds.takeIf { it.isNotEmpty() }?.joinToString(", ", prefix = "Predicted "), footer.text,
         ).joinToString(". ")
         return WidgetUi.Content(FitnessUi(vo2, threshold, preds), footer, desc, Screen.Fitness)
+    }
+
+    /**
+     * The Overview stats that need the newer data (heart rate, HRV, weekly load, today's run). Each item shows only when
+     * its source has a value for today; [OverviewExtras.footer] is null when none do.
+     */
+    fun overviewExtras(
+        vitals: VitalsDay?, hrv: HrvDay?, week: WeeklyLoad?, weekStamp: Instant?, todayRun: Activity?,
+        now: Instant, today: LocalDate, prefs: DisplayPrefs = DisplayPrefs(), locale: Locale = Locale.getDefault(),
+    ): OverviewExtras {
+        val items = mutableListOf<OverviewItem>()
+        val stamps = mutableListOf<Instant>()
+        vitals?.takeIf { it.date == today && it.avgHr != null }?.let { items += OverviewItem(OverviewId.HeartRate, it.avgHr.toString(), "bpm"); stamps += it.stamp.sourceUpdatedAt }
+        hrv?.takeIf { it.date == today && it.avgMs != null }?.let { items += OverviewItem(OverviewId.Hrv, it.avgMs.toString(), "ms"); stamps += it.stamp.sourceUpdatedAt }
+        if (week != null && weekStamp != null && (week.activityCount - week.missing > 0 || week.activityCount == 0)) {
+            val peak = (week.weekBars.filterNotNull().maxOrNull() ?: 0).coerceAtLeast(1)
+            items += OverviewItem(OverviewId.WeeklyLoad, week.total.toString(), "", null, null, week.weekBars.map { ((it ?: 0).toFloat() / peak).coerceIn(0f, 1f) })
+            stamps += weekStamp
+        }
+        todayRun?.takeIf { it.date == today && (it.distanceMeters ?: 0.0) > 0 }?.let {
+            val (n, u) = OverviewMapper.splitUnit(Fmt.distance(it.distanceMeters!!, prefs.unit, locale))
+            items += OverviewItem(OverviewId.TodayRun, n, u); stamps += it.stamp.sourceUpdatedAt
+        }
+        return OverviewExtras(items, stamps.takeIf { it.isNotEmpty() }?.let { footer(it, now, prefs) })
     }
 
     private fun empty(auth: AuthState, emptyTitle: String, screen: Screen): WidgetUi.Message = when (auth) {

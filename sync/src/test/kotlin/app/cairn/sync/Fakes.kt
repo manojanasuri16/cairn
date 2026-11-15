@@ -1,7 +1,10 @@
 package app.cairn.sync
 
 import app.cairn.core.model.Activity
+import app.cairn.core.model.ActivityDetail
 import app.cairn.core.model.DailySummary
+import app.cairn.core.model.HrvDay
+import app.cairn.core.model.VitalsDay
 import app.cairn.core.model.FitnessSnapshot
 import app.cairn.core.model.Recovery
 import app.cairn.core.model.SleepNight
@@ -30,6 +33,11 @@ const val RECOVERY_TEXT = "Recovery Status\n===\nRecovery: 64%\nLevel: Moderate\
 const val SLEEP_TEXT = "Sleep Overview\n===\n\n2030-01-04\nSleep Score: 78\nMain Sleep (asleep): 6h 50min\nMain Sleep Period (incl. awake): 7h 20min\n"
 const val LOAD_TEXT = "Training Load Assessment\n===\n\n2030-01-03\nComment: Optimal\nShort-Term Load: 55\nLong-Term Load: 48\nLoad Ratio: 1.15\n"
 const val FITNESS_TEXT = "Fitness Assessment Overview\n===\n\nVO2max: 47\nRunning Level: 61\n"
+const val RESTING_TEXT = "Resting Heart Rate — Last 7 days\n===\n\n2030-01-04: 49 bpm\n2030-01-03: 50 bpm\n"
+const val AVG_HR_TEXT = "Average Heart Rate — Last 7 days\n===\n\n2030-01-04: 70 bpm (Min: 44, Max: 150)\n"
+const val STRESS_TEXT = "Stress Level — Last 7 days\n===\n\n2030-01-04:\nAverage Stress: 30\nRelaxed: No data\n"
+const val HRV_TEXT = "Sleep HRV — x\n===\n\nHRV Assessment — Last 7 days\n===\n\n2030-01-04:\n  HRV Avg: 61 ms — Normal\n  Normal Range: 44 - 57 ms\n  Baseline: 50 ms\n\nSleep HRV Time Series — Last 7 days\n===\n"
+const val DETAIL_TEXT = "Outdoor Run Activity Details\n===\n\nDistance: 5.55 km\nTraining Load: 87\nAerobic TE: 2.8\n"
 const val SPORT_TEXT = "Sport Records — 2030-01-01 to 2030-01-03 (1 records)\n====\n\n1. Outdoor Run — 2030-01-03\n Time Window: startTimestamp=1893571200 | endTimestamp=1893574800\n Duration: 54:37 | Distance: 5.55 km\n"
 
 class FakeCoros : CorosGateway {
@@ -38,6 +46,7 @@ class FakeCoros : CorosGateway {
     val replies = mutableMapOf(
         McpTools.DAILY to DAILY_TEXT, McpTools.RECOVERY to RECOVERY_TEXT, McpTools.SLEEP to SLEEP_TEXT,
         McpTools.LOAD to LOAD_TEXT, McpTools.FITNESS to FITNESS_TEXT, McpTools.SPORT to SPORT_TEXT,
+        McpTools.RESTING_HR to RESTING_TEXT, McpTools.AVG_HR to AVG_HR_TEXT, McpTools.STRESS to STRESS_TEXT, McpTools.HRV to HRV_TEXT, McpTools.DETAIL to DETAIL_TEXT,
     )
     val failures = mutableMapOf<String, Exception>()
     var listFailure: Exception? = null
@@ -71,12 +80,21 @@ class FakeWriter : SyncWriter {
     val load = mutableListOf<TrainingLoadDay>()
     val fitness = mutableListOf<FitnessSnapshot>()
     val activities = mutableListOf<Activity>()
+    val vitals = mutableListOf<VitalsDay>()
+    val hrv = mutableListOf<HrvDay>()
+    val details = mutableListOf<ActivityDetail>()
+    /** Activities the fake reports as lacking a detail. */
+    var needDetail: List<Activity> = emptyList()
     override suspend fun storeDaily(days: List<DailySummary>) { daily += days }
     override suspend fun storeSleep(nights: List<SleepNight>) { sleep += nights }
     override suspend fun storeRecovery(recovery: Recovery) { this.recovery += recovery }
     override suspend fun storeLoad(days: List<TrainingLoadDay>) { load += days }
     override suspend fun storeFitness(snapshot: FitnessSnapshot) { fitness += snapshot }
     override suspend fun storeActivities(activities: List<Activity>) { this.activities += activities }
+    override suspend fun storeVitals(days: List<VitalsDay>) { vitals += days }
+    override suspend fun storeHrv(days: List<HrvDay>) { hrv += days }
+    override suspend fun storeActivityDetails(details: List<ActivityDetail>) { this.details += details; needDetail = needDetail.filter { a -> details.none { it.id == a.id } } }
+    override suspend fun activitiesNeedingDetail(since: java.time.LocalDate) = needDetail
 }
 
 class InMemoryStateStore(initial: SyncState = SyncState()) : SyncStateStore {

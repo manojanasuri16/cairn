@@ -1,6 +1,9 @@
 package app.cairn.data
 
 import app.cairn.core.database.ActivityDao
+import app.cairn.core.database.ActivityDetailDao
+import app.cairn.core.database.HrvDao
+import app.cairn.core.database.VitalsDao
 import app.cairn.core.database.DailyDao
 import app.cairn.core.database.FitnessDao
 import app.cairn.core.database.RecoveryDao
@@ -9,6 +12,9 @@ import app.cairn.core.database.TrainingLoadDao
 import app.cairn.core.database.toEntities
 import app.cairn.core.database.toEntity
 import app.cairn.core.model.Activity
+import app.cairn.core.model.ActivityDetail
+import app.cairn.core.model.HrvDay
+import app.cairn.core.model.VitalsDay
 import app.cairn.core.model.DailySummary
 import app.cairn.core.model.FitnessSnapshot
 import app.cairn.core.model.FreshValue
@@ -19,6 +25,7 @@ import app.cairn.core.model.TrainingLoadDay
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
@@ -132,8 +139,48 @@ class ActivityRepository(private val dao: ActivityDao, private val clock: Clock 
             Merge.activities(rows.map { it.toDomain() }).take(limit).map { Merge.fresh(it, it.stamp, now) }
         }
 
+    /** One-shot read of the merged activities since [since] (used by the sync engine, not for display). */
+    suspend fun recent(since: LocalDate): List<Activity> = Merge.activities(dao.observeSince(since.toString()).first().map { it.toDomain() })
+
     suspend fun store(activities: List<Activity>) { if (activities.isNotEmpty()) dao.upsert(activities.map { it.toEntity() }) }
 
     /** Deletes every cached row ("Delete all Cairn data"). */
+    suspend fun clear() = dao.clear()
+}
+
+class VitalsRepository(private val dao: VitalsDao, private val clock: Clock = Clock { Instant.now() }) {
+    /** One merged row per day in [from]..[to], ascending. */
+    fun observe(from: LocalDate, to: LocalDate): Flow<List<FreshValue<VitalsDay>>> =
+        dao.observeRange(from.toString(), to.toString()).map { rows ->
+            val now = clock.now()
+            rows.map { it.toDomain() }.groupBy { it.date }.toSortedMap().mapNotNull { (_, l) -> Merge.vitals(l)?.let { Merge.fresh(it, it.stamp, now) } }
+        }
+
+    suspend fun store(days: List<VitalsDay>) {
+        if (days.isEmpty()) return
+        dao.upsert(days.map { n ->
+            val old = dao.get(listOf(n.date.toString()), n.stamp.source.name).firstOrNull()?.toDomain()
+            Merge.coalesceVitals(old, n).toEntity()
+        })
+    }
+
+    suspend fun clear() = dao.clear()
+}
+
+class HrvRepository(private val dao: HrvDao, private val clock: Clock = Clock { Instant.now() }) {
+    fun observe(from: LocalDate, to: LocalDate): Flow<List<FreshValue<HrvDay>>> =
+        dao.observeRange(from.toString(), to.toString()).map { rows ->
+            val now = clock.now()
+            rows.map { it.toDomain() }.groupBy { it.date }.toSortedMap().mapNotNull { (_, l) -> Merge.hrv(l)?.let { Merge.fresh(it, it.stamp, now) } }
+        }
+
+    suspend fun store(days: List<HrvDay>) { if (days.isNotEmpty()) dao.upsert(days.map { it.toEntity() }) }
+    suspend fun clear() = dao.clear()
+}
+
+class ActivityDetailRepository(private val dao: ActivityDetailDao) {
+    fun observeAll(): Flow<Map<String, ActivityDetail>> = dao.observeAll().map { rows -> rows.map { it.toDomain() }.associateBy { it.id } }
+    suspend fun cachedIds(): Set<String> = dao.ids().toSet()
+    suspend fun store(details: List<ActivityDetail>) { if (details.isNotEmpty()) dao.upsert(details.map { it.toEntity() }) }
     suspend fun clear() = dao.clear()
 }

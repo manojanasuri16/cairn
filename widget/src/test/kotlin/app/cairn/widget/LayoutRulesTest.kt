@@ -18,10 +18,10 @@ class LayoutRulesTest {
     @Test fun loadRatioShowsTwoDecimals() {
         val d = TrainingLoadDay(today, Stamp(DataSource.COROS_MCP, now), shortTermLoad = 100, loadRatio = 0.47, comment = null)
         val c = WidgetMapper.trainingLoad(listOf(d), null, null, AuthState.Ok, now, today, Locale.US) as WidgetUi.Content
-        assertEquals("0.47", c.body.ratioText)
-        assertTrue(c.description.contains("Load ratio 0.47"))
+        assertEquals("47%", c.body.ratioText)
+        assertTrue(c.description.contains("Intensity Trend 47 percent"))
         val de = WidgetMapper.trainingLoad(listOf(d), null, null, AuthState.Ok, now, today, Locale.GERMANY) as WidgetUi.Content
-        assertEquals("0,47", de.body.ratioText)
+        assertEquals("47%", de.body.ratioText)
     }
 
     @Test fun footerShortText() {

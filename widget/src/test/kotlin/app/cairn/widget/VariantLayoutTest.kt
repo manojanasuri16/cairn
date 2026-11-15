@@ -100,8 +100,8 @@ class VariantLayoutTest {
     }
 
     @Test fun predictionPaceMath() {
-        assertEquals("4:00 /km", Layouts.predictionPace("5K", "20:00", DistanceUnit.Km))
-        assertEquals("4:00 /km", Layouts.predictionPace("10K", "40:00", DistanceUnit.Km))
+        assertEquals("4'00\" /km", Layouts.predictionPace("5K", "20:00", DistanceUnit.Km))
+        assertEquals("4'00\" /km", Layouts.predictionPace("10K", "40:00", DistanceUnit.Km))
         assertNotNull(Layouts.predictionPace("HM", "1:39:30", DistanceUnit.Mi))
         assertNull(Layouts.predictionPace("Mile", "5:00", DistanceUnit.Km))
         assertEquals(3 * 3600 + 30 * 60 + 12, Layouts.parseRaceTime("3:30:12"))

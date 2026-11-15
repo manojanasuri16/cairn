@@ -3,6 +3,9 @@ package app.cairn.core.database
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import app.cairn.core.model.Activity
+import app.cairn.core.model.ActivityDetail
+import app.cairn.core.model.HrvDay
+import app.cairn.core.model.VitalsDay
 import app.cairn.core.model.DailySummary
 import app.cairn.core.model.DataSource
 import app.cairn.core.model.FitnessSnapshot
@@ -132,7 +135,7 @@ data class FitnessEntity(
     @PrimaryKey val source: String,
     val updatedAt: Long,
     val vo2max: Int? = null,
-    val runningLevel: Int? = null,
+    val runningLevel: Double? = null,
     val thresholdPaceSecPerKm: Int? = null,
     val prediction5kSec: Int? = null,
     val prediction10kSec: Int? = null,
@@ -176,3 +179,52 @@ fun Activity.toEntity() = ActivityEntity(
     id, stamp.source.name, stamp.sourceUpdatedAt.toEpochMilli(), date.toString(), sport, start?.toEpochMilli(),
     durationSec, distanceMeters, avgPaceSecPerKm, avgHr, calories, location, sportType,
 )
+
+/** Heart rate and stress per day from the dedicated tools (separate from `daily` so the exact COROS figures are kept). */
+@Entity(tableName = "vitals", primaryKeys = ["date", "source"])
+data class VitalsEntity(
+    val date: String,
+    val source: String,
+    val updatedAt: Long,
+    val avgHr: Int? = null,
+    val minHr: Int? = null,
+    val maxHr: Int? = null,
+    val restingHr: Int? = null,
+    val avgStress: Int? = null,
+) {
+    fun toDomain() = VitalsDay(LocalDate.parse(date), stampOf(source, updatedAt), avgHr, minHr, maxHr, restingHr, avgStress)
+}
+
+fun VitalsDay.toEntity() = VitalsEntity(date.toString(), stamp.source.name, stamp.sourceUpdatedAt.toEpochMilli(), avgHr, minHr, maxHr, restingHr, avgStress)
+
+@Entity(tableName = "hrv", primaryKeys = ["date", "source"])
+data class HrvEntity(
+    val date: String,
+    val source: String,
+    val updatedAt: Long,
+    val avgMs: Int? = null,
+    val assessment: String? = null,
+    val normalLowMs: Int? = null,
+    val normalHighMs: Int? = null,
+    val baselineMs: Int? = null,
+) {
+    fun toDomain() = HrvDay(LocalDate.parse(date), stampOf(source, updatedAt), avgMs, assessment, normalLowMs, normalHighMs, baselineMs)
+}
+
+fun HrvDay.toEntity() = HrvEntity(date.toString(), stamp.source.name, stamp.sourceUpdatedAt.toEpochMilli(), avgMs, assessment, normalLowMs, normalHighMs, baselineMs)
+
+/** getActivityDetail results, keyed by labelId. Kept apart from `activity` so refreshing the list never erases them. */
+@Entity(tableName = "activity_detail")
+data class ActivityDetailEntity(
+    @PrimaryKey val id: String,
+    val source: String,
+    val updatedAt: Long,
+    val trainingLoad: Int? = null,
+    val aerobicTe: Double? = null,
+    val anaerobicTe: Double? = null,
+    val trainingFocus: String? = null,
+) {
+    fun toDomain() = ActivityDetail(id, stampOf(source, updatedAt), trainingLoad, aerobicTe, anaerobicTe, trainingFocus)
+}
+
+fun ActivityDetail.toEntity() = ActivityDetailEntity(id, stamp.source.name, stamp.sourceUpdatedAt.toEpochMilli(), trainingLoad, aerobicTe, anaerobicTe, trainingFocus)

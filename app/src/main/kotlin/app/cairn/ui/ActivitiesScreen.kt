@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -60,7 +61,10 @@ fun ActivitiesContent(state: ActivitiesState, onOpenAccount: () -> Unit, modifie
         } else {
             LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 item { header() }
-                items(state.rows, key = { it.id }) { row -> ActivityRow(row) { selectedId = row.id } }
+                state.months.forEach { m ->
+                    item(key = "month-${m.title}-${m.rows.firstOrNull()?.id}") { MonthHeader(m) }
+                    items(m.rows, key = { it.id }) { row -> ActivityRow(row) { selectedId = row.id } }
+                }
             }
         }
     }
@@ -78,6 +82,22 @@ fun ActivitiesContent(state: ActivitiesState, onOpenAccount: () -> Unit, modifie
     }
 }
 
+/** "Nov   9.58 km   3 activities   2.2 hours", as in COROS "All activities". */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MonthHeader(m: MonthUi) {
+    FlowRow(
+        Modifier.fillMaxWidth().padding(top = Spacing.sm).semantics(mergeDescendants = true) { heading(); contentDescription = "${m.title}. ${m.distance}, ${m.count}, ${m.hours}" },
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xxs), itemVerticalAlignment = Alignment.Bottom,
+    ) {
+        Text(m.title, style = MaterialTheme.typography.titleLarge)
+        Text(m.distance, style = MaterialTheme.typography.titleMedium)
+        Text(m.count, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(m.hours, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Sport icon, big distance, duration and pace, then weekday and title. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ActivityRow(row: ActivityRowUi, onClick: () -> Unit) {
@@ -87,13 +107,13 @@ private fun ActivityRow(row: ActivityRowUi, onClick: () -> Unit) {
                 Box(contentAlignment = Alignment.Center) { Text(row.glyph, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer) }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                Text(row.sport, style = MaterialTheme.typography.titleMedium)
-                Text(row.date, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (row.stats.isNotEmpty()) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                        row.stats.forEach { Text(it, style = MaterialTheme.typography.bodyLarge) }
-                    }
+                row.distance?.let { Text(it, style = MaterialTheme.typography.headlineSmall) }
+                val sub = listOfNotNull(row.duration, row.pace)
+                if (sub.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                    sub.forEach { Text(it, style = MaterialTheme.typography.bodyLarge) }
                 }
+                Text(row.date, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(row.title, style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -102,9 +122,10 @@ private fun ActivityRow(row: ActivityRowUi, onClick: () -> Unit) {
 @Preview(showBackground = true, fontScale = 2f)
 @Composable
 private fun ActivitiesPreview() = CairnTheme {
-    val d = listOf(MetricUi("Sport", "Running"), MetricUi("Distance", "8.4 km"))
+    val d = listOf(MetricUi("Sport", "Running"), MetricUi("Distance", "5.55 km"))
+    val row = ActivityRowUi("1", "\uD83C\uDFC3", "Running", "Sunday, 15 Nov", "Sunday  Park Run", "5.55 km", "54:37", "9'50\" /km", listOf("5.55 km"), d, "Running")
     ActivitiesContent(
-        ActivitiesState(false, listOf(ActivityRowUi("1", "R", "Running", "Today", listOf("8.4 km", "46m", "5:28 /km", "151 bpm"), d, "Running")), FooterUi("Updated 1h ago", Freshness.Fresh)),
+        ActivitiesState(false, listOf(row), listOf(MonthUi("Nov", "9.58 km", "3 activities", "2.2 hours", listOf(row))), FooterUi("Updated 1h ago", Freshness.Fresh)),
         onOpenAccount = {},
     )
 }

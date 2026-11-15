@@ -1,5 +1,3 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,25 +5,19 @@ plugins {
 }
 
 // Version lives in gradle.properties (cairn.versionName / cairn.versionCode): one place to bump.
-val localProps = Properties().apply {
-    rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use { load(it) }
-}
-// Optional real release keystore, read from local.properties (never committed):
-//   release.storeFile=/abs/path/cairn-release.jks
-//   release.storePassword=...   release.keyAlias=...   release.keyPassword=...
-val hasReleaseKeystore = listOf("release.storeFile", "release.storePassword", "release.keyAlias", "release.keyPassword")
-    .all { !localProps.getProperty(it).isNullOrBlank() } && file(localProps.getProperty("release.storeFile") ?: "").isFile
-
 android {
     namespace = "app.cairn"
 
     signingConfigs {
-        if (hasReleaseKeystore) {
+        // The release key lives outside the repo; its path and passwords are in ~/.gradle/gradle.properties as
+        // CAIRN_STORE_FILE / CAIRN_STORE_PASSWORD / CAIRN_KEY_ALIAS / CAIRN_KEY_PASSWORD. Never commit them.
+        val storeFile = providers.gradleProperty("CAIRN_STORE_FILE").orNull
+        if (storeFile != null && file(storeFile).exists()) {
             create("release") {
-                storeFile = file(localProps.getProperty("release.storeFile"))
-                storePassword = localProps.getProperty("release.storePassword")
-                keyAlias = localProps.getProperty("release.keyAlias")
-                keyPassword = localProps.getProperty("release.keyPassword")
+                this.storeFile = file(storeFile)
+                storePassword = providers.gradleProperty("CAIRN_STORE_PASSWORD").get()
+                keyAlias = providers.gradleProperty("CAIRN_KEY_ALIAS").get()
+                keyPassword = providers.gradleProperty("CAIRN_KEY_PASSWORD").get()
             }
         }
     }
@@ -38,9 +30,11 @@ android {
 
     buildTypes {
         release {
-            // Falls back to the local debug keystore ONLY when no release keystore is configured, so the
-            // APK can be sideloaded. Such a build is not suitable for distribution.
-            signingConfig = if (hasReleaseKeystore) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+            // Falls back to the debug key ONLY when the release key is not configured; such a build is not for distribution.
+            signingConfig = signingConfigs.findByName("release") ?: run {
+                logger.warn("WARNING: CAIRN_STORE_FILE not set or missing; signing release with the DEBUG key (not for distribution).")
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

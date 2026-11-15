@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import app.cairn.CairnApp
 import app.cairn.core.model.DisplayPrefs
 import app.cairn.core.model.DistanceUnit
+import app.cairn.core.model.WeeklyLoad
 import app.cairn.source.healthconnect.HcAvailability
 import app.cairn.source.healthconnect.syncReadPermissions
 import app.cairn.sync.ManualSync
@@ -47,24 +48,39 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
 
     val state: StateFlow<TodayState> = minuteTicks().flatMapLatest {
         val today = LocalDate.now()
-        combine(
+        val base = combine(
             graph.dailyRepository.observe(today.minusDays(6), today),
             graph.sleepRepository.observe(today.minusDays(7), today),
             graph.recoveryRepository.observe(),
             graph.trainingLoadRepository.observe(today.minusDays(6), today),
             graph.appSettings.display,
-        ) { d, s, r, l, p ->
-            AppMapper.today(d.map { it.value }, s.map { it.value }, r?.value, l.map { it.value }, graph.authState(), Instant.now(), today, p)
+        ) { d, s, r, l, p -> TodayBase(d.map { it.value }, s.map { it.value }, r?.value, l.map { it.value }, p) }
+        val more = combine(
+            graph.vitalsRepository.observe(today.minusDays(6), today),
+            graph.hrvRepository.observe(today.minusDays(1), today),
+            graph.activityRepository.observeRecent(today.minusDays(7), 100),
+            graph.activityDetailRepository.observeAll(),
+            graph.fitnessRepository.observe(),
+        ) { v, h, a, det, f -> TodayExtras(v.map { it.value }, h.map { it.value }, a.map { it.value }, det, f?.value) }
+        combine(base, more) { b, x ->
+            AppMapper.today(b.daily, b.sleeps, b.recovery, b.load, graph.authState(), Instant.now(), today, b.prefs, extras = x)
         }
     }.hot(viewModelScope, TodayState())
 }
+
+private data class TodayBase(
+    val daily: List<app.cairn.core.model.DailySummary>, val sleeps: List<app.cairn.core.model.SleepNight>,
+    val recovery: app.cairn.core.model.Recovery?, val load: List<app.cairn.core.model.TrainingLoadDay>, val prefs: DisplayPrefs,
+)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActivitiesViewModel(app: Application) : AndroidViewModel(app) {
     private val graph = (app as CairnApp).graph
     val state: StateFlow<ActivitiesState> = minuteTicks().flatMapLatest {
         val today = LocalDate.now()
-        combine(graph.activityRepository.observeRecent(today.minusDays(365), 20), graph.appSettings.display) { a, p ->
+        // The current and the previous month, like the COROS "All activities" list.
+        val from = today.withDayOfMonth(1).minusMonths(1)
+        combine(graph.activityRepository.observeRecent(from, 200), graph.appSettings.display) { a, p ->
             AppMapper.activities(a.map { it.value }, graph.authState(), Instant.now(), today, p)
         }
     }.hot(viewModelScope, ActivitiesState())
@@ -75,8 +91,12 @@ class FitnessViewModel(app: Application) : AndroidViewModel(app) {
     private val graph = (app as CairnApp).graph
     val state: StateFlow<FitnessState> = minuteTicks().flatMapLatest {
         val today = LocalDate.now()
-        combine(graph.trainingLoadRepository.observe(today.minusDays(6), today), graph.fitnessRepository.observe(), graph.appSettings.display) { l, f, p ->
-            AppMapper.fitness(l.map { it.value }, f?.value, graph.authState(), Instant.now(), today, p)
+        combine(
+            graph.trainingLoadRepository.observe(today.minusDays(6), today), graph.fitnessRepository.observe(), graph.appSettings.display,
+            graph.activityRepository.observeRecent(today.minusDays(7), 100), graph.activityDetailRepository.observeAll(),
+        ) { l, f, p, a, det ->
+            val week = WeeklyLoad.compute(a.map { it.value }, det, today)
+            AppMapper.fitness(l.map { it.value }, f?.value, graph.authState(), Instant.now(), today, p, weeklyTotal = week.total.takeIf { week.activityCount - week.missing > 0 })
         }
     }.hot(viewModelScope, FitnessState())
 }

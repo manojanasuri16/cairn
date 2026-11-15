@@ -53,7 +53,9 @@ import app.cairn.core.model.DistanceUnit
 import app.cairn.source.healthconnect.HealthConnectReader
 import app.cairn.source.healthconnect.syncReadPermissions
 import app.cairn.BuildConfig
+import app.cairn.DemoFeature
 import app.cairn.ExplorerFeature
+import app.cairn.appdrop.AppDropUpdater
 import app.cairn.sync.NudgeSettings
 import app.cairn.sync.SyncSettings
 import app.cairn.core.designsystem.AppLook
@@ -266,6 +268,8 @@ fun SettingsContent(
             LinkRow("Tools", "Sync diagnostics, data sources, keep data fresh", nav.onTools)
         }
 
+        AboutGroup()
+
         SettingsGroup(AppIcons.Delete, "Your data", "Everything stays on this phone.") {
             OutlinedButton(onClick = onCorosSignOut, enabled = corosSignedIn && !corosBusy, modifier = Modifier.fillMaxWidth()) { Text("Sign out of COROS") }
             OutlinedButton(
@@ -313,7 +317,38 @@ fun ToolsScreen(nav: SettingsNav, modifier: Modifier = Modifier) {
             LinkRow("Keep data fresh", "Open COROS and battery tips", nav.onFreshness)
             LinkRow("COROS account", "Sign in or out", nav.onAccount)
             if (BuildConfig.DEBUG && ExplorerFeature.available) LinkRow("Tool explorer (debug)", "Call COROS tools by hand", nav.onExplorer)
+            if (BuildConfig.DEBUG && DemoFeature.available) DemoRow()
         }
+    }
+}
+
+/** Debug builds only: fictional data for screenshots; sync is paused while on. */
+@Composable
+private fun DemoRow() {
+    val context = LocalContext.current
+    val graph = (context.applicationContext as CairnApp).graph
+    val on by DemoFeature.flow.collectAsStateWithLifecycle()
+    Row(Modifier.fillMaxWidth().padding(vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Column(Modifier.weight(1f)) {
+            Text("Demo mode (debug)", style = MaterialTheme.typography.titleMedium)
+            Text("Fictional data for screenshots. Sync is paused; turning it off clears it.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = on, onCheckedChange = { DemoFeature.set(graph, context.applicationContext, it) })
+    }
+}
+
+/** Version, update check, feedback and a plain statement of what the app sends. */
+@Composable
+private fun AboutGroup() {
+    val context = LocalContext.current
+    val activity = generateSequence(context) { (it as? android.content.ContextWrapper)?.baseContext }.filterIsInstance<android.app.Activity>().firstOrNull()
+    SettingsGroup(AppIcons.Link, "About", "Cairn ${BuildConfig.VERSION_NAME}") {
+        Text(
+            "Cairn contacts the AppDrop store only to check for updates and to send feedback you choose to send. No health data is ever sent.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(onClick = { activity?.let { AppDropUpdater.check(it, force = true) } }, enabled = activity != null, modifier = Modifier.fillMaxWidth()) { Text("Check for updates") }
+        OutlinedButton(onClick = { activity?.let { AppDropUpdater.openFeedback(it) } }, enabled = activity != null, modifier = Modifier.fillMaxWidth()) { Text("Send feedback") }
     }
 }
 

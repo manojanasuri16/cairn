@@ -28,15 +28,15 @@ class WidgetMapperTest {
     private fun stamp(at: Instant, src: DataSource = DataSource.COROS_MCP) = Stamp(src, at)
 
     @Test fun formats() {
-        assertEquals("8h 13m", Fmt.duration(493))
-        assertEquals("45m", Fmt.duration(45))
-        assertEquals("8h", Fmt.duration(480))
-        assertEquals("7.2 km", Fmt.distanceKm(7200.0, us))
-        assertEquals("5:13 /km", Fmt.pace(313))
-        assertEquals("5:05 /km", Fmt.pace(305))
+        assertEquals("8 h 13 min", Fmt.duration(493))
+        assertEquals("45 min", Fmt.duration(45))
+        assertEquals("8 h", Fmt.duration(480))
+        assertEquals("7.20 km", Fmt.distanceKm(7200.0, us))
+        assertEquals("5'13\" /km", Fmt.pace(313))
+        assertEquals("5'05\" /km", Fmt.pace(305))
         assertEquals("8,432", Fmt.steps(8432, us))
         assertEquals("Trail run", Fmt.sport("TRAIL_RUN"))
-        assertEquals("Full in 1d 4h", Fmt.timeToFull(28))
+        assertEquals("28 hrs till full recovery", Fmt.timeToFull(28))
         assertNull(Fmt.timeToFull(0))
     }
 
@@ -65,7 +65,7 @@ class WidgetMapperTest {
         assertEquals("8,432", ui.body.stepsText)
         assertEquals(0.8432f, ui.body.stepsFraction, 0.0001f)
         assertEquals(listOf(MetricId.Sleep, MetricId.RestingHr, MetricId.Recovery, MetricId.Calories, MetricId.Stress), ui.body.metrics.map { it.id })
-        assertEquals("7h 13m · 82", ui.body.metrics[0].value)
+        assertEquals("7 h 13 min · 82", ui.body.metrics[0].value)
         assertEquals(Freshness.Fresh, ui.footer.tier)
         assertTrue(ui.description.contains("8,432 steps"))
         assertTrue(ui.description.contains("Updated 1h ago"))
@@ -100,7 +100,7 @@ class WidgetMapperTest {
         val ui = WidgetMapper.recovery(Recovery(stamp(ago(14)), percent = 64, hoursToFullRecovery = 9), AuthState.Ok, now) as WidgetUi.Content
         assertEquals("64%", ui.body.percentText)
         assertEquals("Recovering", ui.body.level)
-        assertEquals("Full in 9h", ui.body.timeToFull)
+        assertEquals("9 hrs till full recovery", ui.body.timeToFull)
         assertEquals(Freshness.Stale, ui.footer.tier)
         val full = WidgetMapper.recovery(Recovery(stamp(ago(1)), percent = 100, level = "FULLY_RECOVERED"), AuthState.Ok, now) as WidgetUi.Content
         assertEquals("Fully recovered", full.body.level)
@@ -110,7 +110,7 @@ class WidgetMapperTest {
     @Test fun lastActivity() {
         val a = Activity("x1", stamp(ago(2)), today.minusDays(1), "run", durationSec = 2460, distanceMeters = 7200.0, avgPaceSecPerKm = 313, avgHr = 151)
         val ui = WidgetMapper.lastActivity(a, AuthState.Ok, now, today, us) as WidgetUi.Content
-        assertEquals(ActivityUi("Run", "Yesterday", "7.2 km", "41m", "5:13 /km", "151 bpm"), ui.body)
+        assertEquals(ActivityUi("Run", "Yesterday", "7.20 km", "41 min", "5'13\" /km", "151 bpm"), ui.body)
         val bare = WidgetMapper.lastActivity(Activity("x2", stamp(ago(2)), today, "gym"), AuthState.Ok, now, today, us) as WidgetUi.Content
         assertNull(bare.body.distance); assertNull(bare.body.pace); assertNull(bare.body.avgHr)
     }

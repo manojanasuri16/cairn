@@ -4,7 +4,10 @@ import app.cairn.core.model.DisplayPrefs
 import app.cairn.core.model.DistanceUnit
 import app.cairn.data.ActivityRepository
 import app.cairn.data.DailyRepository
+import app.cairn.data.ActivityDetailRepository
 import app.cairn.data.FitnessRepository
+import app.cairn.data.HrvRepository
+import app.cairn.data.VitalsRepository
 import app.cairn.data.TrainingLoadRepository
 import app.cairn.data.RecoveryRepository
 import app.cairn.data.SleepRepository
@@ -27,6 +30,10 @@ class WidgetDataSources(
     val activities: ActivityRepository,
     val trainingLoad: TrainingLoadRepository,
     val fitness: FitnessRepository,
+    /** Newer COROS data (heart rate, HRV, activity details). Null in tests that do not need them. */
+    val vitals: VitalsRepository? = null,
+    val hrv: HrvRepository? = null,
+    val details: ActivityDetailRepository? = null,
     val prefs: suspend () -> DisplayPrefs = { DisplayPrefs() },
     /** Per-widget configuration and the app-wide appearance. Null in tests. */
     val settings: WidgetSettings? = null,
@@ -60,8 +67,11 @@ object WidgetEnvironment {
         }
 
     fun today(unit: DistanceUnit? = null): Flow<WidgetUi<TodayUi>> = build { s, day ->
-        combine(s.daily.observeDay(day), s.sleep.observeLatest(day), s.recovery.observe()) { d, sl, r ->
-            WidgetMapper.today(d?.value, sl?.value, r?.value, s.auth(), Instant.now(), day, prefs = s.prefsWith(unit))
+        combine(
+            combine(s.daily.observeDay(day), s.sleep.observeLatest(day), s.recovery.observe()) { d, sl, r -> Triple(d, sl, r) },
+            s.vitals?.observe(day, day) ?: flowOf(emptyList()),
+        ) { (d, sl, r), v ->
+            WidgetMapper.today(d?.value, sl?.value, r?.value, s.auth(), Instant.now(), day, prefs = s.prefsWith(unit), vitals = v.lastOrNull()?.value)
         }
     }
 
@@ -87,12 +97,20 @@ object WidgetEnvironment {
     fun overview(unit: DistanceUnit? = null): Flow<WidgetUi<OverviewUi>> = build { s, day ->
         val first = combine(s.daily.observeDay(day), s.sleep.observeLatest(day), s.recovery.observe()) { d, sl, r -> Triple(d?.value, sl?.value, r?.value) }
         val second = combine(s.trainingLoad.observe(day.minusDays(14), day), s.fitness.observe(), s.activities.observeRecent(day.minusDays(60), 1)) { l, f, a -> Triple(l.map { it.value }, f?.value, a.firstOrNull()?.value) }
-        combine(first, second) { (d, sl, r), (l, f, a) ->
+        val third = combine(
+            s.vitals?.observe(day, day) ?: flowOf(emptyList()), s.hrv?.observe(day, day) ?: flowOf(emptyList()),
+            s.activities.observeRecent(day.minusDays(7), 100), s.details?.observeAll() ?: flowOf(emptyMap()),
+        ) { v, h, acts, det -> Extras(v.lastOrNull()?.value, h.lastOrNull()?.value, acts.map { it.value }, det) }
+        combine(first, second, third) { (d, sl, r), (l, f, a), x ->
             val prefs = s.prefsWith(unit); val now = Instant.now(); val auth = s.auth()
             OverviewMapper.build(
                 WidgetMapper.today(d, sl, r, auth, now, day, prefs = prefs), WidgetMapper.sleep(sl, auth, now, day, prefs = prefs),
                 WidgetMapper.recovery(r, auth, now, prefs), WidgetMapper.trainingLoad(l, f, null, auth, now, day, prefs = prefs),
                 WidgetMapper.fitness(f, auth, now, prefs), WidgetMapper.lastActivity(a, auth, now, day, prefs = prefs),
+                WidgetMapper.overviewExtras(
+                    x.vitals, x.hrv, if (s.details != null) app.cairn.core.model.WeeklyLoad.compute(x.activities, x.details, day) else null,
+                    (x.details.values.maxOfOrNull { it.stamp.sourceUpdatedAt } ?: x.activities.maxOfOrNull { it.stamp.sourceUpdatedAt }), x.activities.firstOrNull { it.date == day && (it.distanceMeters ?: 0.0) > 0 }, now, day, prefs,
+                ),
             )
         }
     }
@@ -101,3 +119,8 @@ object WidgetEnvironment {
         s.fitness.observe().map { WidgetMapper.fitness(it?.value, s.auth(), Instant.now(), s.prefsWith(unit)) }
     }
 }
+
+private data class Extras(
+    val vitals: app.cairn.core.model.VitalsDay?, val hrv: app.cairn.core.model.HrvDay?,
+    val activities: List<app.cairn.core.model.Activity>, val details: Map<String, app.cairn.core.model.ActivityDetail>,
+)

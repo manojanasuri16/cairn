@@ -100,9 +100,60 @@ interface ActivityDao {
     suspend fun clear()
 }
 
+@Dao
+interface VitalsDao {
+    @Query("SELECT * FROM vitals WHERE date BETWEEN :from AND :to ORDER BY date")
+    fun observeRange(from: String, to: String): Flow<List<VitalsEntity>>
+
+    @Query("SELECT * FROM vitals WHERE date IN (:dates) AND source = :source")
+    suspend fun get(dates: List<String>, source: String): List<VitalsEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(rows: List<VitalsEntity>)
+
+    @Query("DELETE FROM vitals WHERE date < :before")
+    suspend fun deleteBefore(before: String)
+
+    @Query("DELETE FROM vitals")
+    suspend fun clear()
+}
+
+@Dao
+interface HrvDao {
+    @Query("SELECT * FROM hrv WHERE date BETWEEN :from AND :to ORDER BY date")
+    fun observeRange(from: String, to: String): Flow<List<HrvEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(rows: List<HrvEntity>)
+
+    @Query("DELETE FROM hrv WHERE date < :before")
+    suspend fun deleteBefore(before: String)
+
+    @Query("DELETE FROM hrv")
+    suspend fun clear()
+}
+
+@Dao
+interface ActivityDetailDao {
+    @Query("SELECT * FROM activity_detail")
+    fun observeAll(): Flow<List<ActivityDetailEntity>>
+
+    @Query("SELECT id FROM activity_detail")
+    suspend fun ids(): List<String>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(rows: List<ActivityDetailEntity>)
+
+    @Query("DELETE FROM activity_detail")
+    suspend fun clear()
+}
+
 @Database(
-    entities = [DailyEntity::class, SleepEntity::class, RecoveryEntity::class, TrainingLoadEntity::class, FitnessEntity::class, ActivityEntity::class],
-    version = 1,
+    entities = [
+        DailyEntity::class, SleepEntity::class, RecoveryEntity::class, TrainingLoadEntity::class, FitnessEntity::class, ActivityEntity::class,
+        VitalsEntity::class, HrvEntity::class, ActivityDetailEntity::class,
+    ],
+    version = 2,
     exportSchema = true,
 )
 abstract class CairnDatabase : RoomDatabase() {
@@ -112,6 +163,9 @@ abstract class CairnDatabase : RoomDatabase() {
     abstract fun trainingLoad(): TrainingLoadDao
     abstract fun fitness(): FitnessDao
     abstract fun activities(): ActivityDao
+    abstract fun vitals(): VitalsDao
+    abstract fun hrv(): HrvDao
+    abstract fun activityDetails(): ActivityDetailDao
 
     companion object {
         const val NAME = "cairn.db"

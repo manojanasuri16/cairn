@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.cairn.core.model.Activity
+import app.cairn.core.model.ActivityDetail
+import app.cairn.core.model.HrvDay
+import app.cairn.core.model.VitalsDay
 import app.cairn.core.model.DailySummary
 import app.cairn.core.model.DataSource
 import app.cairn.core.model.FitnessSnapshot
@@ -103,5 +106,27 @@ class DatabaseTest {
         db.activities().upsert(listOf(a1.toEntity(), a2.toEntity()))
         assertEquals(listOf(a1), db.activities().observeSince("2030-01-01").first().map { it.toDomain() })
         assertEquals(2, db.activities().observeSince("2020-01-01").first().size)
+    }
+
+    @Test fun newTablesRoundTrip() = runBlocking {
+        val v = VitalsDay(d, mcp, avgHr = 70, minHr = 44, maxHr = 154, restingHr = 51, avgStress = 30)
+        db.vitals().upsert(listOf(v.toEntity()))
+        assertEquals(v, db.vitals().observeRange("2030-01-01", "2030-01-31").first().single().toDomain())
+        val h = HrvDay(d, mcp, 65, "Above normal", 46, 58, 52)
+        db.hrv().upsert(listOf(h.toEntity()))
+        assertEquals(h, db.hrv().observeRange("2030-01-01", "2030-01-31").first().single().toDomain())
+        val det = ActivityDetail("L1", mcp, 112, 3.1, 0.0, "Base")
+        db.activityDetails().upsert(listOf(det.toEntity()))
+        assertEquals(det, db.activityDetails().observeAll().first().single().toDomain())
+        assertEquals(listOf("L1"), db.activityDetails().ids())
+        // Refreshing the activity list must not erase the cached detail.
+        db.activities().upsert(listOf(Activity("L1", mcp, d, "Run").toEntity()))
+        assertEquals(1, db.activityDetails().ids().size)
+    }
+
+    @Test fun fitnessKeepsDecimalRunningLevel() = runBlocking {
+        val f = FitnessSnapshot(mcp, runningLevel = 73.3)
+        db.fitness().upsert(f.toEntity())
+        assertEquals(f, db.fitness().observeAll().first().single().toDomain())
     }
 }

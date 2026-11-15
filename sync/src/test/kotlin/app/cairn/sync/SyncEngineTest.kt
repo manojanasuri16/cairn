@@ -1,5 +1,6 @@
 package app.cairn.sync
 
+import app.cairn.core.model.Activity
 import app.cairn.source.corosmcp.CorosAuthException
 import app.cairn.source.corosmcp.CorosException
 import app.cairn.source.corosmcp.CorosNetworkException
@@ -13,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -30,6 +32,7 @@ class SyncEngineTest {
 
     private fun schema(text: String): JsonObject = Json.parseToJsonElement(text).jsonObject
 
+    private val day0 = java.time.LocalDate.of(2030, 1, 4)
     private val hcSteps = HcInputs(steps = listOf(StepsInput(Instant.parse("2030-01-04T08:00:00Z"), Instant.parse("2030-01-04T09:00:00Z"), 1000, Instant.parse("2030-01-04T09:30:00Z"))))
     private fun exercise(id: String) = ExerciseSessionInput(id, Instant.parse("2030-01-04T07:00:00Z"), Instant.parse("2030-01-04T08:00:00Z"), "Run", Instant.parse("2030-01-04T08:05:00Z"))
 
@@ -37,7 +40,7 @@ class SyncEngineTest {
     private fun settled(nowMs: Long = clock.now.toEpochMilli()) = SyncState(
         lastMcpRunMs = nowMs - Duration.ofHours(1).toMillis(),
         lastMcpDataChangeMs = nowMs - Duration.ofMinutes(30).toMillis(),
-        toolLastRunMs = McpTools.run { listOf(DAILY, RECOVERY, SLEEP, LOAD, FITNESS, SPORT) }.associateWith { nowMs - Duration.ofMinutes(10).toMillis() },
+        toolLastRunMs = McpTools.run { listOf(DAILY, RECOVERY, SLEEP, LOAD, FITNESS, gateKey(SPORT, day0), RESTING_HR, AVG_HR, STRESS, HRV, gateKey(SPORT_PREV, day0)) }.associateWith { nowMs - Duration.ofMinutes(10).toMillis() },
         latestSleepDate = "2030-01-04",
         schemasJson = "{}", schemasFetchedMs = nowMs - Duration.ofMinutes(10).toMillis(),
     )
@@ -136,7 +139,7 @@ class SyncEngineTest {
         store.update {
             settled(now).copy(toolLastRunMs = settled(now).toolLastRunMs + mapOf(
                 McpTools.LOAD to now - Duration.ofHours(7).toMillis(),
-                McpTools.SPORT to now - Duration.ofHours(5).toMillis(),
+                McpTools.gateKey(McpTools.SPORT, day0) to now - Duration.ofHours(5).toMillis(),
                 McpTools.FITNESS to now - Duration.ofHours(25).toMillis(),
             ))
         }
@@ -265,5 +268,86 @@ class SyncEngineTest {
         val r = engine.syncOnce(SyncReason.PERIODIC)
         assertEquals(listOf(McpTools.DAILY), coros.toolNames)
         assertTrue(ErrorType.TOOL_MISSING in r.errors)
+    }
+
+    // ---- COROS card tools ----
+    private val labelled = Activity("L1", app.cairn.core.model.Stamp(app.cairn.core.model.DataSource.COROS_MCP, Instant.parse("2030-01-03T00:00:00Z")),
+        java.time.LocalDate.parse("2030-01-03"), "Outdoor Run", sportType = 100)
+
+    @Test fun vitalsAndHrvAreFetchedAtMostEveryThreeHours() = runTest {
+        // Never run before: they join the plan after the older tools (budget is 4 calls).
+        store.update { settled().copy(toolLastRunMs = emptyMap(), latestSleepDate = "2030-01-04") }
+        engine.syncOnce(SyncReason.PERIODIC)
+        assertTrue(coros.toolNames.size <= 4)
+        val first = coros.toolNames.toSet()
+        // Keep running (gap respected) until all four 7-day summaries have been fetched once.
+        repeat(6) { clock.advance(Duration.ofMinutes(26)); engine.syncOnce(SyncReason.PERIODIC) }
+        for (t in listOf(McpTools.RESTING_HR, McpTools.AVG_HR, McpTools.STRESS, McpTools.HRV)) assertTrue(t, t in coros.toolNames)
+        assertTrue(writer.vitals.any { it.restingHr == 49 } && writer.vitals.any { it.avgHr == 70 } && writer.vitals.any { it.avgStress == 30 })
+        assertEquals(61, writer.hrv.single().avgMs)
+        // Within three hours of the last fetch none is repeated.
+        val before = coros.toolNames.count { it == McpTools.HRV }
+        clock.advance(Duration.ofMinutes(26)); engine.syncOnce(SyncReason.PERIODIC)
+        assertEquals(before, coros.toolNames.count { it == McpTools.HRV })
+        assertTrue(first.isNotEmpty())
+    }
+
+    @Test fun activityDetailIsFetchedOnlyForNewActivitiesAndOncePerActivity() = runTest {
+        store.update { settled() }
+        writer.needDetail = listOf(labelled)
+        engine.syncOnce(SyncReason.PERIODIC)
+        val call = coros.calls.single { it.first == McpTools.DETAIL }
+        assertEquals("L1", call.second["labelId"]!!.jsonPrimitive.content)
+        assertEquals(100, call.second["sportType"]!!.jsonPrimitive.content.toInt())
+        assertEquals(87, writer.details.single().trainingLoad)
+        coros.reset(); clock.advance(Duration.ofMinutes(26))
+        engine.syncOnce(SyncReason.PERIODIC)
+        assertFalse(McpTools.DETAIL in coros.toolNames)
+    }
+
+    @Test fun detailsPerRunAreCappedAndDailyCapStillApplies() = runTest {
+        store.update { settled() }
+        writer.needDetail = (1..5).map { labelled.copy(id = "L$it") }
+        val r = engine.syncOnce(SyncReason.PERIODIC)
+        assertTrue(r.mcpCalls.size <= McpPlanner.MAX_CALLS_PER_RUN)
+        assertEquals(McpPlanner.MAX_DETAILS_PER_RUN, coros.toolNames.count { it == McpTools.DETAIL })
+        store.update { it.copy(mcpCallsDay = "2030-01-04", mcpCallsToday = McpPlanner.DAILY_CAP) }
+        coros.reset(); clock.advance(Duration.ofMinutes(26))
+        engine.syncOnce(SyncReason.PERIODIC)
+        assertTrue(coros.calls.isEmpty())
+    }
+
+    @Test fun sportRecordsCoverTheCurrentAndPreviousMonth() {
+        assertEquals(java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.parse("2029-12-01"), java.time.LocalDate.parse("2030-01-04")).toInt() + 1,
+            SyncEngine.sportDays(java.time.LocalDate.parse("2030-01-04")))
+        assertEquals(32, SyncEngine.sportDays(java.time.LocalDate.parse("2030-02-01")))
+    }
+
+    @Test fun previousMonthIsItsOwnWindowedCall() = runTest {
+        store.update { settled().copy(toolLastRunMs = settled().toolLastRunMs - McpTools.gateKey(McpTools.SPORT_PREV, day0), schemasJson = null) }
+        coros.schemas = mapOf(McpTools.SPORT to schema("""{"properties":{"startDate":{"type":"string","description":"yyyyMMdd"},"endDate":{"type":"string","description":"yyyyMMdd"},"limit":{"type":"integer"}}}"""))
+        engine.syncOnce(SyncReason.PERIODIC)
+        val call = coros.calls.single { it.first == McpTools.SPORT }.second
+        // Clock is 2030-01-04: the window is December 2029.
+        assertEquals("20291201", call["startDate"]!!.jsonPrimitive.content)
+        assertEquals("20291231", call["endDate"]!!.jsonPrimitive.content)
+        assertEquals(100, call["limit"]!!.jsonPrimitive.content.toInt())
+        assertTrue(McpTools.gateKey(McpTools.SPORT_PREV, day0) in store.get().toolLastRunMs)
+    }
+
+    @Test fun userRunIssuesBothSportWindowsEvenAfterANarrowerRecentCall() = runTest {
+        val nowMs = clock.now.toEpochMilli()
+        // An earlier call 5 minutes ago ran with a different (narrow) window, so its key does not match today's windows.
+        val old = "${McpTools.SPORT}@2030-01-01..2030-01-04-narrow"
+        store.update { settled().copy(toolLastRunMs = settled().toolLastRunMs + (old to nowMs - 300_000) - McpTools.gateKey(McpTools.SPORT, day0) - McpTools.gateKey(McpTools.SPORT_PREV, day0)) }
+        val plan = McpPlanner.plan(store.get(), clock.now, ZoneOffset.UTC, newExercise = false, reason = SyncReason.PERIODIC)
+        assertTrue(McpTools.SPORT in plan.tools && McpTools.SPORT_PREV in plan.tools)
+        // Even with fresh keys, a user-requested run re-reads the lists and may use up to 8 calls.
+        val fresh = settled()
+        val periodic = McpPlanner.plan(fresh, clock.now, ZoneOffset.UTC, false, SyncReason.PERIODIC)
+        assertFalse(McpTools.SPORT in periodic.tools)
+        val user = McpPlanner.plan(fresh, clock.now, ZoneOffset.UTC, false, SyncReason.USER)
+        for (t in listOf(McpTools.SPORT, McpTools.SPORT_PREV, McpTools.RESTING_HR, McpTools.AVG_HR, McpTools.STRESS, McpTools.HRV)) assertTrue(t, t in user.tools)
+        assertTrue(user.tools.size + (if (user.refreshSchemas) 1 else 0) <= McpPlanner.MAX_CALLS_USER_RUN)
     }
 }

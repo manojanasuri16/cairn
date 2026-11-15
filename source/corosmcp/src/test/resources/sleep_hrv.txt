@@ -1,0 +1,22 @@
+Sleep HRV — 2030-01-03 to 2030-01-09
+========================
+Note: dates are wake-up days.
+
+HRV Assessment — Last 7 days
+========================
+
+2030-01-09:
+  HRV Avg: 61 ms — Above normal
+  Normal Range: 44 - 57 ms
+  Baseline: 50 ms
+2030-01-08:
+  HRV Avg: 52 ms — Normal
+  Normal Range: 44 - 57 ms
+  Baseline: 50 ms
+
+Sleep HRV Time Series — Last 7 days
+========================
+
+2030-01-09:
+  timestamp=<id>, timezone=22, hrv=39 ms, status=4, confidence=100000
+  timestamp=<id>, timezone=22, hrv=51 ms, status=4, confidence=96666

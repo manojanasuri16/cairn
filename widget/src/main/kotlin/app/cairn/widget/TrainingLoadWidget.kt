@@ -71,7 +71,7 @@ private fun ChartStyle(b: TrainingLoadUi, plan: Layouts.Plan, color: Int, commen
         val chartW = (w - 2 * plan.pad - left - 12f).coerceAtLeast(60f)
         Row(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             Column(GlanceModifier.width(left.dp), verticalAlignment = Alignment.CenterVertically) {
-                Sub("Load ratio", 11f)
+                Sub("Intensity Trend", 11f)
                 Txt(b.ratioText, plan.heroSp, FontWeight.Bold, hero = true)
                 comment?.let { Spacer(GlanceModifier.height(2.dp)); Pill(it, color) }
                 vo2?.let { Spacer(GlanceModifier.height(4.dp)); Sub(it, 11f, maxLines = 2) }
@@ -102,7 +102,7 @@ private fun DialStyle(b: TrainingLoadUi, plan: Layouts.Plan, color: Int, comment
             Image(ImageProvider(bmp), contentDescription = null, modifier = GlanceModifier.size(size))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Txt(b.ratioText, plan.heroSp, FontWeight.Bold, hero = true)
-                if (plan.heroDp >= 88) Sub("ratio", 10f)
+                if (plan.heroDp >= 88) Sub("trend", 10f)
             }
         }
     }
@@ -113,7 +113,7 @@ private fun DialStyle(b: TrainingLoadUi, plan: Layouts.Plan, color: Int, comment
             Column(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
                 comment?.let { Pill(it, color); Spacer(GlanceModifier.height(4.dp)) }
                 vo2?.let { Sub(it, 12f, maxLines = 2) }
-                if (comment == null && vo2 == null) Sub("Load ratio", 12f)
+                if (comment == null && vo2 == null) Sub("Intensity Trend", 12f)
             }
         }
     } else {

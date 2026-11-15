@@ -18,10 +18,10 @@ class UnitsTest {
     private val today = LocalDate.parse("2030-03-15")
 
     @Test fun milesFormatting() {
-        assertEquals("5.0 mi", Fmt.distance(8046.72, DistanceUnit.Mi, Locale.US))
-        assertEquals("7.2 km", Fmt.distance(7200.0, DistanceUnit.Km, Locale.US))
-        assertEquals("8:24 /mi", Fmt.pace(313, DistanceUnit.Mi))
-        assertEquals("5:13 /km", Fmt.pace(313))
+        assertEquals("5.00 mi", Fmt.distance(8046.72, DistanceUnit.Mi, Locale.US))
+        assertEquals("7.20 km", Fmt.distance(7200.0, DistanceUnit.Km, Locale.US))
+        assertEquals("8'24\" /mi", Fmt.pace(313, DistanceUnit.Mi))
+        assertEquals("5'13\" /km", Fmt.pace(313))
         assertEquals("1:52:03", Fmt.raceTime(6723))
         assertEquals("24:10", Fmt.raceTime(1450))
     }
@@ -29,8 +29,8 @@ class UnitsTest {
     @Test fun lastActivityRespectsUnit() {
         val a = Activity("x", Stamp(DataSource.COROS_MCP, now.minusSeconds(60)), today, "run", distanceMeters = 8046.72, avgPaceSecPerKm = 313)
         val ui = WidgetMapper.lastActivity(a, AuthState.Ok, now, today, Locale.US, DisplayPrefs(DistanceUnit.Mi)) as WidgetUi.Content
-        assertEquals("5.0 mi", ui.body.distance)
-        assertEquals("8:24 /mi", ui.body.pace)
+        assertEquals("5.00 mi", ui.body.distance)
+        assertEquals("8'24\" /mi", ui.body.pace)
     }
 
     @Test fun footerUsesConfiguredThresholds() {

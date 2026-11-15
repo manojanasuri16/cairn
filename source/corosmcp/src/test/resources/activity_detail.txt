@@ -1,0 +1,12 @@
+🏃 Outdoor Run Activity Details
+========================================
+
+Workout Time: 31:10
+Distance: 4.20 km
+Average Pace: 7:25 /km
+Average Heart Rate: 148 bpm
+Calories: 410 kcal
+Training Load: 87
+Aerobic TE: 2.8
+Anaerobic TE: 0.1
+Training Focus: Base

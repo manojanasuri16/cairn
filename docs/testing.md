@@ -60,7 +60,7 @@ Widgets (Today, Recovery, Last activity, Training load, Sleep, Fitness):
 - [ ] Sign-in expiry: revoke access on COROS, sync; widgets show "Sign in again" and a tap opens Cairn account.
 - [ ] Offline (airplane mode): widgets keep last data and age grows; no crash; recovers when online.
 - [ ] Health Connect denied: revoke permissions; app and widgets show an explanation, not blank or crash.
-- [ ] Units: switch km/mi in Settings; distance and pace update in app and widgets. Load ratio shows two decimals everywhere (for example 0.47).
+- [ ] Units: switch km/mi in Settings; distance and pace update in app and widgets. Intensity Trend shows as a percent everywhere (0.47 is 47%); pace as 9'50" /km, distance with two decimals, durations as 6 h 47 min.
 - [ ] Tap targets: body tap opens the chosen COROS screen or Cairn; footer is at least ~32dp tall; both reachable with a thumb.
 - [ ] Light, dark, dynamic colour; launcher with different grid sizes.
 

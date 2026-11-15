@@ -5,12 +5,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import app.cairn.appdrop.AppDropUpdater
 import app.cairn.ui.CairnRoot
 import app.cairn.widget.EXTRA_COROS_MISSING
 import app.cairn.widget.EXTRA_SCREEN
 
 class MainActivity : ComponentActivity() {
     private val coros: CorosViewModel by viewModels()
+
+    override fun onResume() { super.onResume(); AppDropUpdater.check(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

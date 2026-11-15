@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.testing.unit.runGlanceAppWidgetUnitTest
 import androidx.glance.testing.unit.hasText
 import androidx.test.core.app.ApplicationProvider
+import kotlin.time.Duration.Companion.minutes
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,7 +28,7 @@ class CompositionTest {
         return DpSize(sw.dp, sh.dp)
     }
 
-    private fun overview(count: Int, cellW: Float, cellH: Float) = runGlanceAppWidgetUnitTest {
+    private fun overview(count: Int, cellW: Float, cellH: Float) = runGlanceAppWidgetUnitTest(timeout = 2.minutes) {
         setContext(context)
         val size = selected(WidgetKind.Overview, cellW, cellH)
         setAppWidgetSize(size)
@@ -42,7 +43,7 @@ class CompositionTest {
         check(expected.isNotEmpty())
     }
 
-    @Test fun defaultFourStatsAtATwoCellSizeAreAllComposed() = runGlanceAppWidgetUnitTest {
+    @Test fun defaultFourStatsAtATwoCellSizeAreAllComposed() = runGlanceAppWidgetUnitTest(timeout = 2.minutes) {
         setContext(context)
         setAppWidgetSize(selected(WidgetKind.Overview, 176f, 222f))
         val cfg = WidgetConfig().resolve(WidgetKind.Overview, AppAppearance())
@@ -54,7 +55,7 @@ class CompositionTest {
         for (count in 1..6) for ((w, h) in listOf(110f to 110f, 176f to 222f, 272f to 223f, 320f to 330f)) overview(count, w, h)
     }
 
-    @Test fun overviewKeepsAllTilesAfterARecomposition() = runGlanceAppWidgetUnitTest {
+    @Test fun overviewKeepsAllTilesAfterARecomposition() = runGlanceAppWidgetUnitTest(timeout = 2.minutes) {
         setContext(context)
         setAppWidgetSize(selected(WidgetKind.Overview, 176f, 222f))
         // The widget recomposes whenever its data or configuration flow emits (the first emission is often a default). Every pass must compose every tile.

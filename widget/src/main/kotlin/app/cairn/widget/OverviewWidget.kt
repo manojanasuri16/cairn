@@ -74,20 +74,23 @@ fun metricAccent(p: Palette, item: OverviewItem): Int = when (item.id) {
     OverviewId.Stress -> p.cool
     OverviewId.LoadRatio -> p.load(item.level)
     OverviewId.Vo2 -> p.stageLight
-    OverviewId.LastDistance -> p.accent
+    OverviewId.LastDistance, OverviewId.TodayRun -> p.accent
+    OverviewId.HeartRate -> p.stageRem
+    OverviewId.Hrv -> p.good
+    OverviewId.WeeklyLoad -> p.warn
 }
 
 /** The same colour at 4.5:1 for small header text. */
 fun metricTitleColor(p: Palette, item: OverviewItem): Int = Contrast.ensure(metricAccent(p, item), p.textStops + p.tile, 4.5)
 
 fun metricIconFor(id: OverviewId): Int = when (id) {
-    OverviewId.Steps, OverviewId.LastDistance -> R.drawable.ic_w_steps
+    OverviewId.Steps, OverviewId.LastDistance, OverviewId.TodayRun -> R.drawable.ic_w_steps
     OverviewId.Sleep, OverviewId.SleepScore -> R.drawable.ic_w_sleep
     OverviewId.Recovery -> R.drawable.ic_w_bolt
-    OverviewId.RestingHr -> R.drawable.ic_w_heart
+    OverviewId.RestingHr, OverviewId.HeartRate, OverviewId.Hrv -> R.drawable.ic_w_heart
     OverviewId.Calories -> R.drawable.ic_w_flame
     OverviewId.Stress -> R.drawable.ic_w_stress
-    OverviewId.LoadRatio, OverviewId.Vo2 -> R.drawable.ic_w_chart
+    OverviewId.LoadRatio, OverviewId.Vo2, OverviewId.WeeklyLoad -> R.drawable.ic_w_chart
 }
 
 @Composable

@@ -1,0 +1,5 @@
+Average Heart Rate — Last 7 days
+========================
+
+2030-01-09: 72 bpm (Min: 41, Max: 150)
+2030-01-08: 66 bpm (Min: 44)
