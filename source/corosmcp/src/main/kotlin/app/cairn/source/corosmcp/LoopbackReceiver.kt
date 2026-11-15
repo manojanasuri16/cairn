@@ -30,7 +30,7 @@ class LoopbackReceiver private constructor(private val server: ServerSocket) : A
                         "Content-Length: ${html.length}\r\nConnection: close\r\n\r\n$html"
                     s.getOutputStream().apply { write(out.toByteArray()); flush() }
                     if (params != null) {
-                        params["error"]?.let { throw CorosException("Authorization failed: $it") }
+                        params["error"]?.let { throw AuthorizationException(it) }
                         if (params["state"] != expectedState) throw CorosException("State mismatch")
                         return@withContext params["code"] ?: throw CorosException("No authorization code returned")
                     }

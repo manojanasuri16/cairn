@@ -16,9 +16,14 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import app.cairn.source.corosmcp.RegionPolicy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -34,13 +39,23 @@ fun CorosAccountScreen(vm: CorosViewModel, modifier: Modifier = Modifier) {
     ) {
         Text(s.status, style = MaterialTheme.typography.titleMedium)
         s.deviceCode?.let { Text("Code: $it", style = MaterialTheme.typography.headlineSmall) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Region.entries.forEach { r ->
-                FilterChip(selected = s.region == r, enabled = !s.signedIn && !s.busy, onClick = { vm.setRegion(r) }, label = { Text(r.label) })
+        var advanced by rememberSaveable { mutableStateOf(false) }
+        if (!s.signedIn) {
+            TextButton(onClick = { advanced = !advanced }) { Text(if (advanced) "Advanced (hide)" else "Advanced") }
+            if (advanced) {
+                Text("Force a region (no automatic fallback)", style = MaterialTheme.typography.bodySmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Region.entries.forEach { r ->
+                        FilterChip(selected = s.region == r, enabled = !s.busy, onClick = { vm.setRegion(r) }, label = { Text(r.label) })
+                    }
+                }
             }
         }
         if (!s.signedIn) {
-            Button(onClick = { vm.signIn(context) }, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("Sign in") }
+            Button(onClick = { vm.signIn(context, forced = advanced) }, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("Sign in") }
+            if (s.failedRegion != null && !s.busy && RegionPolicy.next(s.failedRegion!!) != null) {
+                OutlinedButton(onClick = { vm.tryAnotherRegion(context) }, modifier = Modifier.fillMaxWidth()) { Text("Try another region") }
+            }
             OutlinedButton(onClick = { vm.signInDeviceCode(context) }, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("Sign in with device code") }
         } else {
             OutlinedButton(onClick = vm::signOut, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }

@@ -15,6 +15,7 @@ import app.cairn.source.corosmcp.McpClient
 import app.cairn.source.corosmcp.OAuthClient
 import app.cairn.source.corosmcp.Redactor
 import app.cairn.source.corosmcp.Region
+import app.cairn.source.corosmcp.RegionPolicy
 import app.cairn.source.corosmcp.Shape
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -27,6 +28,7 @@ import okhttp3.OkHttpClient
 
 data class CorosUiState(
     val region: Region = Region.US,
+    val failedRegion: Region? = null, // set after a failed sign-in; enables "Try another region"
     val signedIn: Boolean = false,
     val busy: Boolean = false,
     val status: String = "Not signed in",
@@ -54,7 +56,17 @@ class CorosViewModel(app: Application) : AndroidViewModel(app) {
     /** Last raw result is held in memory only, for the redacted copy action; cleared on sign-out. */
     private var lastRaw: kotlinx.serialization.json.JsonObject? = null
 
-    private val _state = MutableStateFlow(CorosUiState(signedIn = oauth.isSignedIn(), status = if (oauth.isSignedIn()) "Signed in" else "Not signed in"))
+    // Region is not secret; kept in a plain app-private file next to (not inside) the token blob.
+    private val regionFile = File(app.filesDir, "datastore/coros_region.txt")
+    private fun cachedRegion(): Region? = runCatching { Region.valueOf(regionFile.readText().trim()) }.getOrNull()
+    private fun cacheRegion(r: Region) { runCatching { regionFile.parentFile?.mkdirs(); regionFile.writeText(r.name) } }
+    private fun statusSignedIn(r: Region) = "Signed in (${r.label})"
+
+    private val _state = run {
+        val signed = oauth.isSignedIn()
+        val r = RegionPolicy.start(cachedRegion())
+        MutableStateFlow(CorosUiState(region = r, signedIn = signed, status = if (signed) statusSignedIn(r) else "Not signed in"))
+    }
     val state: StateFlow<CorosUiState> = _state
 
     fun setRegion(r: Region) = _state.update { it.copy(region = r) }
@@ -73,19 +85,49 @@ class CorosViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun signIn(context: Context) = run("Opening COROS sign-in") {
-        mcp = null
-        val region = _state.value.region
+    /**
+     * Region choice: start at the cached region (else US). If the callback returns an error code that
+     * clearly means "account not on this server" (RegionPolicy.isWrongRegion) we advance US -> EU -> CN
+     * automatically. Any other failure (cancel, timeout, network, loopback) stops and is shown, with a
+     * "Try another region" action that moves to the next region. [forced] (Advanced chips) skips fallback.
+     */
+    fun signIn(context: Context, start: Region = _state.value.region, forced: Boolean = false) = run("Opening COROS sign-in") {
+        var region = start
+        while (true) {
+            mcp = null
+            _state.update { it.copy(region = region, failedRegion = null) }
+            try {
+                attempt(context, region)
+                cacheRegion(region)
+                _state.update { it.copy(signedIn = true, failedRegion = null, status = statusSignedIn(region)) }
+                return@run
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                val next = RegionPolicy.next(region)
+                if (!forced && next != null && RegionPolicy.isWrongRegion(e)) { region = next; continue }
+                _state.update { it.copy(failedRegion = region) }
+                throw e
+            }
+        }
+    }
+
+    /** User-initiated: continue with the region after the one that just failed. */
+    fun tryAnotherRegion(context: Context) {
+        val failed = _state.value.failedRegion ?: return
+        val next = RegionPolicy.next(failed)
+        if (next == null) _state.update { it.copy(status = "No more regions to try") } else signIn(context, next)
+    }
+
+    private suspend fun attempt(context: Context, region: Region) {
         LoopbackReceiver.open().use { rx ->
             val pending = oauth.beginAuthorization(region, rx.redirectUri)
             CustomTabsIntent.Builder().build().apply {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }.launchUrl(context, Uri.parse(pending.authorizeUrl))
-            _state.update { it.copy(status = "Waiting for sign-in in browser") }
+            _state.update { it.copy(status = "Waiting for sign-in in browser (${region.label})") }
             val code = rx.awaitCode(pending.state)
             oauth.completeAuthorization(pending, code)
         }
-        _state.update { it.copy(signedIn = true, status = "Signed in") }
     }
 
     fun signInDeviceCode(context: Context) = run("Starting device sign-in") {
@@ -95,7 +137,8 @@ class CorosViewModel(app: Application) : AndroidViewModel(app) {
         CustomTabsIntent.Builder().build().apply { intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
             .launchUrl(context, Uri.parse(resp.verificationUriComplete ?: resp.verificationUri))
         flow.awaitApproval()
-        _state.update { it.copy(signedIn = true, deviceCode = null, status = "Signed in") }
+        cacheRegion(_state.value.region)
+        _state.update { it.copy(signedIn = true, deviceCode = null, status = statusSignedIn(it.region)) }
     }
 
     fun signOut() = run("Signing out") {
