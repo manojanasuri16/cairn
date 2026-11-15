@@ -63,11 +63,13 @@ abstract class CairnWidget<T>(val kind: WidgetKind) : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
+        WidgetLog.options(context, appWidgetId, "provide $kind")
         provideContent {
             val settings = WidgetEnvironment.settings
             val stored by remember { settings?.config(appWidgetId, kind) ?: flowOf(WidgetConfig()) }.collectAsState(WidgetConfig())
             val app by remember { settings?.appearance ?: flowOf(AppAppearance()) }.collectAsState(AppAppearance())
             val cfg = stored.resolve(kind, app)
+            WidgetLog.d("provide kind=$kind id=$appWidgetId declaredSizes=${WidgetSizes.byKind[kind]} stored=[style=${stored.style} theme=${stored.theme} metrics=${stored.metrics?.map { it.name }}] resolved=[style=${cfg.style} theme=${cfg.theme} metrics=${cfg.metrics.map { it.name }} hidden=${cfg.hidden.map { it.name }}]")
             val unit = when (cfg.units) { UnitsPref.Km -> DistanceUnit.Km; UnitsPref.Mi -> DistanceUnit.Mi; UnitsPref.Inherit -> null }
             val ui by remember(unit) { flow(unit) }.collectAsState(WidgetUi.Loading)
             Render(ui, cfg)
@@ -121,7 +123,10 @@ object WidgetCatalog {
     /** The widget exactly as the launcher will draw it, built from synthetic data; used for the live preview. */
     suspend fun previewViews(context: Context, kind: WidgetKind, cfg: ResolvedConfig, size: DpSize = previewSize(kind)): RemoteViews {
         val w = widget(kind)
-        return GlanceRemoteViews().compose(context, size) { w.RenderSample(cfg) }.remoteViews
+        // Compose at the size the launcher would select for this cell (the largest listed size that fits), so the preview and the
+        // placed widget apply the same layout rules; the frame then stretches it over the full cell.
+        val (pw, ph) = WidgetSizes.pick(WidgetSizes.byKind.getValue(kind), size.width.value, size.height.value)
+        return GlanceRemoteViews().compose(context, DpSize(pw.dp, ph.dp)) { w.RenderSample(cfg) }.remoteViews
     }
 }
 

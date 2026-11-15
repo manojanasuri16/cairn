@@ -47,7 +47,8 @@ class OverviewWidget : CairnWidget<OverviewUi>(WidgetKind.Overview) {
         val innerH = Layouts.availDp(w, h, LocalFontScale)
         val chosen = cfg.metrics
         val op = OverviewLayout.plan(chosen.size, inner, innerH)
-        val tiles = chosen.take(op.shown).map { id -> ui.body.find(id) ?: OverviewItem(id, "–") }
+        val tiles = OverviewLayout.firstN(chosen, op.shown).map { id -> ui.body.find(id) ?: OverviewItem(id, "–") }
+        WidgetLog.d("overview LocalSize=${w}x$h dp inner=${inner}x$innerH chosen=${chosen.map { it.name }} plan[shown=${op.shown} pattern=${op.pattern} cols=${op.cols} rows=${op.rows} tile=${op.tileW}x${op.tileH}] emitting=${tiles.size} tiles=${tiles.map { it.id.name }} available=${ui.body.items.map { it.id.name }}")
         Framed(ui, kind, plan) { Grid(tiles, op, cfg.shows(Part.Rings)) }
     }
 }
@@ -107,14 +108,15 @@ private fun Grid(tiles: List<OverviewItem>, plan: OverviewPlan, rings: Boolean) 
             }
         }
         OverviewPattern.Grid -> {
-            var idx = 0
+            // Row slices are computed up front: nothing is mutated inside the composable lambdas, so a recomposition can never skip cells.
+            val perRow = FitMath.rows(tiles.size, plan.cols)
+            val starts = perRow.runningFold(0) { acc, n -> acc + n }
             Column(GlanceModifier.fillMaxSize()) {
-                FitMath.rows(tiles.size, plan.cols).forEachIndexed { r, n ->
+                perRow.forEachIndexed { r, n ->
                     if (r > 0) Spacer(GlanceModifier.height(g))
-                    val start = idx; idx += n
                     Row(GlanceModifier.defaultWeight().fillMaxWidth()) {
-                        for (i in start until start + n) {
-                            if (i > start) Spacer(GlanceModifier.width(g))
+                        for (i in starts[r] until starts[r] + n) {
+                            if (i > starts[r]) Spacer(GlanceModifier.width(g))
                             tile(i, GlanceModifier.defaultWeight().fillMaxSize())
                         }
                     }
@@ -142,13 +144,14 @@ private fun Tile(item: OverviewItem, plan: OverviewPlan, rings: Boolean, modifie
         modifier.background(cp(subtleTint(p))).cornerRadius(16.dp).padding(pad.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(GlanceModifier.defaultWeight().fillMaxSize()) {
+        // Header directly above the value, the pair centred in the tile: no stretched gap between them.
+        Column(GlanceModifier.defaultWeight().fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(metricIconFor(item.id), 12.dp, accent)
                 Spacer(GlanceModifier.width(4.dp))
                 Txt(item.id.label, 10f, FontWeight.Medium, title, maxLines = 1)
             }
-            Spacer(GlanceModifier.defaultWeight())
+            Spacer(GlanceModifier.height(4.dp))
             Row(verticalAlignment = Alignment.Bottom) {
                 Txt(item.number, sp, FontWeight.Bold, hero = true)
                 if (item.unit.isNotEmpty()) { Spacer(GlanceModifier.width(2.dp)); Txt(item.unit, unitSp, FontWeight.Normal, p.inkSub) }

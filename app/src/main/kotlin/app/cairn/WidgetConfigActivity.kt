@@ -109,8 +109,10 @@ class WidgetConfigActivity : ComponentActivity() {
                     graph, kind, id,
                     onDone = { cfg ->
                         lifecycleScope.launch {
-                            graph.appSettings.widgetSettings.save(id, cfg)
+                            app.cairn.widget.WidgetLog.d("config Done kind=$kind id=$id fromPin=${intent?.getBooleanExtra(app.cairn.widget.EXTRA_FROM_PIN, false)} saving metrics=${cfg.metrics?.map { it.name }} style=${cfg.style} theme=${cfg.theme}")
+            graph.appSettings.widgetSettings.save(id, cfg)
                             // Redraw this widget right away (its saved choices are already written), then any others of the kind.
+                            app.cairn.widget.WidgetLog.d("config updateOne id=$id then update(kind=$kind)")
                             runCatching { WidgetCatalog.updateOne(applicationContext, kind, id) }
                             runCatching { GlanceWidgetUpdater(applicationContext).update(kind) }
                             setResult(RESULT_OK, result)
@@ -129,7 +131,10 @@ class WidgetConfigActivity : ComponentActivity() {
 private fun ConfigScreen(graph: AppGraph, kind: WidgetKind, id: Int, onDone: (WidgetConfig) -> Unit, onCancel: () -> Unit) {
     val settings = graph.appSettings.widgetSettings
     var loaded by remember { mutableStateOf<WidgetConfig?>(null) }
-    LaunchedEffect(id) { loaded = settings.configNow(id, kind) }
+    LaunchedEffect(id) {
+        loaded = settings.configNow(id, kind)
+        app.cairn.widget.WidgetLog.d("config loaded kind=$kind id=$id key=wcfg_$id metrics=${loaded?.metrics?.map { it.name }} style=${loaded?.style}")
+    }
     val app by settings.appearance.collectAsStateWithLifecycle(initialValue = AppAppearance())
     val tapTarget by graph.appSettings.tapTarget(kind).collectAsStateWithLifecycle(initialValue = TapTarget.CorosHome)
     val scope = rememberCoroutineScope()

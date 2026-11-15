@@ -102,4 +102,52 @@ class OverviewLayoutTest {
         assertTrue(!ConfigLaunch.shouldLaunch(42, alreadyShown = true))
         assertTrue(!ConfigLaunch.shouldLaunch(android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID, alreadyShown = false))
     }
+
+    private val sizes = WidgetSizes.byKind.getValue(WidgetKind.Overview)
+
+    @Test fun fourStatsAtATwoCellSizeFormATwoByTwo() {
+        val p = OverviewLayout.planForCell(4, 175f, 222f, 1f, sizes)
+        assertEquals(4, p.shown); assertEquals(OverviewPattern.Grid, p.pattern); assertEquals(2, p.cols); assertEquals(2, p.rows)
+        assertTrue("tiles roughly square ${p.tileW}x${p.tileH}", p.tileW / p.tileH in 0.6f..1.4f)
+    }
+
+    @Test fun sixStatsAtAFourByTwoSizeFormAThreeByTwo() {
+        val p = OverviewLayout.planForCell(6, 272f, 223f, 1f, sizes)
+        assertEquals(6, p.shown); assertEquals(3, p.cols); assertEquals(2, p.rows)
+    }
+
+    @Test fun fewerStatsFitInOrderNeverSkippingTheMiddle() {
+        val chosen = listOf(OverviewId.Steps, OverviewId.Sleep, OverviewId.Recovery, OverviewId.RestingHr, OverviewId.Calories, OverviewId.Stress)
+        for (n in 1..6) for ((w, h) in listOf(110f to 110f, 175f to 222f, 272f to 120f, 272f to 223f, 330f to 330f)) {
+            val p = OverviewLayout.planForCell(n, w, h, 1f, sizes)
+            assertEquals("$n ${w}x$h", chosen.take(n).take(p.shown), OverviewLayout.firstN(chosen.take(n), p.shown))
+            assertTrue(p.shown in 1..n)
+        }
+    }
+
+    @Test fun tilesAreAsTallAsTheirContentPlusPaddingNotStretched() {
+        // The grid fills the box exactly, and every tile is sized so its header, gap and value fit with padding: no dead band.
+        for (n in 1..6) for ((w, h) in listOf(175f to 222f, 272f to 223f, 330f to 330f)) {
+            val p = OverviewLayout.planForCell(n, w, h, 1f, sizes)
+            if (p.shown == 1) continue
+            val (sp, _) = OverviewLayout.valueSizes("8,432", "steps", p.tileW, p.tileH, 1f)
+            val content = 12f * 1.2f + 4f + sp * 1.2f
+            assertTrue("$n ${w}x$h tile ${p.tileH} cannot hold $content", p.tileH >= content + 2 * OverviewLayout.PAD - 0.5f)
+            // The number grows with the tile, so a taller tile is filled by a bigger number, not by empty space.
+            assertTrue(sp >= 14f)
+        }
+        assertTrue(OverviewLayout.valueSizes("82", "%", 120f, 120f, 1f).first > OverviewLayout.valueSizes("82", "%", 120f, 60f, 1f).first)
+    }
+
+    @Test fun typicalLauncherReportedSizesShowTheDefaultFour() {
+        // Launchers report a widget a little under its cell: a 2x2 as about 146-176 x 180-223 dp, a 4x2 as about 272-320 x 110-146.
+        for (w in listOf(146f, 150f, 164f, 176f)) for (h in listOf(180f, 200f, 223f)) {
+            val p = OverviewLayout.planForCell(4, w, h, 1f, sizes)
+            assertEquals("2x2 cell reported ${w}x$h", 4, p.shown); assertEquals(2, p.cols); assertEquals(2, p.rows)
+        }
+        for (w in listOf(272f, 300f, 320f)) for (h in listOf(110f, 130f, 146f)) assertEquals("4x2 cell reported ${w}x$h", 4, OverviewLayout.planForCell(4, w, h, 1f, sizes).shown)
+        for (w in listOf(272f, 320f)) for (h in listOf(55f, 75f)) assertTrue(OverviewLayout.planForCell(4, w, h, 1f, sizes).shown >= 1)
+        // The size a variant is registered at never exceeds the size its rule assumes (rule size = registered + margin).
+        assertTrue(WidgetSizes.MARGIN_DP > 0f)
+    }
 }

@@ -19,7 +19,10 @@ class WidgetSettings(private val ds: DataStore<Preferences>) {
 
     suspend fun configNow(appWidgetId: Int, kind: WidgetKind): WidgetConfig = config(appWidgetId, kind).first()
 
-    suspend fun save(appWidgetId: Int, config: WidgetConfig) { ds.edit { it[key(appWidgetId)] = config.encode() } }
+    suspend fun save(appWidgetId: Int, config: WidgetConfig) {
+        WidgetLog.d("save id=$appWidgetId key=wcfg_$appWidgetId metrics=${config.metrics?.map { it.name }} style=${config.style} theme=${config.theme}")
+        ds.edit { it[key(appWidgetId)] = config.encode() }
+    }
 
     private fun shownKey(id: Int) = androidx.datastore.preferences.core.booleanPreferencesKey("wshown_$id")
 

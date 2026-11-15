@@ -30,12 +30,16 @@ internal object SamplePlans {
     /** Typical launcher cells: 2x2 (110-180 x 110-230), 3x2, 4x2 (250-330 x 110-230), 4x3 (250-330 x 230-330), 4x1 (250-330 x 55-90). */
     fun typical(kind: WidgetKind): List<Pair<Int, Int>> {
         val (mw, mh) = minimum(kind)
-        val ws = listOf(110, 130, 150, 175, 180, 200, 250, 272, 300, 330).filter { it >= mw }
-        val hs = listOf(55, 75, 90, 110, 130, 150, 180, 200, 222, 230, 242, 280, 330).filter { it >= mh }
+        // Includes what Pixel-style launchers report: 2x2 about 146-176 x 180-223, 4x2 about 272-320 x 110-146, 4x1 about 272-320 x 55-75.
+        val ws = listOf(110, 130, 146, 150, 164, 175, 176, 180, 200, 250, 272, 300, 320, 330).filter { it >= mw }
+        val hs = listOf(55, 65, 75, 90, 110, 130, 146, 150, 180, 200, 210, 223, 242, 280, 330).filter { it >= mh }
         return ws.flatMap { w -> hs.map { h -> w to h } }
     }
 
     /** The default style counts sixteen times: it is what most people keep. */
+    /** The rule is evaluated at declared size + margin (see WidgetSizes.MARGIN_DP). */
+    fun declaredScore(kind: WidgetKind, w: Int, h: Int): Int = score(kind, w + WidgetSizes.MARGIN_DP, h + WidgetSizes.MARGIN_DP)
+
     fun score(kind: WidgetKind, w: Float, h: Float, scale: Float = 1f): Int = WidgetStyle.forKind(kind).sumOf { Layouts.contentScore(plan(it, w, h, scale)) * (if (it == WidgetStyle.default(kind)) 16 else 1) }
 }
 
@@ -49,6 +53,7 @@ class WidgetSizesTest {
             val typical = SamplePlans.typical(kind).toSet()
             val weight = actual.map { if (it in typical) 40 else 1 }
             val sc = actual.map { SamplePlans.score(kind, it.first.toFloat(), it.second.toFloat()) }
+            val scDecl = actual.map { SamplePlans.declaredScore(kind, it.first, it.second) }
             val chosen = mutableListOf(actual.indexOf(mw to mh))
             val sel = IntArray(actual.size) { chosen[0] }
             fun better(a: Int, cur: Int, cand: Int): Boolean {
@@ -56,14 +61,14 @@ class WidgetSizesTest {
                 val cf = c.first <= aw && c.second <= ah; val nf = n.first <= aw && n.second <= ah
                 return when { nf && !cf -> true; !nf -> false; else -> n.first * n.second > c.first * c.second }
             }
-            fun loss(): Long = actual.indices.sumOf { (weight[it] * maxOf(0, sc[it] - sc[sel[it]])).toLong() }
+            fun loss(): Long = actual.indices.sumOf { (weight[it] * maxOf(0, sc[it] - scDecl[sel[it]])).toLong() }
             var cur = loss()
             while (chosen.size < 16 && cur > 0) {
                 var bestC = -1; var bestLoss = cur
                 for (c in actual.indices) {
                     if (c in chosen) continue
                     var l = 0L
-                    for (a in actual.indices) { val s = if (better(a, sel[a], c)) c else sel[a]; l += weight[a] * maxOf(0, sc[a] - sc[s]) }
+                    for (a in actual.indices) { val s = if (better(a, sel[a], c)) c else sel[a]; l += weight[a] * maxOf(0, sc[a] - scDecl[s]) }
                     if (l < bestLoss) { bestLoss = l; bestC = c }
                 }
                 if (bestC < 0) break
@@ -89,7 +94,7 @@ class WidgetSizesTest {
             val (sw, sh) = WidgetSizes.pick(WidgetSizes.byKind.getValue(kind), w.toFloat(), h.toFloat())
             for (style in WidgetStyle.forKind(kind)) {
                 val real = SamplePlans.plan(style, w.toFloat(), h.toFloat(), 1f)
-                val shown = SamplePlans.plan(style, sw.toFloat(), sh.toFloat(), 1f)
+                val shown = SamplePlans.plan(style, sw + WidgetSizes.MARGIN_DP, sh + WidgetSizes.MARGIN_DP, 1f)
                 // The default style may lose at most one block and the other styles two (16 sizes cannot hold every threshold of three styles); the measured emulator cells below are exact (16 sizes cannot hold every style's thresholds).
                 val slack = if (style == WidgetStyle.default(kind)) 4 else 9
                 if (Layouts.contentScore(shown) + slack < Layouts.contentScore(real)) misses += "$style ${w}x$h picked ${sw}x$sh: shows ${shown.blocks.size} blocks/side=${shown.side}/cols=${shown.perRow}, ${real.blocks.size}/${real.side}/${real.perRow} fit"
@@ -101,7 +106,7 @@ class WidgetSizesTest {
     @Test fun measuredEmulatorCells() {
         fun shown(kind: WidgetKind, style: WidgetStyle, w: Float, h: Float): Layouts.Plan {
             val (sw, sh) = WidgetSizes.pick(WidgetSizes.byKind.getValue(kind), w, h)
-            return SamplePlans.plan(style, sw.toFloat(), sh.toFloat(), 1f)
+            return SamplePlans.plan(style, sw + WidgetSizes.MARGIN_DP, sh + WidgetSizes.MARGIN_DP, 1f)
         }
         assertEquals(4, shown(WidgetKind.Today, WidgetStyle.TodayRing, 175f, 222f).count("r"))
         assertTrue(shown(WidgetKind.LastActivity, WidgetStyle.ActivityHero, 272f, 75f).style == WidgetStyle.ActivityLine)

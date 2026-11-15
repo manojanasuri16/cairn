@@ -2,7 +2,9 @@ package app.cairn.widget
 
 import app.cairn.core.designsystem.FitMath
 import app.cairn.core.designsystem.WidgetTokens
-import app.cairn.core.model.Freshness
+import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.ln
 
 /** The stats the Overview widget can show. Order here is the picker's canonical order. */
 enum class OverviewId(val label: String) {
@@ -107,7 +109,7 @@ data class OverviewPlan(
 object OverviewLayout {
     const val GAP = 6f
     const val MIN_TILE_W = 56f
-    const val MIN_TILE_H = 44f
+    const val MIN_TILE_H = 52f
 
     /** Pattern for [n] stats in a box of [w] x [h] dp (content area): 1 hero, 2 side by side, 3 one big + two small, 4 as 2x2, 5-6 as 3x2 or 2x3. */
     fun pattern(n: Int, w: Float, h: Float): Triple<OverviewPattern, Int, Int> {
@@ -116,9 +118,39 @@ object OverviewLayout {
             n <= 1 -> Triple(OverviewPattern.Single, 1, 1)
             n == 2 -> if (aspect >= 1f) Triple(OverviewPattern.Grid, 2, 1) else Triple(OverviewPattern.Grid, 1, 2)
             n == 3 -> if (aspect >= 1f) Triple(OverviewPattern.BigLeft, 2, 2) else Triple(OverviewPattern.BigTop, 2, 2)
-            n == 4 -> when { aspect >= 3f -> Triple(OverviewPattern.Grid, 4, 1); aspect <= 0.34f -> Triple(OverviewPattern.Grid, 1, 4); else -> Triple(OverviewPattern.Grid, 2, 2) }
-            else -> if (aspect >= 1.2f) Triple(OverviewPattern.Grid, 3, 2) else Triple(OverviewPattern.Grid, 2, 3)
+            else -> bestGrid(n, w, h)
         }
+    }
+
+    /** The columns x rows whose tiles come closest to square for this box, so a stat never gets a long thin strip when a squarer one exists. */
+    fun bestGrid(n: Int, w: Float, h: Float): Triple<OverviewPattern, Int, Int> {
+        var best = Triple(OverviewPattern.Grid, 1, n); var bestScore = Float.MAX_VALUE
+        for (cols in 1..n) {
+            val perRow = FitMath.rows(n, cols)
+            val eff = perRow.max(); val rows = perRow.size
+            // A last row that is mostly empty wastes the box: it must hold at least half of a full row.
+            if (rows > 1 && perRow.min() * 2 < eff) continue
+            val tw = (w - GAP * (eff - 1)) / eff
+            val th = (h - GAP * (rows - 1)) / rows
+            if (tw <= 0f || th <= 0f) continue
+            val score = abs(ln(tw / th))
+            if (score < bestScore) { bestScore = score; best = Triple(OverviewPattern.Grid, eff, rows) }
+        }
+        return best
+    }
+
+    /** The stats to draw: the first [shown] of the user's list, in the user's order. Stats are never skipped to make room. */
+    fun <T> firstN(list: List<T>, shown: Int): List<T> = list.take(shown)
+
+    /**
+     * The plan the widget really uses for a launcher cell of [cellW] x [cellH]: Responsive picks the largest listed size that fits
+     * the cell, and the content area is that size less padding and the footer. The configuration preview uses the same rule.
+     */
+    fun planForCell(count: Int, cellW: Float, cellH: Float, fontScale: Float, sizes: List<Pair<Int, Int>>): OverviewPlan {
+        val (sw, sh) = WidgetSizes.pick(sizes, cellW, cellH)
+        val ew = sw + WidgetSizes.MARGIN_DP; val eh = sh + WidgetSizes.MARGIN_DP
+        val pad = Layouts.pad(app.cairn.core.designsystem.SizeClass.of(ew, eh), eh)
+        return plan(count, ew - 2f * pad, Layouts.availDp(ew, eh, fontScale))
     }
 
     /** Smallest tile of a pattern: its width and height. Rows split evenly, so every tile fills its cell exactly. */

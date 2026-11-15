@@ -113,6 +113,7 @@ class AppGraph(private val context: Context) : SyncComponent {
 
     /** Widgets render from Room only; give them the repositories and the sign-in state. */
     fun installWidgets() {
+        app.cairn.widget.WidgetLog.enabled = BuildConfig.DEBUG
         WidgetEnvironment.install(
             WidgetDataSources(dailyRepository, sleepRepository, recoveryRepository, activityRepository, trainingLoadRepository, fitnessRepository, prefs = { appSettings.displayNow() }, settings = appSettings.widgetSettings) { authState() },
         )

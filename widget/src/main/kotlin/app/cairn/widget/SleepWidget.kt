@@ -76,12 +76,13 @@ private fun Legend(stages: List<StageSlice>, withNames: Boolean) {
     val texts = stages.map { if (withNames) it.text else Fmt.duration(it.minutes) }
     // Entries wrap onto more lines rather than cutting a duration.
     val lines = Layouts.legendLines(texts, w - 2f * Layouts.pad(app.cairn.core.designsystem.SizeClass.of(w, widgetSize().second), widgetSize().second), scale)
-    var idx = 0
+    val starts = lines.runningFold(0) { acc, line -> acc + line.size }
     Column(GlanceModifier.fillMaxWidth()) {
-        lines.forEach { line ->
+        lines.forEachIndexed { li, line ->
             Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                line.forEach { _ ->
-                    val s = stages[idx]; val txt = texts[idx]; idx++
+                for (k in line.indices) {
+                    val i = starts[li] + k
+                    val s = stages[i]; val txt = texts[i]
                     Box(GlanceModifier.size(7.dp).background(cp(stageColor(p, s.stage))).cornerRadius(3.dp)) {}
                     Spacer(GlanceModifier.width(3.dp))
                     Txt(txt, 10f, color = p.inkSub)

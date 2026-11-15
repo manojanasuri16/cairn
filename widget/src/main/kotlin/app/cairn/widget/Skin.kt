@@ -54,6 +54,6 @@ fun Icon(res: Int, size: Dp, tint: Int) =
 
 /** The widget's size as Glance reports it (exact), in dp. */
 @Composable
-fun widgetSize(): Pair<Float, Float> = LocalSize.current.let { it.width.value to it.height.value }
+fun widgetSize(): Pair<Float, Float> = LocalSize.current.let { it.width.value + WidgetSizes.MARGIN_DP to it.height.value + WidgetSizes.MARGIN_DP }
 
 fun Palette.withAlpha(argb: Int, a: Float) = Contrast.withAlpha(argb, a)

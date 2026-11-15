@@ -24,8 +24,9 @@ class TodayWidget : CairnWidget<TodayUi>(WidgetKind.Today) {
     override fun Body(ui: WidgetUi.Content<TodayUi>) {
         val b = ui.body
         val cfg = skin.cfg
-        val plan = currentPlan(chars = (b.stepsText ?: "–").length)
+        val plan = currentPlan(chars = (b.stepsText ?: "\u2013").length, heroText = b.stepsText ?: "\u2013")
         val shown = b.metrics.filter { cfg.shows(Part.ofMetric(it.id)) }
+        WidgetLog.d("today LocalSize=${widgetSize().first}x${widgetSize().second} dp style=${cfg.style} plan[rows=${plan.count("r")} blocks=${plan.blocks} ring=${plan.heroDp} side=${plan.side}] metricsAvailable=${shown.size}")
         Framed(ui, kind, plan) {
             when (cfg.style) {
                 WidgetStyle.TodayStack -> StackStyle(b, shown, plan)
