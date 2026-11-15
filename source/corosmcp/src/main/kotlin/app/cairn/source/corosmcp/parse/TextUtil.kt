@@ -17,7 +17,19 @@ data class ToolReply(val text: String, val isError: Boolean = false) {
                 ((it as? JsonObject)?.get("text") as? JsonPrimitive)?.takeIf { p -> p.isString }?.content
             }
             val err = (result["isError"] as? JsonPrimitive)?.booleanOrNull ?: false
-            return ToolReply(parts.joinToString("\n"), err)
+            return ToolReply(unwrapQuoted(parts.joinToString("\n")), err)
+        }
+
+        /**
+         * COROS returns each report as a JSON string literal inside the MCP text part: the text starts and ends with
+         * a double quote and its line breaks are the two characters `\n`. Decode it back to plain multi-line text;
+         * anything that is not a well-formed quoted string is returned unchanged.
+         */
+        internal fun unwrapQuoted(text: String): String {
+            val t = text.trim()
+            if (t.length < 2 || t.first() != '"' || t.last() != '"') return text
+            return runCatching { (kotlinx.serialization.json.Json.parseToJsonElement(t) as? JsonPrimitive)?.takeIf { it.isString }?.content }
+                .getOrNull() ?: text
         }
     }
 }

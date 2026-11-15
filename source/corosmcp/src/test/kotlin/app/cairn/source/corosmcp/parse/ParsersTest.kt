@@ -100,6 +100,20 @@ class ParsersTest {
         assertTrue(r.warnings.any { "no fields" in it })
     }
 
+    // ---- real servers wrap each report in a JSON string literal (one line, escaped \n) ----
+    @Test fun quotedJsonStringReplyIsUnwrapped() {
+        val raw = """{"content":[{"type":"text","text":"\"Recovery Status\\n========================\\n\\nRecovery: 64%\\nLevel: Moderate\\nEstimated Full Recovery: 18h\""}],"isError":false}"""
+        val reply = ToolReply.from(Json.parseToJsonElement(raw) as JsonObject)
+        assertTrue(reply.text.contains("\n"))
+        val v = RecoveryParser.parse(reply, now).value!!
+        assertEquals(64, v.percent); assertEquals("Moderate", v.level); assertEquals(18, v.hoursToFullRecovery)
+    }
+
+    @Test fun plainTextReplyIsLeftAlone() {
+        assertEquals("Recovery: 64%", ToolReply.unwrapQuoted("Recovery: 64%"))
+        assertEquals("\"not closed", ToolReply.unwrapQuoted("\"not closed"))
+    }
+
     // ---- recovery ----
     @Test fun recovery() {
         val r = RecoveryParser.parse(fx("recovery.txt"), now)
