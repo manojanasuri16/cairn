@@ -7,8 +7,6 @@ import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import app.cairn.core.datastore.EncryptedFileTokenStore
-import app.cairn.core.datastore.KeystoreAesGcmCipher
 import app.cairn.source.corosmcp.CorosException
 import app.cairn.source.corosmcp.LoopbackReceiver
 import app.cairn.source.corosmcp.McpClient
@@ -18,14 +16,11 @@ import app.cairn.source.corosmcp.Region
 import app.cairn.source.corosmcp.RegionPolicy
 import app.cairn.source.corosmcp.Shape
 import app.cairn.source.corosmcp.SignInMessages
-import java.io.File
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
 
 data class CorosUiState(
     val region: Region = Region.US,
@@ -46,22 +41,19 @@ val INTERESTING_TOOLS = listOf(
 )
 
 class CorosViewModel(app: Application) : AndroidViewModel(app) {
-    // No logging interceptor at all: nothing can leak Authorization headers or bodies.
-    private val http = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS).build()
-    // files/datastore/ is excluded from cloud backup and device transfer.
-    private val store = EncryptedFileTokenStore(File(app.filesDir, "datastore/coros_tokens.bin"), KeystoreAesGcmCipher())
-    private val oauth = OAuthClient(http, store)
+    // Shared with the sync engine through the app graph (no logging interceptor: nothing can leak headers or bodies).
+    private val graph = (app as CairnApp).graph
+    private val http = graph.http
+    private val store = graph.tokenStore
+    private val oauth = graph.oauth
     private var mcp: McpClient? = null
     private var job: Job? = null
 
     /** Last raw result is held in memory only, for the redacted copy action; cleared on sign-out. */
     private var lastRaw: kotlinx.serialization.json.JsonObject? = null
 
-    // Region is not secret; kept in a plain app-private file next to (not inside) the token blob.
-    private val regionFile = File(app.filesDir, "datastore/coros_region.txt")
-    private fun cachedRegion(): Region? = runCatching { Region.valueOf(regionFile.readText().trim()) }.getOrNull()
-    private fun cacheRegion(r: Region) { runCatching { regionFile.parentFile?.mkdirs(); regionFile.writeText(r.name) } }
+    private fun cachedRegion(): Region? = graph.regionStore.get()
+    private fun cacheRegion(r: Region) = graph.regionStore.set(r)
     private fun statusSignedIn(r: Region) = "Signed in (${r.label})"
 
     private val _state = run {
@@ -102,6 +94,7 @@ class CorosViewModel(app: Application) : AndroidViewModel(app) {
                 attempt(context, region)
                 cacheRegion(region)
                 _state.update { it.copy(signedIn = true, failedRegion = null, status = statusSignedIn(region)) }
+                graph.onSignedIn()
                 return@run
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
@@ -140,11 +133,13 @@ class CorosViewModel(app: Application) : AndroidViewModel(app) {
             .launchUrl(context, Uri.parse(resp.verificationUriComplete ?: resp.verificationUri))
         flow.awaitApproval()
         cacheRegion(_state.value.region)
+        graph.onSignedIn()
         _state.update { it.copy(signedIn = true, deviceCode = null, status = statusSignedIn(it.region)) }
     }
 
     fun signOut() = run("Signing out") {
         try { oauth.signOut() } finally {
+            graph.onSignedOut()
             mcp = null; lastRaw = null
             _state.update { it.copy(signedIn = false, tools = emptyList(), shape = null, canCopy = false, deviceCode = null, status = "Signed out") }
         }

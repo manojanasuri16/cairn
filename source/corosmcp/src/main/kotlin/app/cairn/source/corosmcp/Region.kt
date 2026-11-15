@@ -8,6 +8,12 @@ enum class Region(val label: String, val host: String) {
 
 open class CorosException(message: String) : Exception(message)
 
+/** The session is gone (no token, or refresh rejected): the user must sign in again. Retrying cannot help. */
+class CorosAuthException(message: String) : CorosException(message)
+
+/** Transport failure (offline, timeout, DNS). Safe to retry with backoff. */
+class CorosNetworkException(message: String) : CorosException(message)
+
 /** The loopback wait for the browser redirect ran out; the COROS authorize state has likely expired too. */
 class SignInTimeoutException : CorosException(SignInMessages.TIMEOUT)
 

@@ -69,8 +69,9 @@ fun InspectorScreen(modifier: Modifier = Modifier) {
         state = InspectorState(availability, reader.features(), reader.corosStatus(), granted, rows, false)
     }
 
+    val app = LocalContext.current.applicationContext as CairnApp
     val grant = rememberLauncherForActivityResult(HealthConnectReader.permissionContract()) {
-        scope.launch { refresh() }
+        scope.launch { refresh(); app.graph.onPermissionChanged() }
     }
     LaunchedEffect(Unit) { refresh() }
 

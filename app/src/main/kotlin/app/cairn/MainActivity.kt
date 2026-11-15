@@ -45,20 +45,24 @@ private fun CairnApp(coros: CorosViewModel) {
     val colors = if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     var inspector by rememberSaveable { mutableStateOf(false) }
     var account by rememberSaveable { mutableStateOf(false) }
-    BackHandler(enabled = inspector || account) { inspector = false; account = false }
+    var diagnostics by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = inspector || account || diagnostics) { inspector = false; account = false; diagnostics = false }
     MaterialTheme(colorScheme = colors) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            topBar = { CenterAlignedTopAppBar(title = { Text(if (inspector) "Data sources" else if (account) "COROS account" else "Cairn") }) },
+            topBar = { CenterAlignedTopAppBar(title = { Text(if (inspector) "Data sources" else if (account) "COROS account" else if (diagnostics) "Sync diagnostics" else "Cairn") }) },
         ) { padding ->
             if (inspector) {
                 InspectorScreen(Modifier.padding(padding))
             } else if (account) {
                 CorosAccountScreen(coros, Modifier.padding(padding))
+            } else if (diagnostics) {
+                SyncDiagnosticsScreen(Modifier.padding(padding))
             } else {
                 Column(Modifier.padding(padding)) {
                     TextButton(onClick = { inspector = true }) { Text("Data sources") }
                     TextButton(onClick = { account = true }) { Text("COROS account") }
+                    TextButton(onClick = { diagnostics = true }) { Text("Sync diagnostics") }
                 }
             }
         }

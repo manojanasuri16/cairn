@@ -51,6 +51,19 @@ class McpClient(
         return (result["tools"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.get("name")?.let { n -> (n as? JsonPrimitive)?.content } }
     }
 
+    /** tools/list with each tool's `inputSchema` (JSON Schema object; empty when absent). */
+    suspend fun listToolSchemas(): Map<String, JsonObject> {
+        ensureInit()
+        val result = rpc("tools/list", buildJsonObject {})
+        val out = LinkedHashMap<String, JsonObject>()
+        (result["tools"] as? JsonArray).orEmpty().forEach { t ->
+            val o = t as? JsonObject ?: return@forEach
+            val name = (o["name"] as? JsonPrimitive)?.content ?: return@forEach
+            out[name] = (o["inputSchema"] as? JsonObject) ?: JsonObject(emptyMap())
+        }
+        return out
+    }
+
     /** Returns the raw `result` object of tools/call. Callers must not persist or log it. */
     suspend fun callTool(name: String, arguments: JsonObject = buildJsonObject {}): JsonObject {
         ensureInit()
@@ -77,17 +90,17 @@ class McpClient(
 
     /** POST with one refresh-and-retry on 401. */
     private suspend fun post(payload: String, expectBody: Boolean): String {
-        var token = auth.accessToken() ?: throw CorosException("Not signed in")
+        var token = auth.accessToken() ?: throw CorosAuthException("Not signed in")
         var retried = false
         while (true) {
             val r = send(payload, token)
             if (r.code == 401 && !retried) {
                 retried = true
-                if (!auth.refreshAfter401(token)) throw CorosException("Session expired; sign in again")
-                token = auth.accessToken() ?: throw CorosException("Not signed in")
+                if (!auth.refreshAfter401(token)) throw CorosAuthException("Session expired; sign in again")
+                token = auth.accessToken() ?: throw CorosAuthException("Not signed in")
                 continue
             }
-            if (r.code == 401) throw CorosException("Unauthorized after refresh")
+            if (r.code == 401) throw CorosAuthException("Unauthorized after refresh")
             if (r.code !in 200..299) throw CorosException("MCP HTTP ${r.code}")
             return r.body
         }
@@ -108,7 +121,7 @@ class McpClient(
                 Resp(r.code, r.body?.string().orEmpty())
             }
         } catch (e: java.io.IOException) {
-            throw CorosException("Network error: ${e.javaClass.simpleName}")
+            throw CorosNetworkException("Network error: ${e.javaClass.simpleName}")
         }
     }
 }

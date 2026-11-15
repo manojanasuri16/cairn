@@ -152,7 +152,7 @@ class OAuthClient(
                 ServerMetadata.serializer(),
                 call(Request.Builder().url(t.issuer + "/.well-known/oauth-authorization-server").get().build()),
             )
-        } catch (e: CorosException) { return false }
+        } catch (e: CorosNetworkException) { throw e } catch (e: CorosException) { return false }
         val form = FormBody.Builder()
             .add("grant_type", "refresh_token").add("refresh_token", rt).add("client_id", t.clientId).build()
         val result = rawPost(meta.tokenEndpoint, form)
@@ -225,7 +225,7 @@ class OAuthClient(
                 b
             }
         } catch (e: java.io.IOException) {
-            throw CorosException("Network error: ${e.javaClass.simpleName}")
+            throw CorosNetworkException("Network error: ${e.javaClass.simpleName}")
         }
     }
 

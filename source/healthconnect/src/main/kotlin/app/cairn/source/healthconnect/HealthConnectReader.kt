@@ -50,6 +50,11 @@ private val specs = listOf(
 val inspectedReadPermissions: Set<String> =
     specs.mapTo(linkedSetOf()) { HealthPermission.getReadPermission(it.kclass) }
 
+/** Types the periodic sync reads. */
+val syncReadPermissions: Set<String> = setOf(
+    StepsRecord::class, HeartRateRecord::class, RestingHeartRateRecord::class, SleepSessionRecord::class, ExerciseSessionRecord::class,
+).mapTo(linkedSetOf()) { HealthPermission.getReadPermission(it) }
+
 const val BACKGROUND_READ_PERMISSION = HealthPermission.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND
 
 enum class HcAvailability { Available, UpdateRequired, Unavailable }
@@ -100,6 +105,39 @@ class HealthConnectReader(private val context: Context) : HealthRecordReader {
             token = resp.pageToken
         } while (token != null)
         return out
+    }
+
+    /** Read permissions Cairn's sync needs; sync runs when at least one is granted. */
+    suspend fun hasSyncPermission(): Boolean = grantedPermissions().any { it in syncReadPermissions }
+
+    /**
+     * Reads every sync record type in [from]..[to] (all origins; a type whose permission is not granted yields an
+     * empty list). Pages through results. No changes-token is used: callers re-read a short recent window.
+     */
+    suspend fun readInputs(from: Instant, to: Instant): HcInputs {
+        val granted = grantedPermissions()
+        suspend fun <T : Record> read(kclass: KClass<T>): List<T> {
+            if (HealthPermission.getReadPermission(kclass) !in granted) return emptyList()
+            val out = ArrayList<T>()
+            var token: String? = null
+            do {
+                val resp = client.readRecords(
+                    ReadRecordsRequest(kclass, TimeRangeFilter.between(from, to), pageSize = 1000, pageToken = token),
+                )
+                out += resp.records
+                token = resp.pageToken
+            } while (token != null)
+            return out
+        }
+        return HcInputs(
+            steps = read(StepsRecord::class).map { it.toInput() },
+            heartRate = read(HeartRateRecord::class).map { it.toInput() },
+            restingHr = read(RestingHeartRateRecord::class).map { it.toInput() },
+            distance = read(DistanceRecord::class).map { it.toInput() },
+            calories = read(TotalCaloriesBurnedRecord::class).map { it.toInput() },
+            sleep = read(SleepSessionRecord::class).map { it.toInput() },
+            exercise = read(ExerciseSessionRecord::class).map { it.toInput() },
+        )
     }
 
     fun corosStatus(): CorosStatus {
