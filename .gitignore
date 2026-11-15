@@ -1,0 +1,30 @@
+# Secrets / local config
+local.properties
+*.jks
+*.keystore
+.env
+.env.*
+secrets.properties
+*token*
+*.pem
+
+# Gradle / Android
+.gradle/
+build/
+*.apk
+*.aab
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+
+# Claude / agent tooling
+.claude/settings.local.json
+.agents/
