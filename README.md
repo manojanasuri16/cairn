@@ -16,6 +16,7 @@
 </p>
 
 <p align="center">
+  <img src="appdrop/screenshots/00-widgets-home.png" width="19%" alt="Widgets home with a Your widgets list and Edit buttons">
   <img src="appdrop/screenshots/01-today.png" width="19%" alt="Today screen with steps, activity, heart rate, resting HR, stress and sleep">
   <img src="appdrop/screenshots/02-recovery.png" width="19%" alt="Training status and a Recovery card">
   <img src="appdrop/screenshots/03-activities.png" width="19%" alt="Activities grouped by month">
@@ -55,7 +56,8 @@ Cairn reads from COROS's official MCP server (and optionally Health Connect), ca
 **Style and customise**
 
 - 11 looks: **Clean** (default), Dusk, Dawn, Forest, Midnight, Sunrise, Minimal, Ocean, Violet, Berry, and Transparent (with opacity).
-- Each widget has its own editor: Style, Colour, Content, Size and Tap, with a live preview. Weekly mileage also has a weekly goal.
+- Each widget has its own editor: Style, Colour, Content, Size and Tap. The live preview stays pinned at the top while the options scroll. Weekly mileage also has a weekly goal.
+- The system "Add to home screen" dialog shows the widget as you configured it.
 - Sizes: Small 2x2, Wide 4x2, Large 4x3. Bigger cells show more.
 
 **Freshness, on every widget**
@@ -67,13 +69,22 @@ Cairn reads from COROS's official MCP server (and optionally Health Connect), ca
 
 **The app**
 
-- Widget-first: the home tab is **Widgets**, a gallery of every widget with a live preview, plus a "Your widgets" list (with Edit) for the ones already on your home screen. The menu there holds the default look and the tap targets. Then Today, Activities and Fitness; Settings is in the top bar.
-- Press and hold any card (Recovery, Sleep, a run, a month header...) to add that widget to your home screen or open COROS.
+- Widget-first: the home tab is **Widgets**, a gallery of every widget with a live preview, plus a "Your widgets" list (with Edit) for the ones already on your home screen. Its menu holds the default look and the tap targets. Then Today, Activities and Fitness; Settings is in the top bar. Widget setup is no longer in Settings.
+- Press and hold any card (Recovery, Sleep, a run, a month header...) in Today, Activities or Fitness for **Add to home screen** or **Open in COROS**.
 - Named and ordered like the COROS app (see below).
 - Manual sync any time, or automatic refresh every 5, 15, 30 or 60 minutes (default 30).
 - Health Connect as a read-only fallback source.
+- A compact update notice when a newer version is on AppDrop (see Privacy).
 - App icon shortcuts for adding a widget and opening COROS. After you sign in, Cairn takes you back to the Widgets home.
 - Units in km or miles, light, dark or system mode, optional Material You, TalkBack labels and large-font support.
+
+## How to use
+
+1. Open Cairn and go to **Widgets**. Pick a widget from the gallery, or tap **Edit** on one you already placed.
+2. Customise it. The preview stays at the top while you scroll the options.
+3. Tap **Add to home screen**, then confirm on your launcher.
+
+Shortcut: press and hold any card in Today, Activities or Fitness, then choose **Add to home screen** or **Open in COROS**.
 
 ## Reads like COROS
 
@@ -103,8 +114,9 @@ To keep things fresh:
 
 ## Troubleshooting
 
-- **Sign-in stuck:** tap the button on the COROS page, or open the COROS account screen from Settings (or the Sign in button on the sync banner) and try the local method or the device code.
+- **Sign-in stuck:** the sign-in screen can always be cancelled or retried. Tap the button on the COROS page, or open the COROS account screen from Settings (or the **Sign in** button on the sync banner) and try the local method or the device code. After you sign in, Cairn returns to Widgets.
 - **A widget shows "Loading" or looks old:** tap its sync button, or remove and re-add it. Cairn refreshes all widgets after an update.
+- **Update notice:** when a newer version is on AppDrop, a compact card appears at the top of Widgets (and under the sync line on Today, Activities and Fitness). Update opens the AppDrop page. The menu offers Later and Skip this version. Settings > About > Check for updates checks right away.
 - **Numbers look old:** see "How fresh is the data?" above.
 
 ## Install
@@ -122,7 +134,7 @@ The release APK is signed with the Cairn release key, so each new version instal
 - **Troubleshooting sign-in.** If Cairn doesn't open after you approve, tap the button on the COROS page, or use "Open the sign-in page again". Under "Having trouble signing in?" you can try the local method (a short notification "Signing in to COROS" appears) or the device code. Sign-in diagnostics (method, stage, last failure) are on the COROS account and Sync diagnostics screens and contain no secrets. Sign-in sessions expire after a few minutes.
 - **Official sign-in.** You sign in on COROS's own OAuth page for its MCP server. Cairn never sees or stores your password. Tokens are encrypted with the Android Keystore, excluded from backups, and sent only to COROS.
 - **Health Connect is read-only.** It is optional and used only as a fallback source.
-- **AppDrop.** Cairn contacts the AppDrop store only to check for updates and to send feedback if you choose to. No health data is ever sent.
+- **AppDrop.** Cairn contacts the AppDrop store only to check for updates (at most every 12 hours) and to send feedback if you choose to. The update notice is drawn in the app. No health data is ever sent.
 - **Backups off.** Android cloud backup and device transfer exclude the app's data. "Delete data" in Settings clears the cache.
 
 ## Honest limits

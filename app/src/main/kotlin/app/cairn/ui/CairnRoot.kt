@@ -227,12 +227,20 @@ private fun CairnScaffold(coros: CorosViewModel, startScreen: String?, corosMiss
         snackbarHost = { androidx.compose.material3.SnackbarHost(snackbar) },
         bottomBar = {
             if (isTab) NavigationBar {
+                val fs = androidx.compose.ui.platform.LocalDensity.current.fontScale
                 TABS.forEach { t ->
+                    val iconOnly = fs >= 1.8f
                     NavigationBarItem(
                         selected = route == t.route,
                         onClick = { if (route != t.route) goTab(t.route) },
-                        icon = { Icon(t.icon, contentDescription = null) },
-                        label = { Text(t.label) },
+                        icon = { Icon(t.icon, contentDescription = if (iconOnly) t.label else null) },
+                        alwaysShowLabel = !iconOnly, // at 180%+ only the selected tab keeps its label
+                        label = {
+                            Text(
+                                t.label, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+                                style = if (fs >= 1.3f) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
+                            )
+                        },
                     )
                 }
             }

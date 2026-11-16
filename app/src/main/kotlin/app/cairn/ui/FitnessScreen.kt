@@ -32,7 +32,7 @@ import app.cairn.widget.FooterUi
 @Composable
 fun FitnessScreen(onOpenAccount: () -> Unit, modifier: Modifier = Modifier, vm: FitnessViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
-    FitnessContent(state, onOpenAccount, modifier, header = { SyncStatusBar(state.footer) })
+    FitnessContent(state, onOpenAccount, modifier, header = { StatusAndUpdate(state.footer) })
 }
 
 @Composable

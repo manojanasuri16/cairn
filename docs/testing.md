@@ -118,3 +118,9 @@ Manual checks on a device or emulator:
 - [ ] One-time Today tip "press and hold any card": dismiss with X, or it disappears after the first long press; it does not return after restarting the app.
 - [ ] Signed out: sync banner shows "Sign in" (no Retry) and opens the COROS account screen, which starts sign-in. After signing in (in-app, and via the browser redirect) the app lands on Widgets with "Signed in to COROS" once, the stale banner is gone, and Back leaves the app (no account screen left). The account screen shows a "Done" button when signed in. A network error still offers Retry.
 
+## Update banner (debug build, emulator)
+- [ ] `adb shell am broadcast -n app.cairn/.demo.FakeUpdateReceiver -a app.cairn.FAKE_UPDATE` (optional `--es version 1.6.0 --es notes '"New widgets and a calmer sign-in"' --ez apk false`): the "Cairn 1.5.0 is available" card appears at the top of Widgets and under the sync line on Today, Activities and Fitness; no dialog.
+- [ ] Update opens the AppDrop store page; X hides it (24 h); Skip this version hides it until a newer version; `--ez clear true` removes it.
+- [ ] Dark/light, font scale 2.0 (buttons wrap, nothing clipped), animator scale 0 (no motion); content below stays usable.
+- [ ] Airplane mode + cold start with the fake cache: the banner still shows.
+- [ ] Settings > About > Check for updates shows "You're up to date (version)" or the banner inline, no toast.

@@ -3,5 +3,7 @@
     <application>
         <!-- Debug only: toggles demo mode from adb for screenshots. -->
         <receiver android:name=".demo.DemoReceiver" android:exported="true" />
+        <!-- Debug only: fake "update available" banner for screenshots (see docs/testing.md). -->
+        <receiver android:name=".demo.FakeUpdateReceiver" android:exported="true" />
     </application>
 </manifest>

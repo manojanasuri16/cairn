@@ -67,7 +67,7 @@ fun TodayScreen(onOpenAccount: () -> Unit, modifier: Modifier = Modifier, vm: To
     val hintSeen by graph.appSettings.cardHintSeen.collectAsStateWithLifecycle(initialValue = true)
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     PullToRefreshBox(isRefreshing = syncUi.syncing, onRefresh = sync::sync, modifier = modifier.fillMaxSize()) {
-        TodayContent(state, onOpenAccount, showHint = !hintSeen, onDismissHint = { scope.launch { graph.appSettings.setCardHintSeen() } }, header = { SyncStatusBar(state.footer) })
+        TodayContent(state, onOpenAccount, showHint = !hintSeen, onDismissHint = { scope.launch { graph.appSettings.setCardHintSeen() } }, header = { StatusAndUpdate(state.footer) })
     }
 }
 

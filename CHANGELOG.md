@@ -2,6 +2,22 @@
 
 All notable changes to Cairn are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.0] - 2026-11-16
+
+### Added
+- Long-press any card in Today, Activities or Fitness for **Add to home screen** or **Open in COROS**.
+- A compact in-app update notice. Cairn checks AppDrop at most every 12 hours. Update opens the AppDrop page; Later and Skip this version are in a menu.
+
+### Changed
+- Widget-first app: the home tab is **Widgets**, with a gallery of every widget and a "Your widgets" list (with Edit). Widget setup moved out of Settings; the default look and tap targets are in the Widgets menu.
+- The widget editor keeps its live preview pinned at the top while the options scroll.
+- The system "Add to home screen" dialog shows the widget as you configured it.
+- After signing in, Cairn returns to the Widgets home. The Settings COROS account row opens the COROS account screen.
+
+### Fixed
+- The sign-in screen can always be cancelled or retried.
+- When signed out, the sync banner offers **Sign in** instead of a Retry that could never work.
+
 ## [1.4.0] - 2026-11-15
 
 ### Added

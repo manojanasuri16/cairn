@@ -11,6 +11,7 @@
   "visibility": "public",
   "icon": "appdrop/icon.png",
   "screenshots": [
+    "appdrop/screenshots/00-widgets-home.png",
     "appdrop/screenshots/01-today.png",
     "appdrop/screenshots/02-recovery.png",
     "appdrop/screenshots/03-activities.png",

@@ -47,7 +47,7 @@ import app.cairn.widget.FooterUi
 @Composable
 fun ActivitiesScreen(onOpenAccount: () -> Unit, modifier: Modifier = Modifier, vm: ActivitiesViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
-    ActivitiesContent(state, onOpenAccount, modifier, header = { SyncStatusBar(state.footer) })
+    ActivitiesContent(state, onOpenAccount, modifier, header = { StatusAndUpdate(state.footer) })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

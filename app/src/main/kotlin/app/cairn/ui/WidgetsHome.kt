@@ -99,6 +99,7 @@ fun WidgetsHomeScreen(onAdd: (WidgetKind, WidgetSize) -> Unit, modifier: Modifie
     LazyColumn(
         modifier.fillMaxSize(), contentPadding = PaddingValues(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
+        item { UpdateBanner() }
         item { SyncStatusBar(null) }
         if (placed.isEmpty()) item { EmptyWidgets(pinSupported) }
         else {
@@ -148,7 +149,7 @@ private fun PlacedRow(p: PlacedUi, appearance: AppAppearance, onEdit: () -> Unit
                 Text(p.widget.kind.label, style = MaterialTheme.typography.titleMedium)
                 Text("${p.widget.size.cells} · ${resolved.style.label} · ${resolved.theme.label}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            OutlinedButton(onClick = onEdit) { Text("Edit") }
+            OutlinedButton(onClick = onEdit) { Text("Edit", maxLines = 1, softWrap = false) }
         }
     }
 }

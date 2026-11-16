@@ -56,6 +56,9 @@ import app.cairn.BuildConfig
 import app.cairn.DemoFeature
 import app.cairn.ExplorerFeature
 import app.cairn.appdrop.AppDropUpdater
+import app.cairn.appdrop.UpdateState
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import app.cairn.sync.NudgeSettings
 import app.cairn.sync.SyncSettings
 import app.cairn.core.designsystem.AppLook
@@ -316,7 +319,20 @@ private fun AboutGroup() {
             "Cairn contacts the AppDrop store only to check for updates and to send feedback you choose to send. No health data is ever sent.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        OutlinedButton(onClick = { activity?.let { AppDropUpdater.check(it, force = true) } }, enabled = activity != null, modifier = Modifier.fillMaxWidth()) { Text("Check for updates") }
+        var asked by remember { mutableStateOf(false) }
+        val updateState = rememberUpdateState().value
+        OutlinedButton(onClick = { asked = true; AppDropUpdater.refresh(context, force = true) }, modifier = Modifier.fillMaxWidth()) { Text("Check for updates") }
+        if (asked) {
+            // Inline result, no toast: the banner itself when there is an update.
+            val line = when (updateState) {
+                UpdateState.Checking -> "Checking..."
+                UpdateState.Idle, UpdateState.UpToDate -> "You're up to date (${BuildConfig.VERSION_NAME})."
+                is UpdateState.Error -> if (updateState.info == null) updateState.message else null
+                else -> null
+            }
+            if (line != null) Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+            UpdateBanner()
+        }
         OutlinedButton(onClick = { activity?.let { AppDropUpdater.openFeedback(it) } }, enabled = activity != null, modifier = Modifier.fillMaxWidth()) { Text("Send feedback") }
     }
 }

@@ -17,7 +17,7 @@ import app.cairn.widget.EXTRA_SIGNED_IN
 class MainActivity : ComponentActivity() {
     private val coros: CorosViewModel by viewModels()
 
-    override fun onResume() { super.onResume(); AppDropUpdater.check(this) }
+    override fun onResume() { super.onResume(); AppDropUpdater.refresh(this)  /* throttled to 12 h */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

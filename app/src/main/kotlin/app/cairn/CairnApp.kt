@@ -54,6 +54,9 @@ class CairnApp : Application(), SyncComponentProvider {
     override fun onCreate() {
         super.onCreate()
         app.cairn.appdrop.AppDropUpdater.init(this, "https://appdrop-store.vercel.app", "cairn")
+        // Cairn draws its own update banner (ui/UpdateBanner.kt); no platform dialog.
+        app.cairn.appdrop.AppDropUpdater.setDialogEnabled(false)
+        app.cairn.appdrop.AppDropUpdater.refresh(this)
         DemoFeature.install(graph, this)
         graph.installWidgets()
         // Idempotent (UPDATE policy); also queues one APP_START refresh, which the MCP gap logic may skip.
