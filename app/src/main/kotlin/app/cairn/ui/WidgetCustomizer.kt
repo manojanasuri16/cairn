@@ -7,6 +7,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -156,14 +165,19 @@ fun WidgetCustomizer(
     modifier: Modifier = Modifier,
     /** The app-wide distance unit, for the weekly goal's default and label. */
     appUnit: DistanceUnit = DistanceUnit.Km,
+    /** Pinned under the options (the "Add to home screen" or Done / Cancel bar). */
+    bottom: @Composable () -> Unit = {},
 ) {
     val resolved = cfg.resolve(kind, appearance)
     var section by rememberSaveable { mutableStateOf(CustomSection.Style) }
     var more by rememberSaveable { mutableStateOf(false) }
-    Column(modifier.fillMaxWidth()) {
-        // The preview sits on a neutral "wallpaper" so transparency reads.
-        Box(Modifier.fillMaxWidth().background(Color(0xFF6B7280)).padding(Spacing.sm), contentAlignment = Alignment.Center) { LivePreview(kind, resolved, size.preview) }
-        SectionTabs(section) { section = it }
+    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    val previewBox: @Composable (Dp, Dp) -> Unit = { maxW, maxH ->
+        // The preview sits on a neutral "wallpaper" so transparency reads. It is composed at its real size and scaled down to fit.
+        ScaledBox(size.preview.width, size.preview.height, maxW, maxH) { LivePreview(kind, resolved, size.preview) }
+    }
+    val tabs: @Composable () -> Unit = { SectionTabs(section, iconsOnly = fontScale >= 1.5f) { section = it } }
+    val options: @Composable () -> Unit = {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text(section.hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             when (section) {
@@ -219,6 +233,45 @@ fun WidgetCustomizer(
             if (more) MoreOptions(kind, cfg, onCfg)
         }
     }
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val totalW = maxWidth; val totalH = maxHeight
+        val optionsScroll = Modifier.verticalScroll(rememberScrollState()).imePadding()
+        if (EditorLayout.sideBySide(maxWidth.value)) {
+            val padPx = Spacing.sm
+            Row(Modifier.fillMaxSize()) {
+                Box(
+                    Modifier.weight(EditorLayout.SIDE_PREVIEW_FRACTION).fillMaxHeight().shadow(4.dp).background(PREVIEW_BACKDROP).padding(padPx),
+                    contentAlignment = Alignment.Center,
+                ) { previewBox(totalW * EditorLayout.SIDE_PREVIEW_FRACTION - padPx * 2, totalH - padPx * 2) }
+                Column(Modifier.weight(1f - EditorLayout.SIDE_PREVIEW_FRACTION).fillMaxHeight()) {
+                    tabs()
+                    Column(Modifier.weight(1f).then(optionsScroll)) { options() }
+                    bottom()
+                }
+            }
+        } else {
+            val maxH = EditorLayout.previewMaxHeightDp(maxHeight.value).dp
+            Column(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxWidth().zIndex(1f).shadow(4.dp).background(PREVIEW_BACKDROP).padding(Spacing.sm), contentAlignment = Alignment.Center) {
+                    previewBox(totalW - Spacing.sm * 2, maxH - Spacing.sm * 2)
+                }
+                tabs()
+                Column(Modifier.weight(1f).then(optionsScroll)) { options() }
+                bottom()
+            }
+        }
+    }
+}
+
+private val PREVIEW_BACKDROP = Color(0xFF6B7280)
+
+/** Lays [content] out at [w] x [h] dp but measures and draws it scaled down (never up) so it fits [maxW] x [maxH], keeping its aspect ratio. */
+@Composable
+private fun ScaledBox(w: Dp, h: Dp, maxW: Dp, maxH: Dp, content: @Composable () -> Unit) {
+    val s = EditorLayout.scale(w.value, h.value, maxW.value, maxH.value)
+    Box(Modifier.size(w * s, h * s), contentAlignment = Alignment.TopStart) {
+        Box(Modifier.requiredSize(w, h).graphicsLayer { scaleX = s; scaleY = s; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f) }) { content() }
+    }
 }
 
 fun sizeHint(s: WidgetSize) = when (s) {
@@ -228,7 +281,7 @@ fun sizeHint(s: WidgetSize) = when (s) {
 }
 
 @Composable
-private fun SectionTabs(selected: CustomSection, onSelect: (CustomSection) -> Unit) {
+private fun SectionTabs(selected: CustomSection, iconsOnly: Boolean = false, onSelect: (CustomSection) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.xs, vertical = Spacing.xs), horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
         CustomSection.entries.forEach { s ->
             val on = s == selected
@@ -238,8 +291,8 @@ private fun SectionTabs(selected: CustomSection, onSelect: (CustomSection) -> Un
                     .clickable(role = Role.Tab) { onSelect(s) }.semantics { this.selected = on }.padding(vertical = Spacing.xs),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
             ) {
-                Icon(s.icon, null, Modifier.size(22.dp), tint = if (on) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(s.label, style = MaterialTheme.typography.labelMedium, color = if (on) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(s.icon, if (iconsOnly) s.label else null, Modifier.size(22.dp), tint = if (on) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+                if (!iconsOnly) Text(s.label, style = MaterialTheme.typography.labelMedium, color = if (on) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

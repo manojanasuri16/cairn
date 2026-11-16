@@ -97,3 +97,13 @@ Settings > COROS account. Start each case signed out.
 8. **Refresh token rejected.** Revoke Cairn in COROS settings, sync: widgets and the account screen say "Sign in again".
 9. **Wrong region.** Account on EU: US attempt falls back to EU automatically only if COROS returns an account_not_found style error; otherwise "Try another region".
 10. **Scripted/emulator:** `adb shell am start -a android.intent.action.VIEW -d "app.cairn.oauth://callback?code=x&state=y"` with no pending sign-in must show "Sign-in session expired".
+
+## Sticky editor and exact pin preview (package A)
+
+Manual checks on a device or emulator:
+
+1. Widgets > Add widget > any kind. Scroll the options (Style, Colour, Content, Size, Tap, and "More options"): the preview and the tab row stay at the top, with a faint shadow, and "Add to home screen" stays at the bottom. The preview is at most about 35% of the screen height.
+2. Repeat from a launcher-started configure screen (long-press a placed widget > Reconfigure): preview pinned, Cancel / Done pinned.
+3. Rotate to landscape or use a tablet (width 600 dp or more): preview on the left, options on the right. Set the font size to the largest: tabs show icons only, nothing overflows. Open the keyboard or split-screen: the bottom bar stays reachable.
+4. Pin Last activity 4x2 with the Hero style: the system "Add to home screen" dialog shows the Hero layout, not the one-line layout. (Launchers that ignore the extra show the generated or static preview; the generated one must still be the full layout, not the one-liner.)
+5. Android 15+: open the widget picker and check the previews of the 33 providers (including Overnight HRV, Heart rate, Stress and Weekly mileage in all sizes): none is shown in its minimum-size, one-line layout.

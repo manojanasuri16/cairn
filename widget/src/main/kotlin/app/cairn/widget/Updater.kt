@@ -73,7 +73,7 @@ object WidgetPinner {
      * Asks the launcher to pin the provider variant whose default cell size is [size]. [config] (when given) is stored in a
      * pending-pin record that the new widget claims, so it appears configured. The success callback goes to [WidgetPinnedReceiver].
      */
-    fun pin(context: Context, kind: WidgetKind, size: WidgetSize, config: WidgetConfig?): Boolean {
+    fun pin(context: Context, kind: WidgetKind, size: WidgetSize, config: WidgetConfig?, preview: android.widget.RemoteViews? = null): Boolean {
         val mgr = AppWidgetManager.getInstance(context)
         if (!mgr.isRequestPinAppWidgetSupported) return false
         if (config != null) PendingPins(SharedPrefsPinKv(context)).put(PendingPin(kind, size, config, System.currentTimeMillis()))
@@ -82,6 +82,27 @@ object WidgetPinner {
             Intent(context, WidgetPinnedReceiver::class.java).putExtra(EXTRA_PIN_KIND, kind.name).putExtra(EXTRA_PIN_SIZE, size.name),
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_MUTABLE,
         )
-        return mgr.requestPinAppWidget(ComponentName(context, WidgetVariants.receiverClass(kind, size)), null, callback)
+        val provider = ComponentName(context, WidgetVariants.receiverClass(kind, size))
+        val extras = PinPreview.extras(preview)
+        // The preview is a hint: if the request with it fails for any reason, ask again without it.
+        if (extras != null) { val ok = runCatching { mgr.requestPinAppWidget(provider, extras, callback) }.getOrNull(); if (ok == true) return true }
+        return mgr.requestPinAppWidget(provider, null, callback)
+    }
+}
+
+/** Builds the extras for the pin request so the launcher's "Add to home screen" dialog shows the user's own configuration. */
+object PinPreview {
+    /** Stay well below the ~1 MB binder limit; Glance RemoteViews with bitmaps can be large. */
+    const val MAX_BYTES = 200_000
+
+    fun fits(bytes: Int): Boolean = bytes in 1..MAX_BYTES
+
+    fun extras(rv: android.widget.RemoteViews?): android.os.Bundle? {
+        if (rv == null) return null
+        return runCatching {
+            val p = android.os.Parcel.obtain()
+            val size = try { rv.writeToParcel(p, 0); p.dataSize() } finally { p.recycle() }
+            if (!fits(size)) null else android.os.Bundle().apply { putParcelable(AppWidgetManager.EXTRA_APPWIDGET_PREVIEW, rv) }
+        }.getOrNull()
     }
 }

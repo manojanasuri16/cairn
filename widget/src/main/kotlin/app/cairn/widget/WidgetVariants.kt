@@ -9,7 +9,16 @@ enum class WidgetSize(val label: String, val cells: String, val cw: Int, val ch:
     Wide("Wide", "4x2", 4, 2, DpSize(320.dp, 160.dp)),
     Large("Large", "4x3", 4, 3, DpSize(320.dp, 240.dp));
 
+    /** Launcher-reported size of this many cells: 70 dp per cell minus 30 dp (4x2 is 250 x 110 dp, within the provider's minimum). */
+    val cellDp: DpSize get() = DpSize(cellDpOf(cw).dp, cellDpOf(ch).dp)
+
+    /** Typical size a launcher gives a placed widget of this many cells (74 dp pitch minus 24 dp): 4x2 is 272 x 124 dp. Used for the pin dialog preview. */
+    val pinDp: DpSize get() = DpSize((74 * cw - 24).dp, (74 * ch - 24).dp)
+
     companion object {
+        fun cellDpOf(cells: Int): Int = 70 * cells - 30
+        /** Inverse estimate: how many cells a launcher thinks [dp] covers. */
+        fun cellsOf(dp: Float): Int = ((dp + 30f) / 70f).toInt().coerceAtLeast(1)
         fun parse(raw: String?): WidgetSize? = entries.firstOrNull { it.name == raw }
     }
 }
@@ -33,6 +42,9 @@ object WidgetVariants {
     /** Simple class name of the receiver whose default cell size is [size]. */
     fun receiverName(kind: WidgetKind, size: WidgetSize): String =
         if (size == defaultSize(kind)) original(kind) else "${kind.name}${size.name}WidgetReceiver"
+
+    /** Every provider receiver (11 kinds x 3 sizes = 33). */
+    fun allReceivers(): List<Class<*>> = WidgetKind.entries.flatMap { k -> WidgetSize.entries.map { receiverClass(k, it) } }.distinct()
 
     fun receiverClass(kind: WidgetKind, size: WidgetSize): Class<*> = when (receiverName(kind, size)) {
         "TodayWidgetReceiver" -> TodayWidgetReceiver::class.java

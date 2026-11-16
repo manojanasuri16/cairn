@@ -36,6 +36,12 @@ abstract class CairnWidget<T>(val kind: WidgetKind) : GlanceAppWidget() {
      */
     override val sizeMode: SizeMode = SizeMode.Responsive(WidgetSizes.dp(kind))
 
+    /**
+     * Generated previews (Android 15+) default to [SizeMode.Single], which composes at the provider's minimum size and turns e.g. the
+     * 4x2 Last activity into its one-line layout. Responsive holds every breakpoint, so the launcher draws the one that fits its cell.
+     */
+    override val previewSizeMode: androidx.glance.appwidget.PreviewSizeMode = SizeMode.Responsive(WidgetSizes.dp(kind))
+
     protected abstract fun flow(unit: DistanceUnit?): Flow<WidgetUi<T>>
 
     /** Synthetic data for previews. Never real values. */
@@ -137,6 +143,10 @@ object WidgetCatalog {
         WidgetKind.Overview -> DpSize(300.dp, 170.dp)
     }
 
+    /** The widget for the pin dialog: composed at the typical placed size of [size], so the launcher's own size estimate and layout match the placed widget. */
+    suspend fun pinPreviewViews(context: Context, kind: WidgetKind, cfg: ResolvedConfig, size: WidgetSize): RemoteViews =
+        previewViews(context, kind, cfg, size.pinDp)
+
     /** The widget exactly as the launcher will draw it, built from synthetic data; used for the live preview. */
     suspend fun previewViews(context: Context, kind: WidgetKind, cfg: ResolvedConfig, size: DpSize = previewSize(kind)): RemoteViews {
         val w = widget(kind)
@@ -151,15 +161,8 @@ object WidgetCatalog {
 suspend fun registerWidgetPreviews(context: Context) {
     if (android.os.Build.VERSION.SDK_INT < 35) return // generated previews are an Android 15+ API
     val mgr = GlanceAppWidgetManager(context)
-    runCatching { mgr.setWidgetPreviews(TodayWidgetReceiver::class) }
-    runCatching { mgr.setWidgetPreviews(RecoveryWidgetReceiver::class) }
-    runCatching { mgr.setWidgetPreviews(LastActivityWidgetReceiver::class) }
-    runCatching { mgr.setWidgetPreviews(TrainingLoadWidgetReceiver::class) }
-    runCatching { mgr.setWidgetPreviews(SleepWidgetReceiver::class) }
-    runCatching { mgr.setWidgetPreviews(FitnessWidgetReceiver::class) }
-    runCatching { mgr.setWidgetPreviews(OverviewWidgetReceiver::class) }
-    runCatching { mgr.setWidgetPreviews(HrvWidgetReceiver::class) }
-    runCatching { mgr.setWidgetPreviews(HeartRateWidgetReceiver::class) }
-    runCatching { mgr.setWidgetPreviews(StressWidgetReceiver::class) }
-    runCatching { mgr.setWidgetPreviews(WeeklyMileageWidgetReceiver::class) }
+    for (receiver in WidgetVariants.allReceivers()) {
+        @Suppress("UNCHECKED_CAST")
+        runCatching { mgr.setWidgetPreviews((receiver as Class<androidx.glance.appwidget.GlanceAppWidgetReceiver>).kotlin) }
+    }
 }

@@ -166,17 +166,17 @@ private fun ConfigScreen(graph: AppGraph, kind: WidgetKind, id: Int, onDone: (Wi
         if (cfg == null) return@Surface
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Text("${kind.label} widget", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs))
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                WidgetCustomizer(
-                    kind, cfg, { loaded = it }, appearance, size, { size = it },
-                    "This only changes the preview. Resize the widget on your home screen by long-pressing it.",
-                    tapTarget, { editTap = true }, appUnit = display.unit,
-                )
-            }
-            Row(Modifier.fillMaxWidth().padding(Spacing.md).navigationBarsPadding(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                Button(onClick = { onDone(cfg) }, modifier = Modifier.weight(1f)) { Text("Done") }
-            }
+            WidgetCustomizer(
+                kind, cfg, { loaded = it }, appearance, size, { size = it },
+                "This only changes the preview. Resize the widget on your home screen by long-pressing it.",
+                tapTarget, { editTap = true }, Modifier.weight(1f), appUnit = display.unit,
+                bottom = {
+                    Row(Modifier.fillMaxWidth().padding(Spacing.md).navigationBarsPadding(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                        Button(onClick = { onDone(cfg) }, modifier = Modifier.weight(1f)) { Text("Done") }
+                    }
+                },
+            )
         }
         if (editTap) TapTargetPickerDialog(kind, tapTarget, onSave = { t -> scope.launch { graph.appSettings.setTapTarget(kind, t) }; editTap = false }, onDismiss = { editTap = false })
     }

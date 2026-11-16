@@ -79,25 +79,29 @@ fun WidgetStudioScreen(initialKind: WidgetKind?, modifier: Modifier = Modifier) 
     var editTap by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val chosen = WidgetSize.parse(size) ?: WidgetSize.Wide
-    Column(modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            WidgetCustomizer(
-                kind, cfg, { cfg = it }, appearance, chosen, { size = it.name },
-                "Your launcher gets a ${WidgetVariants.pickerLabel(kind, chosen)} widget, so it lands at this size. You can still resize it later.",
-                tapTarget, { editTap = true }, appUnit = display.unit,
-            )
-        }
-        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error) }
-            Button(
-                onClick = {
-                    val ok = runCatching { WidgetPinner.pin(context, kind, chosen, cfg) }.getOrDefault(false)
-                    message = if (ok) null else "This launcher cannot add widgets from an app. Long-press your home screen, choose Widgets and pick ${WidgetVariants.pickerLabel(kind, chosen)}."
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Icon(AppIcons.Add, null, Modifier.padding(end = Spacing.xs)); Text("Add to home screen") }
-        }
-    }
+    WidgetCustomizer(
+        kind, cfg, { cfg = it }, appearance, chosen, { size = it.name },
+        "Your launcher gets a ${WidgetVariants.pickerLabel(kind, chosen)} widget, so it lands at this size. You can still resize it later.",
+        tapTarget, { editTap = true }, modifier.fillMaxSize(), appUnit = display.unit,
+        bottom = {
+            Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error) }
+                Button(
+                    onClick = {
+                        scope.launch {
+                            // The same RemoteViews the preview shows, so the system dialog matches. Any failure pins without it.
+                            val rv = runCatching {
+                                kotlinx.coroutines.withTimeoutOrNull(1_500) { WidgetCatalog.pinPreviewViews(context, kind, cfg.resolve(kind, appearance), chosen) }
+                            }.getOrNull()
+                            val ok = runCatching { WidgetPinner.pin(context, kind, chosen, cfg, rv) }.getOrDefault(false)
+                            message = if (ok) null else "This launcher cannot add widgets from an app. Long-press your home screen, choose Widgets and pick ${WidgetVariants.pickerLabel(kind, chosen)}."
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Icon(AppIcons.Add, null, Modifier.padding(end = Spacing.xs)); Text("Add to home screen") }
+            }
+        },
+    )
     if (editTap) TapTargetPickerDialog(kind, tapTarget, onSave = { t -> scope.launch { graph.appSettings.setTapTarget(kind, t) }; editTap = false }, onDismiss = { editTap = false })
 }
 
