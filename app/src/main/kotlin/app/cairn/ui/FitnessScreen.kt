@@ -30,15 +30,13 @@ import app.cairn.core.model.Freshness
 import app.cairn.widget.FooterUi
 
 @Composable
-fun FitnessScreen(onOpenAccount: () -> Unit, onAddWidget: (app.cairn.widget.WidgetKind) -> Unit, modifier: Modifier = Modifier, vm: FitnessViewModel = viewModel()) {
+fun FitnessScreen(onOpenAccount: () -> Unit, modifier: Modifier = Modifier, vm: FitnessViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
-    FitnessContent(state, onOpenAccount, modifier, onAddWidget, header = { SyncStatusBar(state.footer) })
+    FitnessContent(state, onOpenAccount, modifier, header = { SyncStatusBar(state.footer) })
 }
 
 @Composable
-fun FitnessContent(state: FitnessState, onOpenAccount: () -> Unit, modifier: Modifier = Modifier, onAddWidget: (app.cairn.widget.WidgetKind) -> Unit = {}, header: @Composable () -> Unit = {}) {
-    var sheet by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<app.cairn.widget.WidgetKind?>(null) }
-    sheet?.let { CardActionsSheet(it, onAddWidget, onDismiss = { sheet = null }) }
+fun FitnessContent(state: FitnessState, onOpenAccount: () -> Unit, modifier: Modifier = Modifier, header: @Composable () -> Unit = {}) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.md).padding(bottom = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         header()
         state.empty?.let { EmptyState(it, onOpenAccount) }
@@ -47,7 +45,7 @@ fun FitnessContent(state: FitnessState, onOpenAccount: () -> Unit, modifier: Mod
             val p = LocalCardColors.current
             val ratioValue = state.ratioValue
             val color = Color(when { ratioValue == null -> p.cool; ratioValue < 0.8 -> p.cool; ratioValue <= 1.3 -> p.good; ratioValue <= 1.5 -> p.warn; else -> p.bad })
-            SectionCard(onLongPress = { sheet = app.cairn.widget.WidgetKind.TrainingLoad }) {
+            SectionCard(card = CardId.FitTrainingStatus) {
                 SectionTitle("Training Status")
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     st.status?.let { Text(it, style = MaterialTheme.typography.headlineMedium) }
@@ -67,7 +65,7 @@ fun FitnessContent(state: FitnessState, onOpenAccount: () -> Unit, modifier: Mod
             }
         }
         state.running?.let { r ->
-            SectionCard(onLongPress = { sheet = app.cairn.widget.WidgetKind.Fitness }) {
+            SectionCard(card = CardId.FitRunning) {
                 SectionTitle("Running Fitness")
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProgressRing(r.fraction, r.description, size = 80.dp, stroke = 8.dp, color = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)) {}
@@ -82,9 +80,9 @@ fun FitnessContent(state: FitnessState, onOpenAccount: () -> Unit, modifier: Mod
         // Without a running level the other figures still show.
         if (state.running == null) {
             val level = listOfNotNull(state.vo2max?.let { MetricUi("VO2max", it) }, state.thresholdPace?.let { MetricUi("Threshold pace", it) })
-            if (level.isNotEmpty()) SectionCard { SectionTitle("Running Fitness"); level.forEach { MetricRow(it) } }
+            if (level.isNotEmpty()) SectionCard(card = CardId.FitVo2) { SectionTitle("Running Fitness"); level.forEach { MetricRow(it) } }
         }
-        if (state.predictions.isNotEmpty()) SectionCard { SectionTitle("Race Predictions"); AdaptiveTiles(state.predictions) }
+        if (state.predictions.isNotEmpty()) SectionCard(card = CardId.FitRacePredictions) { SectionTitle("Race Predictions"); AdaptiveTiles(state.predictions) }
     }
 }
 

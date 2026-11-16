@@ -7,8 +7,8 @@ import org.junit.Test
 
 class StudioAndShortcutsTest {
     @Test fun studioShortcutExtraLandsOnTheStudioRoute() {
-        assertEquals(Routes.STUDIO, Routes.forScreen("Studio"))
-        assertEquals(Routes.TODAY, Routes.forScreen("nonsense"))
+        assertEquals(Routes.WIDGETS, Routes.forScreen("Studio"))
+        assertEquals(Routes.WIDGETS, Routes.forScreen("nonsense"))
         assertEquals("Add widget", Routes.title(Routes.STUDIO))
     }
 

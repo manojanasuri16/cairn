@@ -263,11 +263,11 @@ fun WidgetCustomizer(
     }
 }
 
-private val PREVIEW_BACKDROP = Color(0xFF6B7280)
+internal val PREVIEW_BACKDROP = Color(0xFF6B7280)
 
 /** Lays [content] out at [w] x [h] dp but measures and draws it scaled down (never up) so it fits [maxW] x [maxH], keeping its aspect ratio. */
 @Composable
-private fun ScaledBox(w: Dp, h: Dp, maxW: Dp, maxH: Dp, content: @Composable () -> Unit) {
+internal fun ScaledBox(w: Dp, h: Dp, maxW: Dp, maxH: Dp, content: @Composable () -> Unit) {
     val s = EditorLayout.scale(w.value, h.value, maxW.value, maxH.value)
     Box(Modifier.size(w * s, h * s), contentAlignment = Alignment.TopStart) {
         Box(Modifier.requiredSize(w, h).graphicsLayer { scaleX = s; scaleY = s; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f) }) { content() }

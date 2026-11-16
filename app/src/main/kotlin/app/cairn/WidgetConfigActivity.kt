@@ -84,6 +84,11 @@ import kotlinx.coroutines.launch
  * (the real Glance widget, rendered from synthetic data) sits above the options and updates as you change them.
  */
 class WidgetConfigActivity : ComponentActivity() {
+    companion object {
+        /** Set by "Your widgets" > Edit: skip the just-pinned shortcuts and always show the editor. */
+        const val EXTRA_EDIT = "cairn.edit"
+    }
+
     /** Started a second time for the same widget (launcher and pin callback both asked): keep the one on screen. */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -105,8 +110,9 @@ class WidgetConfigActivity : ComponentActivity() {
         val pins = app.cairn.widget.PendingPins(app.cairn.widget.SharedPrefsPinKv(this))
         val nowMs = System.currentTimeMillis()
         val providerSize = app.cairn.widget.WidgetVariants.sizeOf(AppWidgetManager.getInstance(this).getAppWidgetInfo(id)?.provider?.className)
-        if (pins.wasClaimedRecently(id, nowMs)) { setResult(RESULT_OK, result); finish(); return }
-        pins.claim(kind, nowMs, providerSize)?.let { pin ->
+        val editing = intent?.getBooleanExtra(EXTRA_EDIT, false) == true
+        if (!editing && pins.wasClaimedRecently(id, nowMs)) { setResult(RESULT_OK, result); finish(); return }
+        (if (editing) null else pins.claim(kind, nowMs, providerSize))?.let { pin ->
             lifecycleScope.launch {
                 graph.appSettings.widgetSettings.save(id, pin.config)
                 graph.appSettings.widgetSettings.markConfigShown(id)

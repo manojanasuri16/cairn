@@ -74,8 +74,6 @@ class SettingsNav(
     val onFreshness: () -> Unit,
     val onAccount: () -> Unit,
     val onExplorer: () -> Unit = {},
-    val onAddWidget: () -> Unit = {},
-    val onTapTargets: () -> Unit = {},
     val onTools: () -> Unit = {},
 )
 
@@ -98,9 +96,6 @@ fun SettingsScreen(coros: CorosViewModel, nav: SettingsNav, modifier: Modifier =
         scope.launch { graph.nudgeSettings.setEnabled(ok) }
     }
     val look by graph.appSettings.look.collectAsStateWithLifecycle(initialValue = AppLook())
-    val appearance by graph.appSettings.widgetSettings.appearance.collectAsStateWithLifecycle(initialValue = AppAppearance())
-    val tapTargets by graph.appSettings.tapTargets.collectAsStateWithLifecycle(initialValue = emptyMap())
-    var editingTarget by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.deleted) { if (state.deleted) view.confirmHaptic() }
 
@@ -113,7 +108,6 @@ fun SettingsScreen(coros: CorosViewModel, nav: SettingsNav, modifier: Modifier =
         nudgeOn = nudgeOn,
         nudgeHours = nudgeHours,
         notifDenied = notifDenied,
-        widgetsSupported = remember { WidgetPinner.isSupported(context) },
         onGrantHc = { grant.launch(syncReadPermissions) },
         onCorosSignIn = { coros.signIn(context) },
         onCorosSignOut = { coros.signOut(); vm.refreshSources() },
@@ -127,26 +121,12 @@ fun SettingsScreen(coros: CorosViewModel, nav: SettingsNav, modifier: Modifier =
             else notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         },
         onNudgeHours = { scope.launch { graph.nudgeSettings.setThreshold(it) } },
-        onPin = { },
-        tapTargets = tapTargets,
-        onEditTapTarget = { editingTarget = it.name },
         nav = nav,
         onDeleteRequest = { confirmDelete = true },
         modifier = modifier,
         look = look,
         onLook = { scope.launch { graph.appSettings.setLook(it) } },
-        onWidgetStyle = { scope.launch { graph.appSettings.widgetSettings.setTheme(it) } },
-        appearance = appearance,
-        onAppearance = { b, o -> scope.launch { graph.appSettings.widgetSettings.setDefaultBackground(b, o) } },
     )
-    WidgetKind.parse(editingTarget)?.let { kind ->
-        TapTargetPickerDialog(
-            kind = kind,
-            current = tapTargets[kind] ?: TapTarget.CorosHome,
-            onSave = { t -> scope.launch { graph.appSettings.setTapTarget(kind, t) }; editingTarget = null },
-            onDismiss = { editingTarget = null },
-        )
-    }
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
@@ -182,7 +162,6 @@ fun SettingsContent(
     nudgeOn: Boolean,
     nudgeHours: Int,
     notifDenied: Boolean,
-    widgetsSupported: Boolean,
     onGrantHc: () -> Unit,
     onCorosSignIn: () -> Unit,
     onCorosSignOut: () -> Unit,
@@ -192,17 +171,11 @@ fun SettingsContent(
     onUnit: (DistanceUnit) -> Unit,
     onNudge: (Boolean) -> Unit,
     onNudgeHours: (Int) -> Unit,
-    onPin: (PinnableWidget) -> Unit,
-    tapTargets: Map<WidgetKind, TapTarget>,
-    onEditTapTarget: (WidgetKind) -> Unit,
     nav: SettingsNav,
     onDeleteRequest: () -> Unit,
     modifier: Modifier = Modifier,
     look: AppLook = AppLook(),
     onLook: (AppLook) -> Unit = {},
-    onWidgetStyle: (ThemeId) -> Unit = {},
-    appearance: AppAppearance = AppAppearance(),
-    onAppearance: (Bg, Int) -> Unit = { _, _ -> },
 ) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SettingsGroup(AppIcons.Palette, "Appearance", "Colours and light or dark mode for the app.") {
@@ -260,13 +233,6 @@ fun SettingsContent(
             ChoiceRow(DistanceUnit.entries, state.display.unit, { if (it == DistanceUnit.Km) "Kilometres" else "Miles" }, onUnit)
         }
 
-        SettingsGroup(AppIcons.Widgets, "Widgets", "Add a widget and choose how new ones look.") {
-            if (widgetsSupported) Button(onClick = nav.onAddWidget, modifier = Modifier.fillMaxWidth()) { Icon(AppIcons.Add, null, Modifier.padding(end = Spacing.xs)); Text("Add widget") }
-            else Text("Your launcher cannot add widgets from an app. Long-press the home screen and choose Widgets.", style = MaterialTheme.typography.bodySmall)
-            WidgetAppearanceCard(appearance, onWidgetStyle, onAppearance, framed = false)
-            LinkRow("Widget tap targets", "What opens when you tap each widget", nav.onTapTargets)
-        }
-
         SettingsGroup(AppIcons.Build, "Tools", "Diagnostics, data sources and tips.") {
             LinkRow("Open tools", "Sync diagnostics, data sources, keep data fresh", nav.onTools)
         }
@@ -319,7 +285,7 @@ fun ToolsScreen(nav: SettingsNav, modifier: Modifier = Modifier) {
             LinkRow("Data sources inspector", "What Cairn can read from Health Connect", nav.onInspector)
             LinkRow("Keep data fresh", "Open COROS and battery tips", nav.onFreshness)
             LinkRow("COROS account", "Sign in or out", nav.onAccount)
-            if (BuildConfig.DEBUG && ExplorerFeature.available) LinkRow("Tool explorer (debug)", "Call COROS tools by hand", nav.onExplorer)
+            if (BuildConfig.DEBUG && ExplorerFeature.available) LinkRow("Explorer (debug)", "Call COROS tools by hand", nav.onExplorer)
             if (BuildConfig.DEBUG && DemoFeature.available) DemoRow()
         }
     }

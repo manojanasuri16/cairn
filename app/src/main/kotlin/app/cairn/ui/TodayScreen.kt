@@ -20,6 +20,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.size
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -55,45 +59,47 @@ import app.cairn.widget.FooterUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TodayScreen(onOpenAccount: () -> Unit, onAddWidget: (WidgetKind) -> Unit, modifier: Modifier = Modifier, vm: TodayViewModel = viewModel(), sync: SyncStatusViewModel = viewModel()) {
+fun TodayScreen(onOpenAccount: () -> Unit, modifier: Modifier = Modifier, vm: TodayViewModel = viewModel(), sync: SyncStatusViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val syncUi by sync.ui.collectAsStateWithLifecycle()
     // Pull to refresh syncs right away (no 5 minute wait); progress and failures show in the header, not in a bottom toast.
+    val graph = (androidx.compose.ui.platform.LocalContext.current.applicationContext as app.cairn.CairnApp).graph
+    val hintSeen by graph.appSettings.cardHintSeen.collectAsStateWithLifecycle(initialValue = true)
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     PullToRefreshBox(isRefreshing = syncUi.syncing, onRefresh = sync::sync, modifier = modifier.fillMaxSize()) {
-        TodayContent(state, onOpenAccount, onAddWidget, header = { SyncStatusBar(state.footer) })
+        TodayContent(state, onOpenAccount, showHint = !hintSeen, onDismissHint = { scope.launch { graph.appSettings.setCardHintSeen() } }, header = { SyncStatusBar(state.footer) })
     }
 }
 
 @Composable
-fun TodayContent(state: TodayState, onOpenAccount: () -> Unit, onAddWidget: (WidgetKind) -> Unit = {}, header: @Composable () -> Unit = {}) {
-    var sheet by remember { mutableStateOf<WidgetKind?>(null) }
-    sheet?.let { CardActionsSheet(it, onAddWidget, onDismiss = { sheet = null }) }
+fun TodayContent(state: TodayState, onOpenAccount: () -> Unit, showHint: Boolean = false, onDismissHint: () -> Unit = {}, header: @Composable () -> Unit = {}) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.md).padding(bottom = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         header()
+        if (showHint && state.empty == null) CardHint(onDismissHint)
         state.empty?.let { EmptyState(it, onOpenAccount) }
         // The COROS Today order; cards without data are simply absent (no dead space).
         val order = TodayOrder.present(state)
         order.forEach { card ->
             when (card) {
-                TodayCard.Header -> HeaderRow(state.header) { sheet = WidgetKind.Today }
-                TodayCard.Activity -> state.todayActivity?.let { TodayActivityCard(it) { sheet = WidgetKind.LastActivity } }
+                TodayCard.Header -> HeaderRow(state.header)
+                TodayCard.Activity -> state.todayActivity?.let { TodayActivityCard(it) }
                 // Heart Rate, Resting HR and Stress are consecutive in COROS: one row of compact tiles.
                 TodayCard.HeartRate -> VitalTiles(state)
                 TodayCard.RestingHr -> if (TodayCard.HeartRate !in order) VitalTiles(state, first = card)
                 TodayCard.Stress -> if (TodayCard.HeartRate !in order && TodayCard.RestingHr !in order) VitalTiles(state, first = card)
-                TodayCard.Sleep -> state.sleep?.let { SleepCard(it) { sheet = WidgetKind.Sleep } }
+                TodayCard.Sleep -> state.sleep?.let { SleepCard(it) }
                 TodayCard.Hrv -> state.hrv?.let { HrvCard(it) }
-                TodayCard.WeeklyLoad -> state.weekly?.let { WeeklyLoadCard(it) { sheet = WidgetKind.TrainingLoad } }
-                TodayCard.TrainingStatus -> state.status?.let { TrainingStatusCard(it) { sheet = WidgetKind.TrainingLoad } }
-                TodayCard.Recovery -> state.recovery?.let { r -> RecoveryHero(r, state.recoveryLevel, state.timeToFull) { sheet = WidgetKind.Recovery } }
-                TodayCard.RunningFitness -> state.running?.let { RunningFitnessCard(it) { sheet = WidgetKind.Fitness } }
+                TodayCard.WeeklyLoad -> state.weekly?.let { WeeklyLoadCard(it) }
+                TodayCard.TrainingStatus -> state.status?.let { TrainingStatusCard(it) }
+                TodayCard.Recovery -> state.recovery?.let { r -> RecoveryHero(r, state.recoveryLevel, state.timeToFull) }
+                TodayCard.RunningFitness -> state.running?.let { RunningFitnessCard(it) }
             }
         }
         if (!state.loading) {
-            SectionCard {
+            SectionCard(card = CardId.Last7Days) {
                 SectionTitle("Last 7 days")
                 state.sparks.forEach { sp ->
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
@@ -111,8 +117,8 @@ fun TodayContent(state: TodayState, onOpenAccount: () -> Unit, onAddWidget: (Wid
 
 /** Steps, kcal and active minutes: equal thirds, each number centred over its unit. */
 @Composable
-private fun HeaderRow(stats: List<StatUi>, onLongPress: () -> Unit) {
-    SectionCard(onLongPress = onLongPress) {
+private fun HeaderRow(stats: List<StatUi>) {
+    SectionCard(card = CardId.TodayHeader) {
         Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = stats.joinToString(", ") { "${it.value} ${it.label}" } }) {
             stats.forEach { st ->
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -127,16 +133,16 @@ private fun HeaderRow(stats: List<StatUi>, onLongPress: () -> Unit) {
 /** Equal-width compact tiles: title, value with its unit on one baseline, a small caption. Height is content plus padding. */
 @Composable
 private fun VitalTiles(state: TodayState, first: TodayCard = TodayCard.HeartRate) {
-    data class Tile(val title: String, val value: String, val unit: String, val caption: String?, val description: String)
+    data class Tile(val card: CardId, val title: String, val value: String, val unit: String, val caption: String?, val description: String)
     val tiles = listOfNotNull(
-        state.heart?.takeIf { first == TodayCard.HeartRate }?.let { Tile("Heart Rate", it.value, it.unit, it.caption + (it.range?.let { r -> " \u00b7 $r" } ?: ""), it.description) },
-        state.resting?.let { Tile("Resting HR", it.value, it.unit, listOfNotNull(it.time, it.average).joinToString(" \u00b7 ").ifEmpty { null }, it.description) },
-        state.stress?.let { Tile("Stress", it.value, "", it.caption, it.description) },
+        state.heart?.takeIf { first == TodayCard.HeartRate }?.let { Tile(CardId.HeartRate, "Heart Rate", it.value, it.unit, it.caption + (it.range?.let { r -> " \u00b7 $r" } ?: ""), it.description) },
+        state.resting?.let { Tile(CardId.RestingHr, "Resting HR", it.value, it.unit, listOfNotNull(it.time, it.average).joinToString(" \u00b7 ").ifEmpty { null }, it.description) },
+        state.stress?.let { Tile(CardId.Stress, "Stress", it.value, "", it.caption, it.description) },
     )
     Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         tiles.forEach { t ->
             androidx.compose.material3.Card(Modifier.weight(1f).fillMaxHeight(), colors = cairnCardColors()) {
-                Column(Modifier.padding(Spacing.sm).semantics(mergeDescendants = true) { contentDescription = t.description }, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                Column(Modifier.fillMaxSize().widgetActions(t.card).padding(Spacing.sm).semantics(mergeDescendants = true) { contentDescription = t.description }, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                     Text(t.title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                         Text(t.value, style = MaterialTheme.typography.headlineMedium)
@@ -150,8 +156,8 @@ private fun VitalTiles(state: TodayState, first: TodayCard = TodayCard.HeartRate
 }
 
 @Composable
-private fun TodayActivityCard(a: TodayActivityUi, onLongPress: () -> Unit) {
-    SectionCard(onLongPress = onLongPress, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = a.description }) {
+private fun TodayActivityCard(a: TodayActivityUi) {
+    SectionCard(card = CardId.TodayActivity, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = a.description }) {
         SectionTitle("Today's Activity")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Text(a.sportGlyph, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.clearAndSetSemantics { })
@@ -168,7 +174,7 @@ private fun TodayActivityCard(a: TodayActivityUi, onLongPress: () -> Unit) {
 
 @Composable
 private fun HrvCard(h: HrvUi) {
-    SectionCard(modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = h.description }) {
+    SectionCard(card = CardId.Hrv, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = h.description }) {
         SectionTitle("Overnight HRV")
         h.assessment?.let { Text(it, style = MaterialTheme.typography.headlineMedium) }
         Text(h.average, style = MaterialTheme.typography.titleMedium)
@@ -178,8 +184,8 @@ private fun HrvCard(h: HrvUi) {
 
 /** Big 7-day load and the Monday to Sunday mini bars. */
 @Composable
-private fun WeeklyLoadCard(w: WeeklyLoadUi, onLongPress: () -> Unit) {
-    SectionCard(onLongPress = onLongPress, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = w.description }) {
+private fun WeeklyLoadCard(w: WeeklyLoadUi) {
+    SectionCard(card = CardId.WeeklyLoad, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = w.description }) {
         SectionTitle("Weekly Training Load")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text(w.total, style = MaterialTheme.typography.headlineLarge)
@@ -200,8 +206,8 @@ private fun WeeklyLoadCard(w: WeeklyLoadUi, onLongPress: () -> Unit) {
 }
 
 @Composable
-private fun TrainingStatusCard(t: TrainingStatusUi, onLongPress: () -> Unit) {
-    SectionCard(onLongPress = onLongPress, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = t.description }) {
+private fun TrainingStatusCard(t: TrainingStatusUi) {
+    SectionCard(card = CardId.TrainingStatus, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = t.description }) {
         SectionTitle("Training Status")
         t.status?.let { Text(it, style = MaterialTheme.typography.headlineMedium) }
         listOfNotNull(
@@ -212,8 +218,8 @@ private fun TrainingStatusCard(t: TrainingStatusUi, onLongPress: () -> Unit) {
 }
 
 @Composable
-private fun RunningFitnessCard(r: RunningFitnessUi, onLongPress: () -> Unit) {
-    SectionCard(onLongPress = onLongPress, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = r.description }) {
+private fun RunningFitnessCard(r: RunningFitnessUi) {
+    SectionCard(card = CardId.RunningFitness, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = r.description }) {
         SectionTitle("Running Fitness")
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             ProgressRing(r.fraction, "", size = 80.dp, stroke = 8.dp, color = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)) {}
@@ -227,10 +233,10 @@ private fun RunningFitnessCard(r: RunningFitnessUi, onLongPress: () -> Unit) {
 
 /** Recovery stays the one hero card of the screen; it sits where COROS puts it. */
 @Composable
-private fun RecoveryHero(r: RingUi, level: String?, timeToFull: String?, onLongPress: () -> Unit) {
+private fun RecoveryHero(r: RingUi, level: String?, timeToFull: String?) {
     val p = LocalCairnPalette.current
     val color = Color(p.recovery((r.fraction * 100).roundToInt()))
-    HeroCard(onLongPress = onLongPress) {
+    HeroCard(card = CardId.Recovery) {
         SectionTitle("Recovery", onHero = true)
         // The ring fills the card: about 70 percent of its width, never above 240 dp, so no dead bands left and right.
         BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -248,8 +254,8 @@ private fun RecoveryHero(r: RingUi, level: String?, timeToFull: String?, onLongP
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SleepCard(s: SleepUi, onLongPress: () -> Unit) {
-    SectionCard(onLongPress = onLongPress, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = s.description }) {
+private fun SleepCard(s: SleepUi) {
+    SectionCard(card = CardId.Sleep, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = s.description }) {
         SectionTitle("Sleep")
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xxs), itemVerticalAlignment = Alignment.Bottom) {
             s.scoreText?.let { Text(it, style = MaterialTheme.typography.headlineLarge) }
@@ -302,4 +308,16 @@ object HeroFit {
     const val MAX_DP = 240f
     const val MIN_DP = 120f
     fun ringSize(contentWidthDp: Float): Float = (contentWidthDp * 0.7f).coerceIn(MIN_DP, MAX_DP).coerceAtMost(contentWidthDp.coerceAtLeast(MIN_DP))
+}
+
+/** One-time tip: how to turn any card into a widget. Gone for good once dismissed or after the first long press. */
+@Composable
+private fun CardHint(onDismiss: () -> Unit) {
+    androidx.compose.material3.Card(Modifier.fillMaxWidth(), colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) {
+        Row(Modifier.padding(start = Spacing.md, top = Spacing.xs, bottom = Spacing.xs, end = Spacing.xs), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Icon(AppIcons.Widgets, null, Modifier.size(20.dp))
+            Text("Tip: press and hold any card to add it as a widget", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            IconButton(onClick = onDismiss) { Icon(AppIcons.Close, contentDescription = "Dismiss tip") }
+        }
+    }
 }

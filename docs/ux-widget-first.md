@@ -1,6 +1,6 @@
 # Cairn: widget-first UX, fixes and update notice
 
-Status: design, not yet implemented. Written 2026-11-16 against `main` at `599e6bb` (Cairn 1.4.0).
+Status: packages A, B and C2 (items 4 and 5) implemented; D (update notice) is separate. Written 2026-11-16 against `main` at `599e6bb` (Cairn 1.4.0).
 Scope: the owner's seven points from real use. Each has a decision; each bug has a root cause with file and line.
 Work is split into four packages (A to D). Each one builds and ships on its own, in order.
 

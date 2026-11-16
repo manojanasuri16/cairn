@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import app.cairn.source.corosmcp.RegionPolicy
@@ -41,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import app.cairn.source.corosmcp.Region
 
 @Composable
-fun CorosAccountScreen(vm: CorosViewModel, modifier: Modifier = Modifier) {
+fun CorosAccountScreen(vm: CorosViewModel, modifier: Modifier = Modifier, autoSignIn: Boolean = false, onDone: () -> Unit = {}) {
     val s by vm.state.collectAsState()
     val context = LocalContext.current
     // Tell the coordinator when we are back in front (drives the gentle "no result yet" hint).
@@ -54,6 +55,11 @@ fun CorosAccountScreen(vm: CorosViewModel, modifier: Modifier = Modifier) {
         if (needs) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) else vm.signInLocal()
     }
     val flow = s.signIn
+    // Opened from the banner's "Sign in": start the attempt once, only when signed out and nothing is running.
+    var autoStarted by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(autoSignIn) {
+        if (autoSignIn && !autoStarted && !s.signedIn && SignInMachine.startEnabled(flow)) { autoStarted = true; vm.signIn(context) }
+    }
     Column(
         modifier.padding(16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -108,26 +114,9 @@ fun CorosAccountScreen(vm: CorosViewModel, modifier: Modifier = Modifier) {
                 OutlinedButton(onClick = { vm.signInDeviceCode(context) }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Sign in with device code") }
             }
         } else {
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Done") }
             OutlinedButton(onClick = vm::signOut, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }
-            Button(onClick = vm::listTools, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("List tools") }
-            val callable = if (s.tools.isEmpty()) emptyList() else s.tools.filter { it in INTERESTING_TOOLS }.ifEmpty { s.tools }
-            if (s.tools.isNotEmpty()) Text("Tools: " + s.tools.joinToString(", "), style = MaterialTheme.typography.bodySmall)
-            callable.forEach { t ->
-                OutlinedButton(onClick = { vm.call(t) }, enabled = !s.busy, modifier = Modifier.fillMaxWidth()) { Text("Call $t") }
-            }
-            s.shape?.let { (tool, shape) ->
-                Text("Shape of $tool", style = MaterialTheme.typography.titleSmall)
-                Text(shape, style = MaterialTheme.typography.bodySmall)
-            }
-            if (s.canCopy) {
-                Button(onClick = {
-                    vm.redactedSample()?.let {
-                        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        cm.setPrimaryClip(ClipData.newPlainText("redacted sample", it))
-                        Toast.makeText(context, "Copied. Review before sharing.", Toast.LENGTH_SHORT).show()
-                    }
-                }, modifier = Modifier.fillMaxWidth()) { Text("Copy redacted sample") }
-            }
+            if (BuildConfig.DEBUG) DevTools.Section(s, vm)
         }
         SignInDiagLines(s.diag)
     }

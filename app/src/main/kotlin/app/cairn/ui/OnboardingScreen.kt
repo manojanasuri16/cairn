@@ -121,13 +121,11 @@ fun OnboardingScreen(coros: CorosViewModel, modifier: Modifier = Modifier, vm: O
                             }
                         }
                         else -> {
-                            Text("Keep it fresh, then add a widget", style = MaterialTheme.typography.headlineMedium)
+                            Text("Keep it fresh, then add your first widget", style = MaterialTheme.typography.headlineMedium)
                             if (choice.useCoros) CorosBackgroundSummary()
-                            if (WidgetPinner.isSupported(context)) SectionCard {
+                            SectionCard {
                                 Text("Home screen widget", style = MaterialTheme.typography.titleMedium)
-                                OutlinedButton(onClick = { WidgetPinner.pin(context, PinnableWidget.entries.first()) }, modifier = Modifier.fillMaxWidth()) {
-                                    Text("Add ${PinnableWidget.entries.first().label} widget")
-                                }
+                                Text("Next you see every widget with a live preview. Pick one, make it yours and add it to your home screen.", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
@@ -135,7 +133,7 @@ fun OnboardingScreen(coros: CorosViewModel, modifier: Modifier = Modifier, vm: O
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.End)) {
                 if (step > 0) TextButton(onClick = { step -= 1 }) { Text("Back") }
-                Button(onClick = { if (step < STEPS - 1) step += 1 else vm.finish() }) { Text(if (step < STEPS - 1) "Continue" else "Finish setup") }
+                Button(onClick = { if (step < STEPS - 1) step += 1 else vm.finish() }) { Text(if (step < STEPS - 1) "Continue" else "Choose a widget") }
             }
         }
     }

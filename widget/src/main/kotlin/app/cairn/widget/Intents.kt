@@ -6,6 +6,8 @@ import android.net.Uri
 
 const val COROS_PACKAGE = "com.yf.smart.coros.dist"
 const val EXTRA_SCREEN = "cairn.screen"
+/** Set with [Screen.Home] after a successful sign-in, so the app shows a one-time "Signed in" confirmation. */
+const val EXTRA_SIGNED_IN = "cairn.signed_in"
 
 fun cairnIntent(context: Context, screen: Screen): Intent =
     Intent(Intent.ACTION_MAIN).setClassName(context.packageName, "app.cairn.MainActivity")

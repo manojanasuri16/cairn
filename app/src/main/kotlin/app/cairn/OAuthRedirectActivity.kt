@@ -27,6 +27,7 @@ import app.cairn.source.corosmcp.RegionPolicy
 import app.cairn.source.corosmcp.SignInMethod
 import app.cairn.source.corosmcp.SignInState
 import app.cairn.widget.EXTRA_SCREEN
+import app.cairn.widget.EXTRA_SIGNED_IN
 import app.cairn.widget.Screen
 
 /**
@@ -41,7 +42,7 @@ class OAuthRedirectActivity : ComponentActivity() {
         if (savedInstanceState == null) graph.signIn.handleRedirect(intent?.dataString)
         setContent {
             CairnTheme {
-                Surface(Modifier.fillMaxSize()) { RedirectBody(onOpenApp = ::openAccount, onRestart = ::restart) }
+                Surface(Modifier.fillMaxSize()) { RedirectBody(onOpenApp = ::openApp, onRestart = ::restart) }
             }
         }
     }
@@ -52,11 +53,13 @@ class OAuthRedirectActivity : ComponentActivity() {
         graph.signIn.handleRedirect(intent.dataString)
     }
 
-    private fun openAccount() {
+    /** Signed in: land on the Widgets home with a one-time confirmation. Otherwise (Back to Cairn after a failure): the account screen, on top of the home. */
+    private fun openApp(signedIn: Boolean) {
         startActivity(
             Intent(this, MainActivity::class.java)
-                .putExtra(EXTRA_SCREEN, Screen.Account.name)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                .putExtra(EXTRA_SCREEN, if (signedIn) Screen.Home.name else Screen.Account.name)
+                .putExtra(EXTRA_SIGNED_IN, signedIn)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
         )
         finish()
     }
@@ -67,9 +70,9 @@ class OAuthRedirectActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun RedirectBody(onOpenApp: () -> Unit, onRestart: () -> Unit) {
+    private fun RedirectBody(onOpenApp: (Boolean) -> Unit, onRestart: () -> Unit) {
         val s by graph.signIn.state.collectAsState()
-        LaunchedEffect(s) { if (s is SignInState.SignedIn) onOpenApp() }
+        LaunchedEffect(s) { if (s is SignInState.SignedIn) onOpenApp(true) }
         Column(
             Modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
@@ -79,7 +82,7 @@ class OAuthRedirectActivity : ComponentActivity() {
                 is SignInState.Failed -> {
                     Text(st.reason.message, style = MaterialTheme.typography.titleMedium)
                     Button(onClick = onRestart) { Text(if (st.reason == FailureReason.EXPIRED) "Sign in" else "Try again") }
-                    TextButton(onClick = onOpenApp) { Text("Back to Cairn") }
+                    TextButton(onClick = { onOpenApp(false) }) { Text("Back to Cairn") }
                 }
                 else -> {
                     CircularProgressIndicator()

@@ -65,8 +65,8 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, onHero: Boolean = 
 
 /** The one hero per screen: a vivid gradient card, content in the palette's ink. */
 @Composable
-fun HeroCard(modifier: Modifier = Modifier, onLongPress: (() -> Unit)? = null, content: @Composable () -> Unit) {
-    HeroSurface(if (onLongPress != null) modifier.onLongPress("Card options", onLongPress) else modifier) { Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() } }
+fun HeroCard(modifier: Modifier = Modifier, card: CardId? = null, content: @Composable () -> Unit) {
+    HeroSurface(if (card != null) modifier.widgetActions(card) else modifier) { Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() } }
 }
 
 /** Solid semantic pill (level words stay in the text). */
@@ -87,9 +87,10 @@ fun LegendItem(color: Color, text: String, textColor: Color = MaterialTheme.colo
 }
 
 @Composable
-fun SectionCard(modifier: Modifier = Modifier, onLongPress: (() -> Unit)? = null, content: @Composable () -> Unit) {
-    Card((if (onLongPress != null) modifier.onLongPress("Card options", onLongPress) else modifier).fillMaxWidth(), colors = cairnCardColors()) {
-        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() }
+fun SectionCard(modifier: Modifier = Modifier, card: CardId? = null, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
+    Card(modifier.fillMaxWidth(), colors = cairnCardColors()) {
+        // The gesture sits inside the card (before the padding) so the press ripple is clipped to the card's rounded corners.
+        Column((if (card != null) Modifier.fillMaxWidth().widgetActions(card, onClick) else Modifier.fillMaxWidth()).padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() }
     }
 }
 

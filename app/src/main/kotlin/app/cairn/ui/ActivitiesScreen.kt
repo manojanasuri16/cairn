@@ -72,7 +72,7 @@ fun ActivitiesContent(state: ActivitiesState, onOpenAccount: () -> Unit, modifie
         // Material's sheet tracks the finger 1:1 and can be grabbed again mid-animation; it settles with its own spring.
         ModalBottomSheet(onDismissRequest = { selectedId = null }, sheetState = rememberModalBottomSheetState()) {
             Column(
-                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = Spacing.md).padding(bottom = Spacing.lg),
+                Modifier.fillMaxWidth().widgetActions(CardId.ActivityRow).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = Spacing.md).padding(bottom = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 Text(selected.sport, style = MaterialTheme.typography.headlineSmall)
@@ -87,7 +87,7 @@ fun ActivitiesContent(state: ActivitiesState, onOpenAccount: () -> Unit, modifie
 @Composable
 private fun MonthHeader(m: MonthUi) {
     FlowRow(
-        Modifier.fillMaxWidth().padding(top = Spacing.sm).semantics(mergeDescendants = true) { heading(); contentDescription = "${m.title}. ${m.distance}, ${m.count}, ${m.hours}" },
+        Modifier.fillMaxWidth().widgetActions(CardId.ActivitiesMonth).padding(top = Spacing.sm).semantics(mergeDescendants = true) { heading(); contentDescription = "${m.title}. ${m.distance}, ${m.count}, ${m.hours}" },
         horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xxs), itemVerticalAlignment = Alignment.Bottom,
     ) {
         Text(m.title, style = MaterialTheme.typography.titleLarge)
@@ -101,8 +101,8 @@ private fun MonthHeader(m: MonthUi) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ActivityRow(row: ActivityRowUi, onClick: () -> Unit) {
-    Card(colors = cairnCardColors(), modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Show details", onClick = onClick).semantics(mergeDescendants = true) { contentDescription = row.description }) {
-        Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
+    Card(colors = cairnCardColors(), modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = row.description }) {
+        Row(Modifier.fillMaxWidth().widgetActions(CardId.ActivityRow, onClick, "Show details").padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.defaultMinSize(minWidth = 40.dp, minHeight = 40.dp).clearAndSetSemantics { }) {
                 Box(contentAlignment = Alignment.Center) { Text(row.glyph, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer) }
             }

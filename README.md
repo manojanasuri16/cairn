@@ -67,11 +67,12 @@ Cairn reads from COROS's official MCP server (and optionally Health Connect), ca
 
 **The app**
 
-- Screens: Today, Activities, Fitness, Settings and Diagnostics.
+- Widget-first: the home tab is **Widgets**, a gallery of every widget with a live preview, plus a "Your widgets" list (with Edit) for the ones already on your home screen. The menu there holds the default look and the tap targets. Then Today, Activities and Fitness; Settings is in the top bar.
+- Press and hold any card (Recovery, Sleep, a run, a month header...) to add that widget to your home screen or open COROS.
 - Named and ordered like the COROS app (see below).
 - Manual sync any time, or automatic refresh every 5, 15, 30 or 60 minutes (default 30).
 - Health Connect as a read-only fallback source.
-- App icon shortcuts for adding a widget and opening COROS.
+- App icon shortcuts for adding a widget and opening COROS. After you sign in, Cairn takes you back to the Widgets home.
 - Units in km or miles, light, dark or system mode, optional Material You, TalkBack labels and large-font support.
 
 ## Reads like COROS
@@ -102,7 +103,7 @@ To keep things fresh:
 
 ## Troubleshooting
 
-- **Sign-in stuck:** tap the button on the COROS page, or open the COROS account screen from Settings and try the local method or the device code.
+- **Sign-in stuck:** tap the button on the COROS page, or open the COROS account screen from Settings (or the Sign in button on the sync banner) and try the local method or the device code.
 - **A widget shows "Loading" or looks old:** tap its sync button, or remove and re-add it. Cairn refreshes all widgets after an update.
 - **Numbers look old:** see "How fresh is the data?" above.
 

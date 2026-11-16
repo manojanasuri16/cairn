@@ -25,12 +25,17 @@ private val AGING = intPreferencesKey("display_aging_hours")
 private val ACCENT = stringPreferencesKey("app_accent")
 private val MODE = stringPreferencesKey("app_theme_mode")
 private val DYNAMIC = booleanPreferencesKey("app_dynamic")
+private val CARD_HINT_SEEN = booleanPreferencesKey("hint_card_widgets_seen")
 private val ONBOARDED = booleanPreferencesKey("onboarding_done")
 
 /** App display preferences and the one-time onboarding flag, in the same app-private DataStore as the sync settings. No health values. */
 class AppSettings(private val ds: DataStore<Preferences>) {
     val display: Flow<DisplayPrefs> = ds.data.map { DisplayPrefs.of(it[UNIT], it[FRESH], it[AGING]) }
     val onboardingDone: Flow<Boolean> = ds.data.map { it[ONBOARDED] ?: false }
+
+    /** The one-time "press and hold any card" tip on Today; set when dismissed or after the first long press. */
+    val cardHintSeen: Flow<Boolean> = ds.data.map { it[CARD_HINT_SEEN] ?: false }
+    suspend fun setCardHintSeen() { ds.edit { it[CARD_HINT_SEEN] = true } }
 
     /** Where each widget's body tap goes; widgets without a stored choice use [TapTargets.default]. */
     fun tapTarget(kind: WidgetKind): Flow<TapTarget> = ds.data.map { TapTargets.decode(it[stringPreferencesKey(TapTargets.storageKey(kind))], kind) }

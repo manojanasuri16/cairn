@@ -107,3 +107,14 @@ Manual checks on a device or emulator:
 3. Rotate to landscape or use a tablet (width 600 dp or more): preview on the left, options on the right. Set the font size to the largest: tabs show icons only, nothing overflows. Open the keyboard or split-screen: the bottom bar stays reachable.
 4. Pin Last activity 4x2 with the Hero style: the system "Add to home screen" dialog shows the Hero layout, not the one-line layout. (Launchers that ignore the extra show the generated or static preview; the generated one must still be the full layout, not the one-liner.)
 5. Android 15+: open the widget picker and check the previews of the 33 providers (including Overnight HRV, Heart rate, Stress and Weekly mileage in all sizes): none is shown in its minimum-size, one-line layout.
+
+## Widget-first home, Settings cleanup, long-press (package B) and sign-in navigation (package C2)
+
+- [ ] First launch: onboarding step 3 ends with "Choose a widget" and lands on the Widgets tab (gallery, "Add your first widget" empty state). Bottom bar: Widgets, Today, Activities, Fitness; Settings gear in the top bar.
+- [ ] Gallery: 11 cards with live previews in your default look, size chips 2x2/4x2/4x3 change the preview; tapping a card opens the sticky editor with that size. Menu: Default look (style, background, opacity) and Tap targets.
+- [ ] Place two widgets, return to Widgets: "Your widgets" lists both (kind, size, style); Edit opens the configure screen for that widget; Done returns. Remove one on the home screen; it disappears from the list on return.
+- [ ] Settings has no Widgets group (Appearance, Sync, Sources, COROS account, Notifications, Units, Tools, About, Your data).
+- [ ] Long-press every card (Today header, Today's Activity, Heart Rate / Resting HR / Stress tiles, Sleep, HRV, Weekly load, Training status, Recovery, Running fitness, Last 7 days; Activities month header, a row, the details sheet; Fitness training status, running fitness, race predictions): haptic, then "Add to home screen" opens the editor preset to that widget and style; "Open in COROS" works. A plain tap on a row still opens its details.
+- [ ] One-time Today tip "press and hold any card": dismiss with X, or it disappears after the first long press; it does not return after restarting the app.
+- [ ] Signed out: sync banner shows "Sign in" (no Retry) and opens the COROS account screen, which starts sign-in. After signing in (in-app, and via the browser redirect) the app lands on Widgets with "Signed in to COROS" once, the stale banner is gone, and Back leaves the app (no account screen left). The account screen shows a "Done" button when signed in. A network error still offers Retry.
+

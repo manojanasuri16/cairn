@@ -1,7 +1,6 @@
 package app.cairn.ui
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,31 +18,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.onLongClick
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.cairn.core.designsystem.Spacing
 import app.cairn.openCorosAndRefresh
-import app.cairn.widget.WidgetKind
 
-/** Long press without touching normal taps or scrolling; TalkBack gets a custom action with the same label. */
-fun Modifier.onLongPress(label: String, action: () -> Unit): Modifier =
-    pointerInput(action) { detectTapGestures(onLongPress = { action() }) }
-        .semantics { onLongClick(label) { action(); true } }
-
-/** What a long press on a hero card offers: put that widget on the home screen, or open COROS (which also schedules a refresh). */
+/** What a long press on a card offers: put that widget on the home screen (preset to the card's style), or open COROS (which also schedules a refresh). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CardActionsSheet(kind: WidgetKind, onAddToHome: (WidgetKind) -> Unit, onDismiss: () -> Unit) {
+fun CardActionsSheet(link: WidgetLink, onAddToHome: (WidgetLink) -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = Spacing.lg)) {
-            Text(kind.label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs))
-            ActionRow(AppIcons.Add, "Add to home screen", "Choose its size and look, then place it") { onDismiss(); onAddToHome(kind) }
-            ActionRow(AppIcons.Open, "Open COROS", "Cairn refreshes shortly after") { onDismiss(); openCorosAndRefresh(context) }
+            Text(link.kind.label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs))
+            ActionRow(AppIcons.Add, "Add to home screen", "Choose its size and look, then place it") { onDismiss(); onAddToHome(link) }
+            ActionRow(AppIcons.Open, "Open in COROS", "Cairn refreshes shortly after") { onDismiss(); openCorosAndRefresh(context) }
         }
     }
 }

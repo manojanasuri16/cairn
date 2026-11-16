@@ -41,40 +41,22 @@ import app.cairn.widget.WidgetSize
 import app.cairn.widget.WidgetVariants
 import kotlinx.coroutines.launch
 
-private fun blurb(k: WidgetKind) = when (k) {
-    WidgetKind.Today -> "Steps, sleep, resting heart rate and recovery"
-    WidgetKind.Recovery -> "How recovered you are, and when you will be full"
-    WidgetKind.LastActivity -> "Your latest workout at a glance"
-    WidgetKind.TrainingLoad -> "A week of load, your ratio and VO2max"
-    WidgetKind.Sleep -> "How long you slept, your score and stages"
-    WidgetKind.Fitness -> "VO2max, threshold pace and race predictions"
-    WidgetKind.Overview -> "Up to six of your stats in one grid"
-    WidgetKind.Hrv -> "Last night's HRV, its assessment and normal range"
-    WidgetKind.HeartRate -> "Resting heart rate, 7-day average, min and max"
-    WidgetKind.Stress -> "Today's stress level and a week of bars"
-    WidgetKind.WeeklyMileage -> "Distance this week, Monday to Sunday, and a goal ring"
-}
-
 /**
- * Add widget: choose a widget, customise it with a live preview at its real size, then "Add to home screen". The choices are
+ * Customise a widget (chosen on the Widgets home or from a card's long-press sheet), see it live with a live preview at its real size, then "Add to home screen". The choices are
  * stored in a pending-pin record and the launcher is asked for the provider variant whose default size matches, so the widget
  * lands already configured at that size.
  */
 @Composable
-fun WidgetStudioScreen(initialKind: WidgetKind?, modifier: Modifier = Modifier) {
+fun WidgetStudioScreen(kind: WidgetKind, initialStyle: app.cairn.widget.WidgetStyle?, initialSize: WidgetSize?, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val graph = (context.applicationContext as CairnApp).graph
     val settings = graph.appSettings.widgetSettings
-    var kindName by rememberSaveable { mutableStateOf(initialKind?.name) }
-    val kind = WidgetKind.parse(kindName)
-    BackHandler(enabled = kind != null && initialKind == null) { kindName = null }
-    if (kind == null) { Chooser(modifier) { kindName = it.name }; return }
 
     val appearance by settings.appearance.collectAsStateWithLifecycle(initialValue = AppAppearance())
     val display by graph.appSettings.display.collectAsStateWithLifecycle(initialValue = app.cairn.core.model.DisplayPrefs())
     val tapTarget by graph.appSettings.tapTarget(kind).collectAsStateWithLifecycle(initialValue = TapTarget.CorosHome)
-    var cfg by remember(kind) { mutableStateOf(WidgetConfig()) }
-    var size by rememberSaveable(kind) { mutableStateOf(WidgetVariants.suggested(kind).name) }
+    var cfg by remember(kind, initialStyle) { mutableStateOf(WidgetConfig(style = initialStyle?.takeIf { it.kind == kind })) }
+    var size by rememberSaveable(kind) { mutableStateOf((initialSize ?: WidgetVariants.suggested(kind)).name) }
     var message by remember { mutableStateOf<String?>(null) }
     var editTap by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -103,24 +85,4 @@ fun WidgetStudioScreen(initialKind: WidgetKind?, modifier: Modifier = Modifier) 
         },
     )
     if (editTap) TapTargetPickerDialog(kind, tapTarget, onSave = { t -> scope.launch { graph.appSettings.setTapTarget(kind, t) }; editTap = false }, onDismiss = { editTap = false })
-}
-
-@Composable
-private fun Chooser(modifier: Modifier, onPick: (WidgetKind) -> Unit) {
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text("Choose a widget", style = MaterialTheme.typography.titleMedium)
-        Text("You will pick its size and look next, with a live preview.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        WidgetKind.entries.forEach { k ->
-            Card(Modifier.fillMaxWidth().clickable(role = Role.Button) { onPick(k) }, colors = cairnCardColors()) {
-                Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    Icon(AppIcons.Widgets, null, Modifier.padding(2.dp), tint = MaterialTheme.colorScheme.primary)
-                    Column(Modifier.weight(1f)) {
-                        Text(k.label, style = MaterialTheme.typography.titleMedium)
-                        Text(blurb(k), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Icon(AppIcons.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
 }
