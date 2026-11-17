@@ -44,6 +44,11 @@ object WidgetLooks {
         cfg.theme == it.theme && cfg.bg == it.bg && cfg.opacity == it.opacity && cfg.corners == it.corners && cfg.accent == it.accent
     }
 
+    /** Same, judged on what the widget actually shows (unset choices inherit the app's defaults). */
+    fun ofResolved(r: app.cairn.widget.ResolvedConfig): WidgetLook? = curated.firstOrNull {
+        r.theme == it.theme && r.bg == it.bg && r.opacity == it.opacity && r.corners == it.corners && r.accent == it.accent
+    }
+
     /** A random look that is not [current] and not Glass (it depends on the wallpaper). */
     fun surprise(current: WidgetLook?, random: Random): WidgetLook =
         (curated + extras).filter { it.id != "glass" && it.id != current?.id }.let { it[random.nextInt(it.size)] }

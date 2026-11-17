@@ -331,7 +331,7 @@ private fun QuickPanel(
     note: String?, confirm: String?, setConfirm: (String?) -> Unit, canUndoAll: Boolean,
     onApplyAll: (WidgetLook) -> Unit, onUndoAll: () -> Unit, canApplyAll: Boolean,
 ) {
-    val current = WidgetLooks.of(cfg)
+    val current = WidgetLooks.ofResolved(cfg.resolve(kind, appearance))
     val random = remember { kotlin.random.Random(System.nanoTime()) }
     Column(Modifier.padding(horizontal = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Look", style = MaterialTheme.typography.titleSmall)
@@ -354,7 +354,7 @@ private fun QuickPanel(
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
             ) { Text("🎲", style = MaterialTheme.typography.headlineSmall); Text("Surprise me", style = MaterialTheme.typography.labelMedium) }
         }
-        if (current == null) Text("Custom look", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (current == null && (cfg.theme != null || cfg.bg != null || cfg.opacity != null || cfg.corners != Corners.System || cfg.accent != AccentOption.Theme)) Text("Custom look", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (current?.id == "glass") Text("Best on a calm wallpaper.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         val styles = WidgetStyle.forKind(kind)
