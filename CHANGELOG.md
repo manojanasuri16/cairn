@@ -9,7 +9,14 @@
 
 All notable changes to Cairn are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [1.6.0] - 2026-11-17
+
+### Added
+- Quick mode in the widget editor: pick one of seven ready-made looks (Paper, Minimal, Dusk, Forest, Sunrise, Deep ocean, Glass) and a layout from live thumbnails, choose the size, or tap Surprise me. "Apply this look to all my widgets" and Undo are one tap away. The detailed controls are behind an Advanced switch.
+
+### Changed
+- The editor preview sits on a theme-aware stage, so dark widgets stand out in dark mode.
+- Look and layout thumbnails show the whole widget, footer included.
 
 ### Fixed
 - Widgets look right at 2x2, 4x2 and 4x3: Last activity, Training load and Fitness have real 2x2 layouts (no one-liner under 250 dp wide), Overview tiles share the width equally, the HRV range bar draws bar, band and marker in one bitmap, the Sleep legend is one entry per row with a taller stage bar, and Today / Overview values step down in size instead of being cut.
