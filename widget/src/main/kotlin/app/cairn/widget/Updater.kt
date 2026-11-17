@@ -93,7 +93,7 @@ object WidgetPinner {
 /** Builds the extras for the pin request so the launcher's "Add to home screen" dialog shows the user's own configuration. */
 object PinPreview {
     /** Stay well below the ~1 MB binder limit; Glance RemoteViews with bitmaps can be large. */
-    const val MAX_BYTES = 200_000
+    const val MAX_BYTES = 500_000
 
     fun fits(bytes: Int): Boolean = bytes in 1..MAX_BYTES
 

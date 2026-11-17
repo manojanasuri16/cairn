@@ -28,8 +28,16 @@ class PinPreviewRowsTest {
 
     @Test fun lastActivityHeroPinPreviewHasEveryRow() {
         val cfg = WidgetConfig(style = WidgetStyle.ActivityHero).resolve(WidgetKind.LastActivity, AppAppearance())
-        val t = texts(runBlocking { WidgetCatalog.pinPreviewViews(context, WidgetKind.LastActivity, cfg, WidgetSize.Wide) })
+        val t = texts(runBlocking { WidgetCatalog.previewViews(context, WidgetKind.LastActivity, cfg, WidgetSize.Wide.pinDp) })
         println("PINTEXTS $t")
         for (s in listOf("10.20 km", "52 min", "5'07\" /km", "152 bpm")) assertTrue("$s in $t", t.any { it.contains(s) })
+    }
+
+    @Test fun pinDialogPreviewIsASinglePicture() {
+        val cfg = WidgetConfig(style = WidgetStyle.ActivityHero).resolve(WidgetKind.LastActivity, AppAppearance())
+        val rv = runBlocking { WidgetCatalog.pinPreviewViews(context, WidgetKind.LastActivity, cfg, WidgetSize.Wide) }
+        val root = rv.apply(context, android.widget.FrameLayout(context))
+        assertTrue("expected an ImageView, got ${root.javaClass.simpleName}", root is android.widget.ImageView)
+        assertTrue(PinPreview.extras(rv) != null)
     }
 }

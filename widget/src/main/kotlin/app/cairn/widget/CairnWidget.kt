@@ -144,8 +144,27 @@ object WidgetCatalog {
     }
 
     /** The widget for the pin dialog: composed at the typical placed size of [size], so the launcher's own size estimate and layout match the placed widget. */
-    suspend fun pinPreviewViews(context: Context, kind: WidgetKind, cfg: ResolvedConfig, size: WidgetSize): RemoteViews =
-        previewViews(context, kind, cfg, size.pinDp)
+    suspend fun pinPreviewViews(context: Context, kind: WidgetKind, cfg: ResolvedConfig, size: WidgetSize): RemoteViews {
+        // Some launchers (OEM ones) draw a blank preview or silently refuse to add when they cannot inflate Glance's RemoteViews tree.
+        // A single ImageView holding a small bitmap of the same widget is drawn the same everywhere, so use that and fall back to the
+        // live tree only if rendering fails.
+        val bitmap = runCatching {
+            val app = context.applicationContext
+            val real = size.pinDp
+            val density = app.resources.displayMetrics.density
+            val aspect = real.width.value / real.height.value
+            val maxPx = kotlin.math.sqrt(PIN_BITMAP_BYTES / 4.0 * aspect).toInt()
+            val wPx = minOf((real.width.value * density).toInt(), maxPx).coerceAtLeast(64)
+            val v = WidgetThumbnails.view(app, kind, cfg, real)
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { WidgetThumbnails.render(v, wPx) }
+        }.getOrNull()
+        if (bitmap != null) {
+            return RemoteViews(context.packageName, R.layout.widget_pin_preview_image).apply { setImageViewBitmap(R.id.pin_preview_image, bitmap) }
+        }
+        return previewViews(context, kind, cfg, size.pinDp)
+    }
+
+    private const val PIN_BITMAP_BYTES = 330_000
 
     /** The widget exactly as the launcher will draw it, built from synthetic data; used for the live preview. */
     suspend fun previewViews(context: Context, kind: WidgetKind, cfg: ResolvedConfig, size: DpSize = previewSize(kind)): RemoteViews {

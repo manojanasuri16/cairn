@@ -9,6 +9,11 @@
 
 All notable changes to Cairn are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.1] - 2026-11-17
+
+### Fixed
+- The "Add to home screen" dialog showed an empty preview and its button did nothing on some phones (launchers that cannot inflate Glance's widget tree). The dialog preview is now a plain picture of your widget, drawn the same on every launcher.
+
 ## [1.6.0] - 2026-11-17
 
 ### Added
