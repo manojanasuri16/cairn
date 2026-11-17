@@ -344,7 +344,7 @@ private fun QuickPanel(
                         .semantics { selected = sel; contentDescription = "${look.name} look" }.padding(Spacing.xs),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    WidgetThumbnail(kind, cfg.withLook(look).resolve(kind, appearance), size, Modifier.fillMaxWidth().heightIn(max = 72.dp), maxWidth = 112.dp)
+                    WidgetThumbnail(kind, cfg.withLook(look).resolve(kind, appearance), size, Modifier.fillMaxWidth(), maxWidth = thumbMaxWidth(size))
                     Text(look.name, style = MaterialTheme.typography.labelMedium, maxLines = 1)
                 }
             }
@@ -369,7 +369,7 @@ private fun QuickPanel(
                             .clickable(role = Role.RadioButton) { onCfg(cfg.copy(style = s)) }.semantics { selected = sel; contentDescription = "${s.label} layout" }.padding(Spacing.xs),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        WidgetThumbnail(kind, cfg.copy(style = s).resolve(kind, appearance), size, Modifier.fillMaxWidth().heightIn(max = 72.dp), maxWidth = 112.dp)
+                        WidgetThumbnail(kind, cfg.copy(style = s).resolve(kind, appearance), size, Modifier.fillMaxWidth(), maxWidth = thumbMaxWidth(size))
                         Text(s.label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
                     }
                 }
@@ -529,3 +529,6 @@ private fun ToggleRow(title: String, hint: String, on: Boolean, onChange: (Boole
         Switch(checked = on, onCheckedChange = onChange)
     }
 }
+
+/** Width at which a Quick-mode thumbnail is 72 dp tall, so the whole widget (footer included) shows and is never clipped. */
+private fun thumbMaxWidth(size: WidgetSize): Dp = (72f * size.pinDp.width.value / size.pinDp.height.value).dp.coerceAtMost(112.dp)
