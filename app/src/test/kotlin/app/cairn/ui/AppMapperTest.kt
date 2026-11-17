@@ -119,7 +119,7 @@ class AppMapperTest {
         val km = AppMapper.activities(listOf(a, bare), AuthState.Ok, now, today, DisplayPrefs(), us, ZoneOffset.UTC)
         assertEquals(listOf("8.05 km", "46:00", "5'13\" /km", "151 bpm", "540 kcal"), km.rows[0].stats)
         assertEquals("Trail run", km.rows[0].sport)
-        assertEquals("\uD83C\uDFC3", km.rows[0].glyph)
+        assertEquals(SportKind.Run, km.rows[0].kind)
         assertTrue(km.rows[0].details.any { it.label == "Date" && it.value == "Friday, 15 Mar, 07:30" })
         assertTrue(km.rows[1].stats.isEmpty())
         assertEquals(Freshness.Fresh, km.footer!!.tier)

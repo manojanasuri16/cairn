@@ -117,11 +117,12 @@ object WidgetMapper {
             date = Fmt.date(activity.date, today, locale),
             distance = activity.distanceMeters?.takeIf { it > 0 }?.let { Fmt.distance(it, prefs.unit, locale) },
             duration = activity.durationSec?.takeIf { it > 0 }?.let(Fmt::durationSec),
-            pace = activity.avgPaceSecPerKm?.takeIf { it > 0 }?.let { Fmt.pace(it, prefs.unit) },
+            pace = activity.avgPaceSecPerKm?.takeIf { it > 0 && (activity.distanceMeters ?: 0.0) > 0 }?.let { Fmt.pace(it, prefs.unit) },
             avgHr = activity.avgHr?.takeIf { it > 0 }?.let(Fmt::bpm),
+            calories = activity.calories?.takeIf { it > 0 }?.let { Fmt.steps(it, locale) + " kcal" },
         )
         val footer = footer(listOf(activity.stamp.sourceUpdatedAt), now, prefs)
-        val desc = listOfNotNull("Last activity", body.sport, body.date, body.distance, body.duration, body.pace, body.avgHr?.let { "average heart rate $it" }, footer.text)
+        val desc = listOfNotNull("Last activity", body.sport, body.date, body.distance, body.duration, body.pace, body.avgHr?.let { "average heart rate $it" }, body.calories, footer.text)
             .joinToString(". ")
         return WidgetUi.Content(body, footer, desc, Screen.Activities)
     }

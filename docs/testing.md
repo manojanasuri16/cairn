@@ -124,3 +124,6 @@ Manual checks on a device or emulator:
 - [ ] Dark/light, font scale 2.0 (buttons wrap, nothing clipped), animator scale 0 (no motion); content below stays usable.
 - [ ] Airplane mode + cold start with the fake cache: the banner still shows.
 - [ ] Settings > About > Check for updates shows "You're up to date (version)" or the banner inline, no toast.
+- [ ] Gallery thumbnails are crisp and at true proportions (2x2 square, 4x2 and 4x3 wide), centred on a neutral surface, never stretched or in a thick frame, in light and dark and at 200% font (card text wraps, preview stays the same size). The sync icon and freshness dot are small, as on the real widget. "Your widgets" thumbnails use the same renderer.
+- [ ] Demo mode: the Activities list has a Strength workout (no distance): icon badge, duration as the hero (1 h 53 min style), then heart rate and kcal only; no letter badge anywhere. Today's Activity and the Last activity widget follow the same rule for a no-distance workout.
+

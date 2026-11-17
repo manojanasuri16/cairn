@@ -41,7 +41,12 @@ data class EmptyUi(val title: String, val hint: String, val action: EmptyAction 
 data class StatUi(val value: String, val label: String)
 
 @Immutable
-data class TodayActivityUi(val id: String, val sportGlyph: String, val title: String, val date: String, val distance: String?, val duration: String?, val pace: String?, val description: String)
+data class TodayActivityUi(
+    val id: String, val kind: SportKind, val sportLabel: String, val title: String, val date: String,
+    val distance: String?, val duration: String?, val pace: String?,
+    /** Distance, or the duration when the workout has none. */
+    val hero: String?, val secondary: List<String>, val description: String,
+)
 
 @Immutable
 data class HeartUi(val value: String, val unit: String, val caption: String, val range: String?, val description: String)
@@ -100,7 +105,7 @@ data class TodayState(
 @Immutable
 data class ActivityRowUi(
     val id: String,
-    val glyph: String,
+    val kind: SportKind,
     val sport: String,
     val date: String,
     /** "Sunday  Riverside Run": weekday, then the place and sport. */
@@ -112,6 +117,8 @@ data class ActivityRowUi(
     val stats: List<String>,
     val details: List<MetricUi>,
     val description: String,
+    val hero: String? = null,
+    val secondary: List<String> = emptyList(),
 )
 
 @Immutable

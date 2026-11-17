@@ -1,3 +1,10 @@
+## 1.5.1 - 2026-11-17
+
+### Fixed
+- Widget previews in the gallery are sharp, drawn at their real size and proportions instead of stretched.
+- Workouts without a distance (strength, cardio and so on) show a proper sport icon, the duration as the main number, and calories, heart rate and load beneath, instead of a single letter.
+- Rounded shapes (freshness dot, pills, tiles) render round in previews.
+
 # Changelog
 
 All notable changes to Cairn are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).

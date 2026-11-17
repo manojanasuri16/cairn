@@ -122,4 +122,14 @@ class WidgetMapperTest {
         assertEquals(4, SizeRules.visibleRows(100f, 1f))
         assertEquals(2, SizeRules.visibleRows(100f, 2f))
     }
+
+    @Test fun lastActivityWithoutDistanceShowsDurationAndCalories() {
+        val a = app.cairn.core.model.Activity(
+            "s", app.cairn.core.model.Stamp(app.cairn.core.model.DataSource.COROS_MCP, java.time.Instant.parse("2030-03-15T10:00:00Z")),
+            java.time.LocalDate.parse("2030-03-15"), "Strength", durationSec = 6805, avgPaceSecPerKm = 300, avgHr = 121, calories = 312,
+        )
+        val ui = WidgetMapper.lastActivity(a, AuthState.Ok, java.time.Instant.parse("2030-03-15T12:00:00Z"), java.time.LocalDate.parse("2030-03-15"), java.util.Locale.US) as WidgetUi.Content
+        assertEquals(null, ui.body.distance); assertEquals(null, ui.body.pace)
+        assertEquals("1 h 53 min", ui.body.duration); assertEquals("121 bpm", ui.body.avgHr); assertEquals("312 kcal", ui.body.calories)
+    }
 }

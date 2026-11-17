@@ -163,8 +163,8 @@ private fun GalleryCard(kind: WidgetKind, appearance: AppAppearance, onAdd: (Wid
     Card(Modifier.fillMaxWidth(), colors = cairnCardColors()) {
         Column(Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Column(Modifier.fillMaxWidth().clickable(role = Role.Button, onClickLabel = "Customise ${kind.label} widget") { onAdd(kind, size) }, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Box(Modifier.fillMaxWidth().background(PREVIEW_BACKDROP, RoundedCornerShape(12.dp)).padding(Spacing.xs), contentAlignment = Alignment.Center) {
-                    WidgetThumbnail(kind, resolved, size, Modifier.heightIn(max = 170.dp), maxWidth = 300.dp)
+                Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(12.dp)).padding(Spacing.md), contentAlignment = Alignment.Center) {
+                    WidgetThumbnail(kind, resolved, size, Modifier.fillMaxWidth())
                 }
                 Column(Modifier.padding(horizontal = Spacing.xs)) {
                     Text(kind.label, style = MaterialTheme.typography.titleMedium)

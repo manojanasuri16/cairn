@@ -34,4 +34,33 @@ object AppIcons {
     val SystemUpdate = icon("system_update", "M17,1.01L7,1c-1.1,0 -2,0.9 -2,2v18c0,1.1 0.9,2 2,2h10c1.1,0 2,-0.9 2,-2V3c0,-1.1 -0.9,-1.99 -2,-1.99zM17,19H7V5h10v14zM16,13h-3V8h-2v5H8l4,4 4,-4z")
     val More = icon("more", "M12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM12,16c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z")
     val Add = icon("add", "M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z")
+
+    /** Falls back to a plain disc if a path ever fails to parse, so a bad icon can never crash a screen. */
+    private fun safe(name: String, path: String): ImageVector =
+        runCatching { icon(name, path) }.getOrElse { icon(name, "M12,4a8,8 0 1,0 0.001,0z") }
+
+    private val RunIcon = safe("run", "M13.49,5.48c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM9.89,19.38l1,-4.4 2.1,2v6h2v-7.5l-2.1,-2 0.6,-3c1.3,1.5 3.3,2.5 5.5,2.5v-2c-1.9,0 -3.5,-1 -4.3,-2.4l-1,-1.6c-0.4,-0.6 -1,-1 -1.7,-1 -0.3,0 -0.5,0.1 -0.8,0.1l-5.2,2.2v4.7h2v-3.4l1.8,-0.7 -1.6,8.1 -4.9,-1 -0.4,2 7,1.4z")
+    private val WalkIcon = safe("walk", "M13.5,5.5c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM9.8,8.9L7,23h2.1l1.8,-8 2.1,2v6h2v-7.5l-2.1,-2 0.6,-3C14.8,12 16.8,13 19,13v-2c-1.9,0 -3.5,-1 -4.3,-2.4l-1,-1.6c-0.4,-0.6 -1,-1 -1.7,-1 -0.3,0 -0.5,0.1 -0.8,0.1L6,8.3V13h2V9.6l1.8,-0.7")
+    private val CycleIcon = safe("cycle", "M15.5,5.5c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM5,12c-2.8,0 -5,2.2 -5,5s2.2,5 5,5 5,-2.2 5,-5 -2.2,-5 -5,-5zM5,20.5c-1.9,0 -3.5,-1.6 -3.5,-3.5s1.6,-3.5 3.5,-3.5 3.5,1.6 3.5,3.5 -1.6,3.5 -3.5,3.5zM10.8,10.5l2.4,-2.4 0.8,0.8c1.3,1.3 3,2.1 5.1,2.1V9c-1.5,0 -2.7,-0.6 -3.6,-1.5l-1.9,-1.9c-0.5,-0.4 -1,-0.6 -1.6,-0.6s-1.1,0.2 -1.4,0.6L7.8,8.4c-0.4,0.4 -0.6,0.9 -0.6,1.4 0,0.6 0.2,1.1 0.6,1.4L11,14v5h2v-6.2l-2.2,-2.3zM19,12c-2.8,0 -5,2.2 -5,5s2.2,5 5,5 5,-2.2 5,-5 -2.2,-5 -5,-5zM19,20.5c-1.9,0 -3.5,-1.6 -3.5,-3.5s1.6,-3.5 3.5,-3.5 3.5,1.6 3.5,3.5 -1.6,3.5 -3.5,3.5z")
+    private val SwimIcon = safe("swim", "M16,3.5a2,2 0 1,0 0.001,0zM2,15c2,0 2,-2 4,-2s2,2 4,2 2,-2 4,-2 2,2 4,2 2,-2 4,-2v3c-2,0 -2,2 -4,2s-2,-2 -4,-2 -2,2 -4,2 -2,-2 -4,-2 -2,2 -4,2zM5,10l7,-3 3,4 -2,1.5 -2,-2.5 -4,1.5z")
+    private val StrengthIcon = safe("strength", "M20.57,14.86L22,13.43 20.57,12 17,15.57 8.43,7 12,3.43 10.57,2 9.14,3.43 7.71,2 5.57,4.14 4.14,2.71 2.71,4.14l1.43,1.43L2,7.71l1.43,1.43L2,10.57 3.43,12 7,8.43 15.57,17 12,20.57 13.43,22l1.43,-1.43L16.29,22l2.14,-2.14 1.43,1.43 1.43,-1.43 -1.43,-1.43L22,16.29z")
+    private val CardioIcon = safe("cardio", "M12,21.35l-1.45,-1.32C5.4,15.36 2,12.28 2,8.5 2,5.42 4.42,3 7.5,3c1.74,0 3.41,0.81 4.5,2.09C13.09,3.81 14.76,3 16.5,3 19.58,3 22,5.42 22,8.5c0,3.78 -3.4,6.86 -8.55,11.54L12,21.35z")
+    private val YogaIcon = safe("yoga", "M12,2a2,2 0 1,0 0.001,0zM3,9h18v2h-7v4l3,7h-2.4l-2.6,-6 -2.6,6H7l3,-7v-4H3z")
+    private val SnowIcon = safe("snow", "M11,2h2v20h-2zM2,11h20v2H2zM4.9,3.5l15.6,15.6 -1.4,1.4L3.5,4.9zM19.1,3.5l1.4,1.4L4.9,20.5 3.5,19.1z")
+    private val BallIcon = safe("ball", "M12,2a10,10 0 1,0 0.001,0zM12,4a8,8 0 1,1 -0.001,0zM11,6h2v12h-2z")
+    private val WorkoutIcon = safe("workout", "M12,2a2.2,2.2 0 1,0 0.001,0zM7,8h10v2h-3.5v12h-3V10H7z")
+
+    /** One icon per sport family; the same mapping everywhere an activity is shown. */
+    fun sport(kind: app.cairn.ui.SportKind): ImageVector = when (kind) {
+        app.cairn.ui.SportKind.Run -> RunIcon
+        app.cairn.ui.SportKind.Walk -> WalkIcon
+        app.cairn.ui.SportKind.Cycle -> CycleIcon
+        app.cairn.ui.SportKind.Swim, app.cairn.ui.SportKind.Water -> SwimIcon
+        app.cairn.ui.SportKind.Strength -> StrengthIcon
+        app.cairn.ui.SportKind.Cardio -> CardioIcon
+        app.cairn.ui.SportKind.Yoga -> YogaIcon
+        app.cairn.ui.SportKind.Snow -> SnowIcon
+        app.cairn.ui.SportKind.Ball -> BallIcon
+        app.cairn.ui.SportKind.Workout -> WorkoutIcon
+    }
 }

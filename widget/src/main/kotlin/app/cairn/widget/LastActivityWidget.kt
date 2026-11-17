@@ -33,6 +33,7 @@ class LastActivityWidget : CairnWidget<ActivityUi>(WidgetKind.LastActivity) {
             b.duration?.takeIf { cfg.shows(Part.Duration) }?.let { "Time" to it },
             b.pace?.takeIf { cfg.shows(Part.Pace) }?.let { "Pace" to it },
             b.avgHr?.takeIf { cfg.shows(Part.AvgHr) }?.let { "Heart rate" to it },
+            b.calories?.let { "Calories" to it },
         )
         val values = listOfNotNull(b.distance) + stats.map { it.second }
         val (w0, h0) = widgetSize()
@@ -61,7 +62,7 @@ class LastActivityWidgetReceiver : CairnReceiver() {
     override val glanceAppWidget = LastActivityWidget()
 }
 
-private fun shortLabel(l: String) = when (l) { "Distance" -> "Dist"; "Heart rate" -> "HR"; else -> l }
+private fun shortLabel(l: String) = when (l) { "Distance" -> "Dist"; "Heart rate" -> "HR"; "Calories" -> "kcal"; else -> l }
 
 @Composable
 private fun Header(b: ActivityUi) {

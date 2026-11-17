@@ -160,11 +160,13 @@ private fun TodayActivityCard(a: TodayActivityUi) {
     SectionCard(card = CardId.TodayActivity, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = a.description }) {
         SectionTitle("Today's Activity")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Text(a.sportGlyph, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.clearAndSetSemantics { })
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                SportBadge(a.kind, size = 48.dp)
+                Text(a.sportLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                a.distance?.let { FitText(it, MaterialTheme.typography.headlineLarge, Modifier.fillMaxWidth(), floor = 20.sp) }
-                val stats = listOfNotNull(a.duration, a.pace)
-                if (stats.isNotEmpty()) Text(stats.joinToString("   "), style = MaterialTheme.typography.titleMedium)
+                a.hero?.let { FitText(it, MaterialTheme.typography.headlineLarge, Modifier.fillMaxWidth(), floor = 20.sp) }
+                if (a.secondary.isNotEmpty()) Text(a.secondary.joinToString("   "), style = MaterialTheme.typography.titleMedium)
             }
         }
         Text(a.date, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -286,7 +288,7 @@ private fun TodayPreview() = CairnTheme {
         TodayState(
             loading = false,
             header = listOf(StatUi("9,443", "steps"), StatUi("796", "kcal"), StatUi("55", "min")),
-            todayActivity = TodayActivityUi("1", "\uD83C\uDFC3", "Sunday  Park Run", "Sunday, 15 Nov", "5.55 km", "54:37", "9'50\" /km", "Today's activity"),
+            todayActivity = TodayActivityUi("1", SportKind.Run, "Run", "Sunday  Park Run", "Sunday, 15 Nov", "5.55 km", "54:37", "9'50\" /km", "5.55 km", listOf("54:37", "9'50\" /km"), "Today's activity"),
             heart = HeartUi("70", "bpm", "Daily average", "44-154", "Heart rate"),
             resting = RestingUi("51", "bpm", "Updated 12:05", "7-day avg 52 bpm", "Resting"),
             stress = StressUi("30", "Average Stress", "Stress"),

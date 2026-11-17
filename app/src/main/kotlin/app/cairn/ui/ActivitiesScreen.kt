@@ -75,7 +75,10 @@ fun ActivitiesContent(state: ActivitiesState, onOpenAccount: () -> Unit, modifie
                 Modifier.fillMaxWidth().widgetActions(CardId.ActivityRow).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = Spacing.md).padding(bottom = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Text(selected.sport, style = MaterialTheme.typography.headlineSmall)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    SportBadge(selected.kind)
+                    Text(selected.sport, style = MaterialTheme.typography.headlineSmall)
+                }
                 selected.details.forEach { MetricRow(it) }
             }
         }
@@ -103,12 +106,10 @@ private fun MonthHeader(m: MonthUi) {
 private fun ActivityRow(row: ActivityRowUi, onClick: () -> Unit) {
     Card(colors = cairnCardColors(), modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = row.description }) {
         Row(Modifier.fillMaxWidth().widgetActions(CardId.ActivityRow, onClick, "Show details").padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
-            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.defaultMinSize(minWidth = 40.dp, minHeight = 40.dp).clearAndSetSemantics { }) {
-                Box(contentAlignment = Alignment.Center) { Text(row.glyph, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer) }
-            }
+            SportBadge(row.kind)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                row.distance?.let { Text(it, style = MaterialTheme.typography.headlineSmall) }
-                val sub = listOfNotNull(row.duration, row.pace)
+                (row.hero ?: row.distance)?.let { Text(it, style = MaterialTheme.typography.headlineSmall) }
+                val sub = row.secondary
                 if (sub.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                     sub.forEach { Text(it, style = MaterialTheme.typography.bodyLarge) }
                 }
@@ -123,7 +124,7 @@ private fun ActivityRow(row: ActivityRowUi, onClick: () -> Unit) {
 @Composable
 private fun ActivitiesPreview() = CairnTheme {
     val d = listOf(MetricUi("Sport", "Running"), MetricUi("Distance", "5.55 km"))
-    val row = ActivityRowUi("1", "\uD83C\uDFC3", "Running", "Sunday, 15 Nov", "Sunday  Park Run", "5.55 km", "54:37", "9'50\" /km", listOf("5.55 km"), d, "Running")
+    val row = ActivityRowUi("1", SportKind.Run, "Running", "Sunday, 15 Nov", "Sunday  Park Run", "5.55 km", "54:37", "9'50\" /km", listOf("5.55 km"), d, "Running")
     ActivitiesContent(
         ActivitiesState(false, listOf(row), listOf(MonthUi("Nov", "9.58 km", "3 activities", "2.2 hours", listOf(row))), FooterUi("Updated 1h ago", Freshness.Fresh)),
         onOpenAccount = {},

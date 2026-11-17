@@ -110,9 +110,15 @@ data class DemoDataset(
                 val date = prev.plusDays((n * 13 / 11).toLong())
                 run("last-$n", stamp, date, 6, 20 + (n % 4) * 5, PLACES[(n + 1) % PLACES.size], dist = 5.0 + (n % 5) * 1.5, paceSec = 305 + (n % 4) * 9, zone)
             }
-            val activities = recent.map { it.first } + lastWeek + last
+            // One strength workout (no distance) two days before last week, so lists and widgets show the no-distance layout.
+            val strength = Activity(
+                id = "${ID_PREFIX}strength-${lastMonday.minusDays(2)}", stamp = stamp, date = lastMonday.minusDays(2), sport = "Strength",
+                start = lastMonday.minusDays(2).atTime(18, 10).atZone(zone).toInstant(), durationSec = 53 * 60 + 25,
+                avgHr = 121, calories = 312, location = PLACES[2], sportType = 402,
+            )
+            val activities = recent.map { it.first } + lastWeek + strength + last
             val details = recent.map { (a, ld, _) -> ActivityDetail(a.id, stamp, trainingLoad = ld, aerobicTe = 3.2, anaerobicTe = 0.8, trainingFocus = "Aerobic base") } +
-                (lastWeek + last).map { a -> ActivityDetail(a.id, stamp, trainingLoad = 55, aerobicTe = 3.0, anaerobicTe = 0.5, trainingFocus = "Aerobic base") }
+                (lastWeek + strength + last).map { a -> ActivityDetail(a.id, stamp, trainingLoad = 55, aerobicTe = 3.0, anaerobicTe = 0.5, trainingFocus = "Aerobic base") }
             return DemoDataset(daily, sleep, recovery, load, fitness, activities, vitals, hrv, details)
         }
 

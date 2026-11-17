@@ -88,18 +88,14 @@ object TodayOrder {
 
 /** Sport glyph, and the COROS-style title ("Sunday  Riverside Run"). */
 object ActivityText {
-    fun glyph(a: Activity): String {
-        val t = a.sportType
-        val n = a.sport.lowercase()
-        return when {
-            t != null && t in 100..103 || "run" in n -> "\uD83C\uDFC3"
-            t == 104 || t == 105 || "hike" in n || "walk" in n -> "\uD83E\uDD7E"
-            t != null && t in 200..299 || "bike" in n || "cycl" in n -> "\uD83D\uDEB4"
-            t != null && t in 300..399 || "swim" in n -> "\uD83C\uDFCA"
-            t != null && t in 400..499 || "strength" in n || "gym" in n -> "\uD83C\uDFCB"
-            else -> Fmt.sport(a.sport).take(1).uppercase()
-        }
-    }
+    fun kind(a: Activity): SportKind = SportKind.of(a.sport, a.sportType)
+
+    /** Hero value of an activity: its distance, or its duration when it has none (strength, cardio, yoga). */
+    fun hero(distance: String?, durationSec: Int?): String? = distance ?: durationSec?.takeIf { it > 0 }?.let(Fmt::durationSec)
+
+    /** The small row under the hero: only what exists. Pace and the clock duration only make sense next to a distance. */
+    fun secondary(hasDistance: Boolean, duration: String?, pace: String?, hr: String?, kcal: String?, load: String?): List<String> =
+        listOfNotNull(duration.takeIf { hasDistance }, pace.takeIf { hasDistance }, hr, kcal, load)
 
     /** "Outdoor Run" -> "Run". */
     fun shortSport(raw: String): String = Fmt.sport(raw).replace(Regex("^(Outdoor|Indoor)\\s+"), "").replaceFirstChar { it.titlecase() }
@@ -174,7 +170,15 @@ object AppMapper {
             val pace = a.avgPaceSecPerKm?.takeIf { it > 0 }?.let { Fmt.pace(it, prefs.unit) }
             val title = ActivityText.title(a, locale)
             val date = Fmt.dateLong(a.date, locale)
-            TodayActivityUi(a.id, ActivityText.glyph(a), title, date, dist, dur, pace, listOfNotNull("Today's activity", title, date, dist, dur, pace).joinToString(". "))
+            val hr = a.avgHr?.takeIf { it > 0 }?.let(Fmt::bpm)
+            val kcal = a.calories?.takeIf { it > 0 }?.let { Fmt.steps(it, locale) + " kcal" }
+            val load = extras.details[a.id]?.trainingLoad?.takeIf { it > 0 }?.let { "Load $it" }
+            val hero = ActivityText.hero(dist, a.durationSec)
+            val secondary = ActivityText.secondary(dist != null, dur, pace, hr, kcal, load)
+            TodayActivityUi(
+                a.id, ActivityText.kind(a), ActivityText.shortSport(a.sport), title, date, dist, dur, pace, hero, secondary,
+                listOfNotNull("Today's activity", ActivityText.shortSport(a.sport), title, date, hero).plus(secondary).joinToString(". "),
+            )
         }
 
         // Heart rate (daily average with min and max), resting HR, stress: the dedicated tools.
@@ -296,10 +300,12 @@ object AppMapper {
             val date = Fmt.dateLong(a.date, locale)
             val dist = a.distanceMeters?.takeIf { it > 0 }?.let { Fmt.distance(it, prefs.unit, locale) }
             val dur = a.durationSec?.takeIf { it > 0 }?.let(Fmt::clock)
-            val pace = a.avgPaceSecPerKm?.takeIf { it > 0 }?.let { Fmt.pace(it, prefs.unit) }
+            val pace = a.avgPaceSecPerKm?.takeIf { it > 0 && dist != null }?.let { Fmt.pace(it, prefs.unit) }
             val hr = a.avgHr?.takeIf { it > 0 }?.let(Fmt::bpm)
             val kcal = a.calories?.takeIf { it > 0 }?.let { Fmt.steps(it, locale) + " kcal" }
             val stats = listOfNotNull(dist, dur, pace, hr, kcal)
+            val hero = ActivityText.hero(dist, a.durationSec)
+            val secondary = ActivityText.secondary(dist != null, dur, pace, hr, kcal, null)
             val title = ActivityText.title(a, locale)
             val details = buildList {
                 add(MetricUi("Sport", sport))
@@ -312,7 +318,7 @@ object AppMapper {
                 a.location?.takeIf { it.isNotBlank() }?.let { add(MetricUi("Location", it)) }
                 add(MetricUi("Source", if (a.stamp.source.name == "COROS_MCP") "COROS" else "Health Connect"))
             }
-            ActivityRowUi(a.id, ActivityText.glyph(a), sport, date, title, dist, dur, pace, stats, details, (listOf(title, date) + stats).joinToString(". "))
+            ActivityRowUi(a.id, ActivityText.kind(a), sport, date, title, dist, dur, pace, stats, details, (listOf(title, date) + stats).joinToString(". "), hero, secondary)
         }
         val months = Months.group(shown.zip(rows), prefs.unit, locale)
         return ActivitiesState(loading = false, rows = rows, months = months, footer = WidgetMapper.footer(items.map { it.stamp.sourceUpdatedAt }, now, prefs))

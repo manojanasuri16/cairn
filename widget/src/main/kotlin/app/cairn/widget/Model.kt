@@ -49,6 +49,8 @@ data class ActivityUi(
     val duration: String?,
     val pace: String?,
     val avgHr: String?,
+    /** "540 kcal"; the secondary figure for workouts without a distance. */
+    val calories: String? = null,
 )
 
 /** One day in the 7-day load bars. [fraction] is relative to the busiest day shown. */

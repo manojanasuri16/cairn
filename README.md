@@ -70,6 +70,7 @@ Cairn reads from COROS's official MCP server (and optionally Health Connect), ca
 **The app**
 
 - Widget-first: the home tab is **Widgets**, a gallery of every widget with a live preview, plus a "Your widgets" list (with Edit) for the ones already on your home screen. Its menu holds the default look and the tap targets. Then Today, Activities and Fitness; Settings is in the top bar. Widget setup is no longer in Settings.
+- Workouts show a sport icon (run, walk, cycle, swim, strength, cardio, yoga, snow, ball sports, or a generic figure) and lead with distance, or with the duration when there is none (strength, cardio), then only the figures that exist (heart rate, calories, pace for distance sports).
 - Press and hold any card (Recovery, Sleep, a run, a month header...) in Today, Activities or Fitness for **Add to home screen** or **Open in COROS**.
 - Named and ordered like the COROS app (see below).
 - Manual sync any time, or automatic refresh every 5, 15, 30 or 60 minutes (default 30).
