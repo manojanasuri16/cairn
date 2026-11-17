@@ -179,6 +179,7 @@ private fun ConfigScreen(graph: AppGraph, kind: WidgetKind, id: Int, onDone: (Wi
                 kind, cfg, { loaded = it }, appearance, size, { sizeName = it.name },
                 "This only changes the preview. Resize the widget on your home screen by long-pressing it.",
                 tapTarget, { editTap = true }, Modifier.weight(1f), appUnit = display.unit,
+                sizeChips = false, applier = remember { app.cairn.ui.lookApplier(context, graph) },
                 bottom = {
                     Row(Modifier.fillMaxWidth().padding(Spacing.md).navigationBarsPadding(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }

@@ -24,6 +24,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -76,6 +80,7 @@ import app.cairn.widget.WidgetConfig
 import app.cairn.widget.WidgetKind
 import app.cairn.widget.WidgetSize
 import app.cairn.widget.WidgetStyle
+import kotlinx.coroutines.launch
 
 /** The five customisation sections, one shown at a time. */
 enum class CustomSection(val label: String, val icon: ImageVector, val hint: String) {
@@ -167,8 +172,19 @@ fun WidgetCustomizer(
     appUnit: DistanceUnit = DistanceUnit.Km,
     /** Pinned under the options (the "Add to home screen" or Done / Cancel bar). */
     bottom: @Composable () -> Unit = {},
+    /** Size chips in Quick mode (studio). The configure screen passes false: the widget is already placed, so it shows [sizeNote]. */
+    sizeChips: Boolean = true,
+    /** Applies a look to every placed widget; null hides the action. Returns how many were changed. */
+    applier: LookApplier<WidgetKind>? = null,
 ) {
     val resolved = cfg.resolve(kind, appearance)
+    // Quick is the default; the choice and the "how it was" snapshot both survive rotation and dark mode.
+    var advanced by rememberSaveable { mutableStateOf(false) }
+    val initial = rememberSaveable { cfg.encode() }.let { WidgetConfig.decode(it, kind) }
+    var applyNote by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmAll by rememberSaveable { mutableStateOf<String?>(null) }
+    var canUndoAll by remember { mutableStateOf(applier?.canUndo == true) }
+    val uiScope = androidx.compose.runtime.rememberCoroutineScope()
     var section by rememberSaveable { mutableStateOf(CustomSection.Style) }
     var more by rememberSaveable { mutableStateOf(false) }
     val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
@@ -176,9 +192,19 @@ fun WidgetCustomizer(
         // The preview sits on a neutral "wallpaper" so transparency reads. It is composed at its real size and scaled down to fit.
         ScaledBox(size.preview.width, size.preview.height, maxW, maxH) { LivePreview(kind, resolved, size.preview) }
     }
-    val tabs: @Composable () -> Unit = { SectionTabs(section, iconsOnly = fontScale >= 1.5f) { section = it } }
+    val tabs: @Composable () -> Unit = { if (advanced) SectionTabs(section, iconsOnly = fontScale >= 1.5f) { section = it } }
+    val quick: @Composable () -> Unit = {
+        QuickPanel(
+            kind, cfg, onCfg, appearance, size, onSize, sizeNote, sizeChips, initial,
+            applyNote, confirmAll, { confirmAll = it }, canUndoAll,
+            onApplyAll = { look -> applier?.let { a -> uiScope.launch { val n = a.applyAll(look); canUndoAll = a.canUndo; applyNote = "${look.name} applied to $n widget" + if (n == 1) "" else "s" } } },
+            onUndoAll = { applier?.let { a -> uiScope.launch { a.undo(); canUndoAll = a.canUndo; applyNote = "Restored your previous looks" } } },
+            canApplyAll = applier != null,
+        )
+    }
     val options: @Composable () -> Unit = {
-        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        if (!advanced) { AdvancedSwitch(false) { advanced = it }; quick() } else Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            AdvancedSwitch(true) { advanced = it }
             Text(section.hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             when (section) {
                 CustomSection.Style -> WidgetStyle.forKind(kind).forEach { s ->
@@ -278,6 +304,104 @@ fun sizeHint(s: WidgetSize) = when (s) {
     WidgetSize.Small -> "A compact square: the essentials"
     WidgetSize.Wide -> "Twice as wide: room for more numbers"
     WidgetSize.Large -> "Wide and tall: the full picture"
+}
+
+@Composable
+private fun AdvancedSwitch(on: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.md).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+        Text("Advanced", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(end = Spacing.sm))
+        Switch(checked = on, onCheckedChange = onChange, modifier = Modifier.semantics { contentDescription = "Advanced options" })
+    }
+}
+
+/** Quick mode: eight looks as live thumbnails, layouts, size chips, and the quiet action row. Everything it writes goes through [onCfg]. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun QuickPanel(
+    kind: WidgetKind, cfg: WidgetConfig, onCfg: (WidgetConfig) -> Unit, appearance: AppAppearance,
+    size: WidgetSize, onSize: (WidgetSize) -> Unit, sizeNote: String, sizeChips: Boolean, initial: WidgetConfig,
+    note: String?, confirm: String?, setConfirm: (String?) -> Unit, canUndoAll: Boolean,
+    onApplyAll: (WidgetLook) -> Unit, onUndoAll: () -> Unit, canApplyAll: Boolean,
+) {
+    val current = WidgetLooks.of(cfg)
+    val random = remember { kotlin.random.Random(System.nanoTime()) }
+    Column(Modifier.padding(horizontal = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text("Look", style = MaterialTheme.typography.titleSmall)
+        Row(Modifier.horizontalScroll(rememberScrollState()).semantics { contentDescription = "Looks, ${WidgetLooks.curated.size} to choose from" }, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            WidgetLooks.curated.forEach { look ->
+                val sel = current?.id == look.id
+                Column(
+                    Modifier.width(120.dp).border(if (sel) 2.dp else 1.dp, if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                        .clickable(role = Role.RadioButton) { onCfg(cfg.withLook(look)) }
+                        .semantics { selected = sel; contentDescription = "${look.name} look" }.padding(Spacing.xs),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    WidgetThumbnail(kind, cfg.withLook(look).resolve(kind, appearance), size, Modifier.fillMaxWidth().heightIn(max = 72.dp), maxWidth = 112.dp)
+                    Text(look.name, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                }
+            }
+            Column(
+                Modifier.width(120.dp).heightIn(min = 72.dp).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                    .clickable(role = Role.Button) { onCfg(cfg.withLook(WidgetLooks.surprise(current, random))) }.padding(Spacing.xs),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+            ) { Text("🎲", style = MaterialTheme.typography.headlineSmall); Text("Surprise me", style = MaterialTheme.typography.labelMedium) }
+        }
+        if (current == null) Text("Custom look", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (current?.id == "glass") Text("Best on a calm wallpaper.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        val styles = WidgetStyle.forKind(kind)
+        if (styles.size > 1) {
+            Text("Layout", style = MaterialTheme.typography.titleSmall)
+            val chosenStyle = cfg.resolve(kind, appearance).style
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                styles.forEach { s ->
+                    val sel = s == chosenStyle
+                    Column(
+                        Modifier.width(120.dp).border(if (sel) 2.dp else 1.dp, if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                            .clickable(role = Role.RadioButton) { onCfg(cfg.copy(style = s)) }.semantics { selected = sel; contentDescription = "${s.label} layout" }.padding(Spacing.xs),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        WidgetThumbnail(kind, cfg.copy(style = s).resolve(kind, appearance), size, Modifier.fillMaxWidth().heightIn(max = 72.dp), maxWidth = 112.dp)
+                        Text(s.label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                    }
+                }
+            }
+        }
+
+        if (sizeChips) {
+            Text("Size", style = MaterialTheme.typography.titleSmall)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                WidgetSize.entries.forEach { s -> FilterChip(selected = size == s, onClick = { onSize(s) }, label = { Text("${s.label} ${s.cells}") }, modifier = Modifier.semantics { role = Role.RadioButton }) }
+            }
+        }
+        Text(if (sizeChips) sizeNote else "Resize on your home screen", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+            if (canApplyAll) TextButton(enabled = current != null, onClick = { setConfirm(current?.id) }) { Text("Apply this look to all my widgets") }
+            TextButton(onClick = { onCfg(cfg.resetLook()) }) { Text("Reset") }
+            TextButton(enabled = EditorUndo.canUndo(initial, cfg), onClick = { onCfg(initial) }) { Text("Undo") }
+            if (canUndoAll) TextButton(onClick = onUndoAll) { Text("Undo apply to all") }
+        }
+        note?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite }) }
+    }
+    WidgetLooks.byId(confirm)?.let { look ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { setConfirm(null) },
+            title = { Text("Use ${look.name} on all widgets?") },
+            text = { Text("Only the colours and corners change. Layout and content stay. You can undo this.") },
+            confirmButton = { TextButton(onClick = { setConfirm(null); onApplyAll(look) }) { Text("Apply") } },
+            dismissButton = { TextButton(onClick = { setConfirm(null) }) { Text("Cancel") } },
+        )
+    }
+}
+
+/** Every placed widget across all kinds and size variants, read from the system (ids only). */
+internal fun placedWidgets(context: android.content.Context): List<Pair<Int, WidgetKind>> {
+    val mgr = android.appwidget.AppWidgetManager.getInstance(context)
+    return WidgetKind.entries.flatMap { k ->
+        app.cairn.widget.WidgetVariants.let { v -> WidgetSize.entries.map { v.receiverClass(k, it) } }.distinct()
+            .flatMap { c -> mgr.getAppWidgetIds(android.content.ComponentName(context, c)).map { it to k } }
+    }.distinctBy { it.first }
 }
 
 @Composable

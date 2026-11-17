@@ -62,10 +62,12 @@ fun WidgetStudioScreen(kind: WidgetKind, initialStyle: app.cairn.widget.WidgetSt
     var editTap by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val chosen = WidgetSize.parse(size) ?: WidgetSize.Wide
+    val applier = remember { lookApplier(context, graph) }
     WidgetCustomizer(
         kind, cfg, { cfg = it }, appearance, chosen, { size = it.name },
         "Your launcher gets a ${WidgetVariants.pickerLabel(kind, chosen)} widget, so it lands at this size. You can still resize it later.",
         tapTarget, { editTap = true }, modifier.fillMaxSize(), appUnit = display.unit,
+        applier = applier,
         bottom = {
             Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error) }
@@ -91,3 +93,14 @@ fun WidgetStudioScreen(kind: WidgetKind, initialStyle: app.cairn.widget.WidgetSt
 /** Saves a [WidgetConfig] through its own encode/decode (lossless and tolerant of unknown values), so an editor survives recreation. */
 internal fun WidgetConfigSaver(kind: WidgetKind): androidx.compose.runtime.saveable.Saver<WidgetConfig, String> =
     androidx.compose.runtime.saveable.Saver(save = { it.encode() }, restore = { WidgetConfig.decode(it, kind) })
+
+internal fun lookApplier(context: android.content.Context, graph: app.cairn.AppGraph): LookApplier<WidgetKind> {
+    val settings = graph.appSettings.widgetSettings
+    return LookApplier(
+        ids = { placedWidgets(context) },
+        load = { id, k -> settings.configNow(id, k) },
+        save = { id, c -> settings.save(id, c) },
+        refresh = { runCatching { app.cairn.widget.GlanceWidgetUpdater(context.applicationContext).updateAll() } },
+        decode = { raw, k -> WidgetConfig.decode(raw, k) },
+    )
+}

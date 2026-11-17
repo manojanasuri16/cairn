@@ -33,7 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /** About 16 bitmaps, keyed by kind, size, resolved choices, density and the pixel width, so scrolling never re-renders. */
-private val thumbCache = LruCache<String, Bitmap>(16)
+private val thumbCache = LruCache<String, Bitmap>(48)
 
 /**
  * A widget at its true proportions and a realistic size ([WidgetSize.pinDp]: 2x2 124 dp square, 4x2 272 x 124, 4x3 272 x 198), drawn at
@@ -50,7 +50,8 @@ fun WidgetThumbnail(kind: WidgetKind, cfg: ResolvedConfig, size: WidgetSize, mod
         val wPx = ThumbnailMath.slotPx(real.width.value, density, scale)
         val hPx = ThumbnailMath.slotPx(real.height.value, density, scale)
         val shape = RoundedCornerShape(ThumbnailMath.cornerDp(scale).dp)
-        val key = "${kind.name}|${size.name}|${cfg.hashCode()}|$density|$wPx|sample"
+        val dark = androidx.compose.foundation.isSystemInDarkTheme()
+        val key = "${kind.name}|${size.name}|${cfg.hashCode()}|$density|$wPx|$dark|sample"
         var bmp by remember(key) { mutableStateOf(thumbCache.get(key)) }
         LaunchedEffect(key) {
             if (bmp != null) return@LaunchedEffect
