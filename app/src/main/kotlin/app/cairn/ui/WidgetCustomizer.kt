@@ -31,6 +31,8 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
@@ -266,7 +268,7 @@ fun WidgetCustomizer(
             val padPx = Spacing.sm
             Row(Modifier.fillMaxSize()) {
                 Box(
-                    Modifier.weight(EditorLayout.SIDE_PREVIEW_FRACTION).fillMaxHeight().shadow(4.dp).background(PREVIEW_BACKDROP).padding(padPx),
+                    Modifier.weight(EditorLayout.SIDE_PREVIEW_FRACTION).fillMaxHeight().clip(RoundedCornerShape(28.dp)).background(previewBackdrop()).padding(padPx),
                     contentAlignment = Alignment.Center,
                 ) { previewBox(totalW * EditorLayout.SIDE_PREVIEW_FRACTION - padPx * 2, totalH - padPx * 2) }
                 Column(Modifier.weight(1f - EditorLayout.SIDE_PREVIEW_FRACTION).fillMaxHeight()) {
@@ -278,7 +280,7 @@ fun WidgetCustomizer(
         } else {
             val maxH = EditorLayout.previewMaxHeightDp(maxHeight.value).dp
             Column(Modifier.fillMaxSize()) {
-                Box(Modifier.fillMaxWidth().zIndex(1f).shadow(4.dp).background(PREVIEW_BACKDROP).padding(Spacing.sm), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().zIndex(1f).clip(PREVIEW_SHAPE).background(previewBackdrop()).padding(Spacing.sm), contentAlignment = Alignment.Center) {
                     previewBox(totalW - Spacing.sm * 2, maxH - Spacing.sm * 2)
                 }
                 tabs()
@@ -289,7 +291,13 @@ fun WidgetCustomizer(
     }
 }
 
-internal val PREVIEW_BACKDROP = Color(0xFF6B7280)
+/** The preview stage: a soft tonal gradient that follows the theme (a calm "wallpaper" so Glass and low-opacity looks stay judgeable). */
+@Composable
+internal fun previewBackdrop(): Brush =
+    if (isSystemInDarkTheme()) Brush.verticalGradient(listOf(Color(0xFF454D63), Color(0xFF5A637C)))
+    else Brush.verticalGradient(listOf(Color(0xFFDCE0EC), Color(0xFFC3C9DB)))
+
+internal val PREVIEW_SHAPE = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
 
 /** Lays [content] out at [w] x [h] dp but measures and draws it scaled down (never up) so it fits [maxW] x [maxH], keeping its aspect ratio. */
 @Composable
