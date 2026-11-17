@@ -22,7 +22,6 @@ object WidgetLooks {
     val curated: List<WidgetLook> = listOf(
         WidgetLook("paper", "Paper", ThemeId.Clean, Bg.Solid, 100, Corners.System, AccentOption.Theme),
         WidgetLook("minimal", "Minimal", ThemeId.Minimal, Bg.Solid, 100, Corners.System, AccentOption.Theme),
-        WidgetLook("night-run", "Night run", ThemeId.Midnight, Bg.Gradient, 100, Corners.System, AccentOption.Lime),
         WidgetLook("dusk", "Dusk", ThemeId.Dusk, Bg.Gradient, 100, Corners.ExtraRound, AccentOption.Theme),
         WidgetLook("forest", "Forest", ThemeId.Forest, Bg.Gradient, 100, Corners.System, AccentOption.Theme),
         WidgetLook("sunrise", "Sunrise", ThemeId.Sunrise, Bg.Gradient, 100, Corners.ExtraRound, AccentOption.Coral),

@@ -15,15 +15,15 @@ import org.junit.Test
 
 class LooksTest {
     @Test fun eightCuratedLooksWithUniqueIdsAndSafeOpacity() {
-        assertEquals(8, WidgetLooks.curated.size)
-        assertEquals(8, WidgetLooks.curated.map { it.id }.toSet().size)
+        assertEquals(7, WidgetLooks.curated.size)
+        assertEquals(7, WidgetLooks.curated.map { it.id }.toSet().size)
         WidgetLooks.curated.forEach { assertTrue(it.opacity == 0 || it.opacity == 100); assertEquals(it.bg == Bg.Transparent, it.opacity == 0) }
     }
 
     @Test fun withLookChangesOnlyLookFields() {
         val base = WidgetConfig(style = WidgetStyle.TodayStack, hidden = setOf(Part.Rings), compactFooter = true)
-        val out = base.withLook(WidgetLooks.byId("night-run")!!)
-        assertEquals(ThemeId.Midnight, out.theme); assertEquals(Bg.Gradient, out.bg); assertEquals(AccentOption.Lime, out.accent)
+        val out = base.withLook(WidgetLooks.byId("deep-ocean")!!)
+        assertEquals(ThemeId.Ocean, out.theme); assertEquals(Bg.Gradient, out.bg); assertEquals(AccentOption.Sky, out.accent)
         assertEquals(base.style, out.style); assertEquals(base.hidden, out.hidden); assertTrue(out.compactFooter)
     }
 

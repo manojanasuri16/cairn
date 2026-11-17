@@ -526,7 +526,7 @@ default):
 Then one full-width primary button: "Add to home screen" (studio) or "Done" (configure). A quiet row under it: `Apply look to all` ·
 `Copy look…` · `Reset` · `Undo` (only when there is something to undo). The top-right of the options area has an `Advanced` switch; on,
 it shows today's 5 tabs unchanged under the same preview. The switch is remembered app-wide (`editor_advanced`). TalkBack order: preview
-description, Look (a "Look, 3 of 8, Night run" list), Layout, Size, primary button, quiet row, Advanced.
+description, Look (a "Look" list), Layout, Size, primary button, quiet row, Advanced.
 
 Thumbnails: rendered off the main thread with `WidgetThumbnails.view` + `render` at 2x the card px, and cached in an
 `LruCache<ThumbKey, Bitmap>(4 MB)` keyed by `(kind, style, size, lookId, dark, fontScale)`. A grey placeholder shows until each one is
