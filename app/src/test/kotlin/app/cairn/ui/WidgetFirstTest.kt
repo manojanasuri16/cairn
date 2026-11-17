@@ -83,23 +83,6 @@ class WidgetFirstTest {
         assertTrue(PostSignIn.shouldConfirm(1_000L, 1_000L + PostSignIn.CONFIRM_WINDOW_MS + 1))
     }
 
-    @Test fun placedWidgetListing() {
-        val placed = PlacedWidgets.list(
-            listOf(
-                "app.cairn.widget.RecoveryWideWidgetReceiver" to intArrayOf(12),
-                "app.cairn.widget.TodayWidgetReceiver" to intArrayOf(7, 3),
-                "app.cairn.widget.SomethingElse" to intArrayOf(99),
-                "app.cairn.widget.SleepWidgetReceiver" to intArrayOf(),
-            ),
-        )
-        assertEquals(listOf(3, 7, 12), placed.map { it.appWidgetId })
-        assertEquals(WidgetKind.Today, placed[0].kind)
-        assertEquals(WidgetSize.Small, placed[0].size)
-        assertEquals(WidgetKind.Recovery, placed[2].kind)
-        assertEquals(WidgetSize.Wide, placed[2].size)
-        assertTrue(PlacedWidgets.list(emptyList()).isEmpty())
-    }
-
     @Test fun everyReceiverMapsBackToItsKindAndSize() {
         WidgetKind.entries.forEach { k -> WidgetSize.entries.forEach { s ->
             val name = WidgetVariants.receiverName(k, s)

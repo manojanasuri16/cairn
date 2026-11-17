@@ -80,14 +80,21 @@ private fun ChartStyle(b: TrainingLoadUi, plan: Layouts.Plan, color: Int, commen
             Column(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) { Chart(b, chartW.dp, plan.heroDp.dp, color, trend) }
         }
     } else {
+        val chartW = (w - 2 * plan.pad).coerceAtLeast(40f)
+        val narrow = w < 160f
         Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            if (narrow) {
+                Txt(b.ratioText, plan.heroSp, FontWeight.Bold, hero = true)
+                comment?.let { Pill(it, color, maxLines = 1) }
+            } else Row(verticalAlignment = Alignment.CenterVertically) {
                 Txt(b.ratioText, plan.heroSp, FontWeight.Bold, hero = true)
                 comment?.let { Spacer(GlanceModifier.width(8.dp)); Pill(it, color) }
             }
             vo2?.let { Sub(it, 11f) }
-            Spacer(GlanceModifier.height(6.dp))
-            Chart(b, (w - 2 * plan.pad).dp, plan.heroDp.dp, color, trend)
+            if (plan.heroDp > 0) {
+                Spacer(GlanceModifier.height(6.dp))
+                Chart(b, chartW.dp, plan.heroDp.dp, color, trend)
+            }
         }
     }
 }

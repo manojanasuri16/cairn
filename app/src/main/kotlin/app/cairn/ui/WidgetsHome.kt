@@ -75,25 +75,13 @@ internal fun widgetBlurb(k: WidgetKind) = when (k) {
     WidgetKind.WeeklyMileage -> "Distance this week, Monday to Sunday, and a goal ring"
 }
 
-private data class PlacedUi(val widget: PlacedWidget, val config: WidgetConfig)
-
-/** The home screen: your placed widgets, then a gallery of every widget kind. Tapping a card opens its editor. */
+/** The home screen: a gallery of every widget kind. Tapping a card opens its editor. */
 @Composable
 fun WidgetsHomeScreen(onAdd: (WidgetKind, WidgetSize) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val graph = (context.applicationContext as CairnApp).graph
     val settings = graph.appSettings.widgetSettings
     val appearance by settings.appearance.collectAsStateWithLifecycle(initialValue = AppAppearance())
-    var placed by remember { mutableStateOf<List<PlacedUi>>(emptyList()) }
-    var reload by remember { mutableStateOf(0) }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { reload++ }
-    LaunchedEffect(reload) {
-        val ids = withContext(Dispatchers.IO) {
-            val mgr = AppWidgetManager.getInstance(context)
-            PlacedWidgets.list(WidgetVariants.allReceivers().map { it.name to mgr.getAppWidgetIds(ComponentName(context, it)) })
-        }
-        placed = ids.map { PlacedUi(it, settings.configNow(it.appWidgetId, it.kind)) }
-    }
     val pinSupported = remember { WidgetPinner.isSupported(context) }
 
     LazyColumn(
@@ -101,56 +89,14 @@ fun WidgetsHomeScreen(onAdd: (WidgetKind, WidgetSize) -> Unit, modifier: Modifie
     ) {
         item { UpdateBanner() }
         item { SyncStatusBar(null) }
-        if (placed.isEmpty()) item { EmptyWidgets(pinSupported) }
-        else {
-            item { SectionTitle("Your widgets") }
-            items(placed, key = { it.widget.appWidgetId }) { p -> PlacedRow(p, appearance) { edit(context, p.widget.appWidgetId) } }
-            item { Text("To remove a widget, long-press it on your home screen.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 SectionTitle("Add a widget")
-                Text("Tip: press and hold any card in the app to add it to your home screen.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (pinSupported) "Pick one, make it yours with a live preview, then add it to your home screen. Tip: press and hold any card in the app to add it too."
+                    else "Your launcher cannot add widgets from an app. Pick one to design it, then long-press your home screen, choose Widgets and add it from there.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         items(WidgetKind.entries.toList(), key = { it.name }) { k -> GalleryCard(k, appearance, onAdd) }
-    }
-}
-
-private fun edit(context: android.content.Context, id: Int) {
-    context.startActivity(
-        Intent(context, WidgetConfigActivity::class.java)
-            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id).putExtra(WidgetConfigActivity.EXTRA_EDIT, true),
-    )
-}
-
-@Composable
-private fun EmptyWidgets(pinSupported: Boolean) {
-    SectionCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Icon(AppIcons.Widgets, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
-            Text("Add your first widget", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-        }
-        Text(
-            if (pinSupported) "Pick one below, make it yours with a live preview, then add it to your home screen. Widgets you place show up here."
-            else "Your launcher cannot add widgets from an app. Pick one below to design it, then long-press your home screen, choose Widgets and add it from there.",
-            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun PlacedRow(p: PlacedUi, appearance: AppAppearance, onEdit: () -> Unit) {
-    val resolved = p.config.resolve(p.widget.kind, appearance)
-    Card(Modifier.fillMaxWidth(), colors = cairnCardColors()) {
-        Row(Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            WidgetThumbnail(p.widget.kind, resolved, p.widget.size, Modifier.width(96.dp), maxWidth = 96.dp)
-            Column(Modifier.weight(1f)) {
-                Text(p.widget.kind.label, style = MaterialTheme.typography.titleMedium)
-                Text("${p.widget.size.cells} · ${resolved.style.label} · ${resolved.theme.label}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            OutlinedButton(onClick = onEdit) { Text("Edit", maxLines = 1, softWrap = false) }
-        }
     }
 }
 

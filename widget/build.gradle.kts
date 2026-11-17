@@ -15,6 +15,14 @@ tasks.withType<Test>().configureEach {
         systemProperty("robolectric.offline", "true")
         systemProperty("robolectric.dependency.dir", robolectricJars.absolutePath)
     }
+    // Widget matrix (docs/widget-quality.md 2.8): -PwidgetMatrix=smoke (default) | full | off, -PmatrixDumpAll=true, -PmatrixShard=i/n.
+    systemProperty("widgetMatrix", (project.findProperty("widgetMatrix") ?: "smoke").toString())
+    systemProperty("matrixShard", (project.findProperty("matrixShard") ?: "0/1").toString())
+    systemProperty("matrixFilter", (project.findProperty("matrixFilter") ?: "").toString())
+    systemProperty("matrixDumpAll", (project.findProperty("matrixDumpAll") ?: "false").toString())
+    systemProperty("matrixReportDir", layout.buildDirectory.dir("reports/widget-matrix").get().asFile.absolutePath)
+    systemProperty("matrixResourcesDir", layout.projectDirectory.dir("src/test/resources").asFile.absolutePath)
+    maxHeapSize = "2g"
 }
 
 dependencies {

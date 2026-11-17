@@ -33,7 +33,7 @@ class RenderedTreeTest {
     @Test fun overviewRendersFourTilesInOrder() {
         val cfg = WidgetConfig().resolve(WidgetKind.Overview, AppAppearance())
         val t = texts(WidgetKind.Overview, cfg, DpSize(176.dp, 222.dp))
-        val labels = t.filter { it in OverviewId.entries.map { e -> e.label } }
+        val labels = t.mapNotNull { x -> OverviewId.entries.firstOrNull { it.label == x || Layouts.shortLabel(it.label) == x }?.label }
         assertEquals(t.toString(), listOf("Steps", "Sleep", "Recovery", "Resting HR"), labels)
     }
 
@@ -45,8 +45,9 @@ class RenderedTreeTest {
         val order = listOf(OverviewId.Steps, OverviewId.Sleep, OverviewId.Recovery, OverviewId.RestingHr, OverviewId.Calories, OverviewId.LoadRatio)
         for (n in 1..6) for ((w, h) in cells) {
             val cfg = WidgetConfig(metrics = order.take(n)).resolve(WidgetKind.Overview, AppAppearance())
-            val shown = OverviewLayout.planForCell(n, w, h, 1f, WidgetSizes.byKind.getValue(WidgetKind.Overview)).shown
-            val labels = texts(WidgetKind.Overview, cfg, DpSize(w.dp, h.dp)).filter { it in OverviewId.entries.map { e -> e.label } }
+            val items = order.take(n).map { id -> Samples.overview().body.items.firstOrNull { it.id == id } ?: OverviewItem(id, "\u2013") }
+            val shown = OverviewLayout.planForCell(n, w, h, 1f, WidgetSizes.byKind.getValue(WidgetKind.Overview), items).shown
+            val labels = texts(WidgetKind.Overview, cfg, DpSize(w.dp, h.dp)).mapNotNull { x -> OverviewId.entries.firstOrNull { it.label == x || Layouts.shortLabel(it.label) == x }?.label }
             assertEquals("$n stats at ${w}x$h", order.take(n).take(shown).map { it.label }, labels)
         }
         // A cell a little under 170 dp wide (a launcher reports the widget view, not the cell) still holds the default four as a 2x2.

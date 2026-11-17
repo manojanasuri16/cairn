@@ -33,11 +33,11 @@ class CompositionTest {
         val size = selected(WidgetKind.Overview, cellW, cellH)
         setAppWidgetSize(size)
         val chosen = chosenOrder.take(count)
-        val expected = OverviewLayout.firstN(chosen, OverviewLayout.planForCell(count, cellW, cellH, 1f, WidgetSizes.byKind.getValue(WidgetKind.Overview)).shown)
+        val expected = OverviewLayout.firstN(chosen, OverviewLayout.planForCell(count, cellW, cellH, 1f, WidgetSizes.byKind.getValue(WidgetKind.Overview), chosen.map { id -> Samples.overview().body.items.firstOrNull { it.id == id } ?: OverviewItem(id, "\u2013") }).shown)
         val cfg = WidgetConfig(metrics = chosen).resolve(WidgetKind.Overview, AppAppearance())
         provideComposable { OverviewWidget().RenderSample(cfg) }
         for (id in OverviewId.entries) {
-            val node = onAllNodes(hasText(id.label))
+            val node = onAllNodes(hasText(id.label) or (if (Layouts.shortLabel(id.label).length > 2 && Layouts.shortLabel(id.label) != id.label) hasText(Layouts.shortLabel(id.label)) else hasText(id.label)))
             if (id in expected) node.assertCountEquals(1) else node.assertCountEquals(0)
         }
         check(expected.isNotEmpty())
@@ -48,7 +48,7 @@ class CompositionTest {
         setAppWidgetSize(selected(WidgetKind.Overview, 176f, 222f))
         val cfg = WidgetConfig().resolve(WidgetKind.Overview, AppAppearance())
         provideComposable { OverviewWidget().RenderSample(cfg) }
-        for (label in listOf("Steps", "Sleep", "Recovery", "Resting HR")) onAllNodes(hasText(label)).assertCountEquals(1)
+        for (label in listOf("Steps", "Sleep", "Recovery", "Resting HR")) onAllNodes(hasText(label) or hasText(Layouts.shortLabel(label))).assertCountEquals(1)
     }
 
     @Test fun overviewComposesTheFirstNStatsForEveryCountAndSize() {
@@ -65,7 +65,7 @@ class CompositionTest {
             OverviewWidget().RenderSample(cfg)
         }
         for (pass in 0..3) {
-            for (label in listOf("Steps", "Sleep", "Recovery", "Resting HR")) onAllNodes(hasText(label)).assertCountEquals(1)
+            for (label in listOf("Steps", "Sleep", "Recovery", "Resting HR")) onAllNodes(hasText(label) or hasText(Layouts.shortLabel(label))).assertCountEquals(1)
             tick.intValue++
         }
     }

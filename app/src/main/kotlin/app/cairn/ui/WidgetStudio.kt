@@ -55,10 +55,11 @@ fun WidgetStudioScreen(kind: WidgetKind, initialStyle: app.cairn.widget.WidgetSt
     val appearance by settings.appearance.collectAsStateWithLifecycle(initialValue = AppAppearance())
     val display by graph.appSettings.display.collectAsStateWithLifecycle(initialValue = app.cairn.core.model.DisplayPrefs())
     val tapTarget by graph.appSettings.tapTarget(kind).collectAsStateWithLifecycle(initialValue = TapTarget.CorosHome)
-    var cfg by remember(kind, initialStyle) { mutableStateOf(WidgetConfig(style = initialStyle?.takeIf { it.kind == kind })) }
+    // The edits survive rotation, dark mode and font-scale changes: they are saved as the config's own lossless text form.
+    var cfg by rememberSaveable(kind, initialStyle, stateSaver = WidgetConfigSaver(kind)) { mutableStateOf(WidgetConfig(style = initialStyle?.takeIf { it.kind == kind })) }
     var size by rememberSaveable(kind) { mutableStateOf((initialSize ?: WidgetVariants.suggested(kind)).name) }
-    var message by remember { mutableStateOf<String?>(null) }
-    var editTap by remember { mutableStateOf(false) }
+    var message by rememberSaveable { mutableStateOf<String?>(null) }
+    var editTap by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val chosen = WidgetSize.parse(size) ?: WidgetSize.Wide
     WidgetCustomizer(
@@ -86,3 +87,7 @@ fun WidgetStudioScreen(kind: WidgetKind, initialStyle: app.cairn.widget.WidgetSt
     )
     if (editTap) TapTargetPickerDialog(kind, tapTarget, onSave = { t -> scope.launch { graph.appSettings.setTapTarget(kind, t) }; editTap = false }, onDismiss = { editTap = false })
 }
+
+/** Saves a [WidgetConfig] through its own encode/decode (lossless and tolerant of unknown values), so an editor survives recreation. */
+internal fun WidgetConfigSaver(kind: WidgetKind): androidx.compose.runtime.saveable.Saver<WidgetConfig, String> =
+    androidx.compose.runtime.saveable.Saver(save = { it.encode() }, restore = { WidgetConfig.decode(it, kind) })

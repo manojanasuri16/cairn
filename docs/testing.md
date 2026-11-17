@@ -112,7 +112,7 @@ Manual checks on a device or emulator:
 
 - [ ] First launch: onboarding step 3 ends with "Choose a widget" and lands on the Widgets tab (gallery, "Add your first widget" empty state). Bottom bar: Widgets, Today, Activities, Fitness; Settings gear in the top bar.
 - [ ] Gallery: 11 cards with live previews in your default look, size chips 2x2/4x2/4x3 change the preview; tapping a card opens the sticky editor with that size. Menu: Default look (style, background, opacity) and Tap targets.
-- [ ] Place two widgets, return to Widgets: "Your widgets" lists both (kind, size, style); Edit opens the configure screen for that widget; Done returns. Remove one on the home screen; it disappears from the list on return.
+- [ ] Place two widgets, long-press one on the home screen and choose Reconfigure: the configure screen opens with its saved look; rotate the phone and switch dark mode while editing: the unsaved choices stay. Done returns. (The app has no "Your widgets" list.)
 - [ ] Settings has no Widgets group (Appearance, Sync, Sources, COROS account, Notifications, Units, Tools, About, Your data).
 - [ ] Long-press every card (Today header, Today's Activity, Heart Rate / Resting HR / Stress tiles, Sleep, HRV, Weekly load, Training status, Recovery, Running fitness, Last 7 days; Activities month header, a row, the details sheet; Fitness training status, running fitness, race predictions): haptic, then "Add to home screen" opens the editor preset to that widget and style; "Open in COROS" works. A plain tap on a row still opens its details.
 - [ ] One-time Today tip "press and hold any card": dismiss with X, or it disappears after the first long press; it does not return after restarting the app.
@@ -124,6 +124,6 @@ Manual checks on a device or emulator:
 - [ ] Dark/light, font scale 2.0 (buttons wrap, nothing clipped), animator scale 0 (no motion); content below stays usable.
 - [ ] Airplane mode + cold start with the fake cache: the banner still shows.
 - [ ] Settings > About > Check for updates shows "You're up to date (version)" or the banner inline, no toast.
-- [ ] Gallery thumbnails are crisp and at true proportions (2x2 square, 4x2 and 4x3 wide), centred on a neutral surface, never stretched or in a thick frame, in light and dark and at 200% font (card text wraps, preview stays the same size). The sync icon and freshness dot are small, as on the real widget. "Your widgets" thumbnails use the same renderer.
+- [ ] Gallery thumbnails are crisp and at true proportions (2x2 square, 4x2 and 4x3 wide), centred on a neutral surface, never stretched or in a thick frame, in light and dark and at 200% font (card text wraps, preview stays the same size). The sync icon and freshness dot are small, as on the real widget.
 - [ ] Demo mode: the Activities list has a Strength workout (no distance): icon badge, duration as the hero (1 h 53 min style), then heart rate and kcal only; no letter badge anywhere. Today's Activity and the Last activity widget follow the same rule for a no-distance workout.
 

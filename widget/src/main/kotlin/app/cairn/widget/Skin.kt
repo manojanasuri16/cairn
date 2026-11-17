@@ -33,7 +33,7 @@ fun isDarkMode(context: Context): Boolean =
 fun skinFor(context: Context, cfg: ResolvedConfig): Skin {
     val dark = isDarkMode(context)
     val themed = Palettes.fixed(cfg.theme, dark, cfg.accent)
-    val p = if (cfg.onWallpaper) Palettes.onWallpaper(dark, cfg.accent, themed.accent) else themed
+    val p = if (cfg.onWallpaper) Palettes.onWallpaper(dark, cfg.accent, themed.accent) else themed.safeOverWallpaper(cfg.opacity)
     return Skin(p, cfg)
 }
 
@@ -57,3 +57,19 @@ fun Icon(res: Int, size: Dp, tint: Int) =
 fun widgetSize(): Pair<Float, Float> = LocalSize.current.let { it.width.value + WidgetSizes.MARGIN_DP to it.height.value + WidgetSizes.MARGIN_DP }
 
 fun Palette.withAlpha(argb: Int, a: Float) = Contrast.withAlpha(argb, a)
+
+/**
+ * A card below 100 percent opacity lets the wallpaper through, so the card colours are checked as they really appear: blended at [opacity]
+ * over black AND over white. Text keeps 4.5:1 on both where any ink can (the better of the theme ink, near-black and white), else the best it can reach.
+ */
+fun Palette.safeOverWallpaper(opacity: Int): Palette {
+    if (opacity >= 100) return this
+    val a = opacity.coerceIn(0, 100) / 100f
+    val grounds = listOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt())
+    val bgs = (textStops + tile).flatMap { c -> grounds.map { g -> Contrast.blend(c, g, a) } }
+    fun best(c: Int): Int {
+        if (Contrast.minRatio(c, bgs) >= 4.5) return c
+        return listOf(c, Contrast.ensure(c, bgs, 4.5), Contrast.NEAR_BLACK, Contrast.NEAR_WHITE).maxBy { Contrast.minRatio(it, bgs) }
+    }
+    return copy(ink = best(ink), inkSub = best(inkSub))
+}

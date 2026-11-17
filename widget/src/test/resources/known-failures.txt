@@ -1,0 +1,94 @@
+# case-id glob (* wildcard)   rule   issue (reason tag, see docs/widget-quality-results.md)
+*  I12.time  cold-JVM render over the 2 s budget (timing flake, not a layout fault)
+Fitness.FitnessGrid@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Fitness.FitnessGrid@*  I8.plannedRendered  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Fitness.FitnessGrid@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Fitness.FitnessLadder@*  I4.textFits  rtl 242x296 ladder: pace view 0.8 dp narrower than its text (weight squeeze)
+Fitness.FitnessLadder@*  I6.inBounds  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Fitness.FitnessLadder@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Fitness.FitnessVo2@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Fitness.FitnessVo2@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+HeartRate.HeartPair@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+HeartRate.HeartPair@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+HeartRate.HeartPair@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+HeartRate.HeartRange@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+HeartRate.HeartRange@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+HeartRate.HeartSpark@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+HeartRate.HeartSpark@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Hrv.HrvNights@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Hrv.HrvNights@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Hrv.HrvPill@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Hrv.HrvPill@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Hrv.HrvRange@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Hrv.HrvRange@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+LastActivity.ActivityGrid@*  I4.textFits  250x40 provider minimum: tile row does not fit the 40 dp strip body
+LastActivity.ActivityGrid@*  I6.inBounds  250x40 provider minimum: tile row does not fit the 40 dp strip body
+LastActivity.ActivityGrid@*  I8.plannedRendered  plan counts rows/tiles one more than the cell holds at tiny heights (Today ring Zero state, stat grid stale)
+LastActivity.ActivityGrid@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+LastActivity.ActivityHero@*  I4.textFits  250x40 provider minimum: one text line does not fit the 40 dp strip body above the 28 dp footer
+LastActivity.ActivityHero@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+LastActivity.ActivityHero@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+LastActivity.ActivityLine@*  I12.time  cold-JVM render over the budget (timing flake)
+LastActivity.ActivityLine@*  I4.textFits  250x40 provider minimum: one text line does not fit the 40 dp strip body above the 28 dp footer
+LastActivity.ActivityLine@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Overview.OverviewGrid@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Overview.OverviewGrid@*  I6.inBounds  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Overview.OverviewGrid@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Overview.OverviewGrid@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Recovery.RecoveryGauge@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Recovery.RecoveryGauge@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Recovery.RecoveryGauge@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Recovery.RecoveryPill@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Recovery.RecoveryPill@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Recovery.RecoveryRing@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Recovery.RecoveryRing@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Recovery.RecoveryRing@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Sleep.SleepBar@*  I12.time  cold-JVM render over the budget (timing flake)
+Sleep.SleepBar@*  I16.chartBounds  4x2 Sleep bar at font 1.5: stage bar 14 dp in a 62 dp body is 4 dp over (block cost estimate)
+Sleep.SleepBar@*  I4.textFits  hero 7 h 41 min at font 2.0 in the 83 dp column (needs 85)
+Sleep.SleepBar@*  I6.inBounds  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Sleep.SleepBar@*  I7.hero  hero or ring numeral 1 to 3 dp wider than its box at font 2.0 (estimate vs native font)
+Sleep.SleepBar@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Sleep.SleepRing@*  I4.textFits  7 h 41 min at font 2.0 beside the ring
+Sleep.SleepRing@*  I6.inBounds  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Sleep.SleepRing@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Sleep.SleepRing@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Sleep.SleepTimeline@*  I4.textFits  stage label at font 2.0 in a 110 dp cell
+Sleep.SleepTimeline@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Sleep.SleepTimeline@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Stress.StressBars@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Stress.StressBars@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Stress.StressGauge@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Stress.StressGauge@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Stress.StressPill@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Stress.StressPill@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Today.TodayRing@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Today.TodayRing@*  I7.hero  hero or ring numeral 1 to 3 dp wider than its box at font 2.0 (estimate vs native font)
+Today.TodayRing@*  I8.plannedRendered  plan counts rows/tiles one more than the cell holds at tiny heights (Today ring Zero state, stat grid stale)
+Today.TodayRing@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Today.TodayStack@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Today.TodayStack@*  I6.inBounds  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+Today.TodayStack@*  I7.hero  hero or ring numeral 1 to 3 dp wider than its box at font 2.0 (estimate vs native font)
+Today.TodayStack@*  I8.plannedRendered  plan counts rows/tiles one more than the cell holds at tiny heights (Today ring Zero state, stat grid stale)
+Today.TodayStack@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+Today.TodayStripe@*  I4.textFits  chip value at font 2.0 wider than a 41 dp chip (5 digit steps)
+Today.TodayStripe@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+TrainingLoad.LoadBars@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+TrainingLoad.LoadBars@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+TrainingLoad.LoadBars@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+TrainingLoad.LoadDial@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+TrainingLoad.LoadDial@*  I7.hero  hero or ring numeral 1 to 3 dp wider than its box at font 2.0 (estimate vs native font)
+TrainingLoad.LoadDial@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+TrainingLoad.LoadTrend@*  I12.time  cold-JVM render over the budget (timing flake)
+TrainingLoad.LoadTrend@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+TrainingLoad.LoadTrend@*  I7.hero  hero or ring numeral 1 to 3 dp wider than its box at font 2.0 (estimate vs native font)
+TrainingLoad.LoadTrend@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+WeeklyMileage.MileageBars@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+WeeklyMileage.MileageBars@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+WeeklyMileage.MileageBars@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+WeeklyMileage.MileageGoal@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+WeeklyMileage.MileageGoal@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+WeeklyMileage.MileageGoal@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1
+WeeklyMileage.MileageTrend@*  I4.textFits  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+WeeklyMileage.MileageTrend@*  I7.hero  native font vs estimate: text 0.5 to 3 dp over its box or a block cost estimate 2 to 6 dp short at font 2.0 or in the smallest cells
+WeeklyMileage.MileageTrend@*  I9.contrast  A16 text colour cannot be right on every wallpaper: transparent and 30/55 percent cards, plus a few tinted semantic fills at 4.0 to 4.4:1

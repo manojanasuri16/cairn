@@ -67,6 +67,11 @@ fun Txt(
 fun Sub(text: String, size: Float = 12f, maxLines: Int = 1, align: TextAlign? = null, modifier: GlanceModifier = GlanceModifier) =
     Txt(text, size, color = skin.p.inkSub, maxLines = maxLines, align = align, modifier = modifier)
 
+/** Secondary text that steps down in size (never below 9 sp) before it would be cut off. */
+@Composable
+fun FitSub(text: String, size: Float, availW: Float, align: TextAlign? = null, modifier: GlanceModifier = GlanceModifier) =
+    Sub(text, TextFit.fitSp(text, size, 9f, availW, LocalFontScale), align = align, modifier = modifier)
+
 @Composable
 fun bodyTap(context: Context, kind: WidgetKind): Action = actionStartActivity(bodyTapIntent(context, kind))
 
@@ -170,8 +175,11 @@ fun Tile(label: String, value: String, modifier: GlanceModifier, valueSp: Float 
 /** Solid semantic pill with text in whichever of black or white reads best on it. */
 @Composable
 fun Pill(text: String, fill: Int, modifier: GlanceModifier = GlanceModifier, maxLines: Int = 2) {
+    // In a narrow cell the word steps down to 10 sp before it wraps or is cut (the level word must always be readable).
+    val (w, _) = widgetSize()
+    val sp = TextFit.fitSp(text, 12f, 10f, w - 28f - 24f, LocalFontScale)
     Box(modifier.background(cp(fill)).cornerRadius(14.dp).padding(horizontal = 12.dp, vertical = 5.dp)) {
-        Txt(text, 12f, FontWeight.Bold, Contrast.bestInk(listOf(fill)), maxLines = maxLines)
+        Txt(text, sp, FontWeight.Bold, Contrast.bestInk(listOf(fill)), maxLines = maxLines)
     }
 }
 
@@ -201,16 +209,21 @@ fun <T> Framed(ui: WidgetUi.Content<T>, kind: WidgetKind, plan: Layouts.Plan, bo
 @Composable
 fun currentPlan(chars: Int = 6, heroText: String = "", values: List<String> = emptyList(), style: WidgetStyle = skin.cfg.style): Layouts.Plan {
     val (w, h) = widgetSize()
-    return Layouts.plan(style, w, h, LocalFontScale, chars, heroText, values)
+    return Layouts.plan(style, w, h, LocalFontScale, chars, heroText, values).also { PlanRecorder.sink?.invoke(skin.cfg.kind, it) }
+}
+
+/** Test hook (null in production): the widget matrix reads the layout plan each render used. */
+object PlanRecorder {
+    @Volatile var sink: ((WidgetKind, Layouts.Plan) -> Unit)? = null
 }
 
 /** Label left, value right, with an optional leading icon. */
 @Composable
-fun MetricLine(label: String, value: String, icon: Int? = null, iconTint: Int? = null, compact: Boolean = false, modifier: GlanceModifier = GlanceModifier) {
+fun MetricLine(label: String, value: String, icon: Int? = null, iconTint: Int? = null, compact: Boolean = false, modifier: GlanceModifier = GlanceModifier, valueSp: Float = 13f) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         if (icon != null) { Icon(icon, 14.dp, iconTint ?: skin.p.accent); Spacer(GlanceModifier.width(6.dp)) }
         if (!compact) Sub(label, 12f, modifier = GlanceModifier.defaultWeight()) else Spacer(GlanceModifier.defaultWeight())
-        Txt(value, 13f, FontWeight.Bold)
+        Txt(value, valueSp, FontWeight.Bold)
     }
 }
 

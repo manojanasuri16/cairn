@@ -19,7 +19,7 @@ The one-liner seen in the pin dialog comes from the Android 15+ generated previe
 **Decision.** Split the customizer into regions. Only the options region scrolls.
 
 ```
-WidgetEditorScaffold(            // new, app/ui/WidgetEditor.kt; used by Studio, ConfigActivity and "Your widgets" edit
+WidgetEditorScaffold(            // new, app/ui/WidgetEditor.kt; used by Studio and ConfigActivity
   preview  = { PreviewPane(views, size) },     // fixed, never scrolls
   tabs     = { SectionTabs(section) },         // fixed under the preview
   options  = { SectionOptions(section, ...) }, // the only verticalScroll
@@ -55,7 +55,7 @@ The top bar on every tab has a Settings gear, as it does now (`CairnRoot.kt:163`
 
 | Route | Screen | Replaces |
 | --- | --- | --- |
-| `widgets` | `WidgetsHomeScreen`: gallery and "Your widgets" | Studio chooser (`WidgetStudio.kt:104-122`) |
+| `widgets` | `WidgetsHomeScreen`: the gallery (the "Your widgets" list was removed) | Studio chooser (`WidgetStudio.kt:104-122`) |
 | `widgets/edit?kind=&size=&style=&id=` | `WidgetEditorScreen` (sticky editor). Without `id` it creates and pins a new widget; with `id` it edits a placed widget | `studio?kind=` |
 | `widgets/look` | `DefaultLookScreen` (the existing `WidgetAppearanceCard`) | Settings > Widgets group |
 | `widgets/tap` | `TapTargetsScreen` (exists) | Settings link |
@@ -69,7 +69,7 @@ The top bar on every tab has a Settings gear, as it does now (`CairnRoot.kt:163`
 LazyColumn
   [UpdateBanner]                       // package D, top of the main screen
   [SyncProblemBanner]                  // package C; only for a problem that stops widgets updating
-  "Your widgets" (only when >= 1 placed)
+  (removed: the "Your widgets" list; placed widgets are changed from the launcher)
      PlacedWidgetRow: scaled preview with its stored config | "Recovery · 2x2 · Midnight" | Edit · Reset look
      footnote: "To remove a widget, long-press it on your home screen."
   "Add a widget"   [Sample | My data] segmented toggle
@@ -400,7 +400,7 @@ Changes:
 
 Acceptance:
 - Cold launch opens Widgets.
-- Place two widgets: both appear under Your widgets with their real look. Edit one, change its theme and press Done: the home-screen widget updates within seconds.
+- Place two widgets: long-press one and choose Reconfigure, change its theme and press Done: the home-screen widget updates within seconds.
 - Remove one from the home screen and return: it disappears from the list.
 - Settings has no Widgets group.
 - Every card in the mapping table opens the sheet on long press and on its glyph. Activity rows still open details on tap.

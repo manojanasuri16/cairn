@@ -8,33 +8,33 @@ import androidx.compose.ui.unit.dp
  * rather than a global grid: a size point sits where the rules add a row, tile or column, so the size the launcher selects
  * (the largest one that fits the real cell) holds everything the real cell has room for.
  *
- * Overview's list is placed at its own thresholds: a tile needs 56 x 52 dp, so a second column opens at an effective 146 dp of width,
- * a third at 208, a fourth at 270, and extra rows at 166, 224 and 282 dp (the 28 dp footer holds the 40 dp wide sync button) of height; each is registered MARGIN_DP lower.
+ * Overview's list is placed at its own thresholds: a tile needs 56 x 52 dp, so a second column opens at 138 dp of width,
+ * a third at 200, a fourth at 262, and extra rows at 170, 228 and 286 dp of height (the 40 dp footer holds the 40 x 40 dp sync button).
  *
  * The other lists were produced by the greedy search in `WidgetSizesTest.generate` (run with GEN_SIZES=1) and are checked by
  * `WidgetSizesTest` against typical launcher cells. Re-run the generator after changing a layout rule.
  */
 object WidgetSizes {
     val byKind: Map<WidgetKind, List<Pair<Int, Int>>> = mapOf(
-        WidgetKind.Today to listOf(110 to 110, 110 to 130, 110 to 145, 110 to 165, 110 to 185, 110 to 200, 195 to 110, 200 to 110, 200 to 130, 200 to 135, 200 to 170, 200 to 195, 200 to 215, 260 to 235, 320 to 110, 320 to 245),
-        WidgetKind.Recovery to listOf(110 to 110, 110 to 140, 110 to 160, 120 to 130, 120 to 145, 120 to 165, 195 to 110, 195 to 130, 195 to 145, 195 to 165),
-        WidgetKind.LastActivity to listOf(250 to 40, 250 to 65, 250 to 85, 250 to 100, 250 to 120, 250 to 145, 250 to 165, 305 to 65),
-        WidgetKind.TrainingLoad to listOf(250 to 110, 250 to 145),
-        WidgetKind.Sleep to listOf(110 to 110, 110 to 115, 110 to 125, 110 to 140, 110 to 150, 110 to 165, 110 to 205, 110 to 220, 120 to 190, 120 to 205, 195 to 110, 195 to 115, 195 to 130, 195 to 145, 195 to 170, 245 to 115),
-        WidgetKind.Overview to listOf(110 to 110, 110 to 158, 110 to 216, 110 to 274, 138 to 110, 138 to 158, 138 to 216, 138 to 274, 200 to 110, 200 to 158, 200 to 216, 200 to 274, 262 to 110, 262 to 158, 262 to 216, 262 to 274),
-        WidgetKind.Hrv to listOf(110 to 110, 110 to 140, 110 to 145, 110 to 160, 110 to 170, 110 to 185, 110 to 195, 195 to 110, 195 to 125, 195 to 135, 195 to 165, 195 to 190, 260 to 110, 320 to 165, 195 to 250, 320 to 250),
-        WidgetKind.HeartRate to listOf(110 to 110, 110 to 120, 110 to 130, 110 to 145, 110 to 160, 195 to 110, 195 to 125, 260 to 110, 320 to 165, 195 to 250, 320 to 250, 110 to 220, 110 to 250),
-        WidgetKind.Stress to listOf(110 to 110, 110 to 135, 110 to 160, 110 to 185, 110 to 205, 110 to 220, 195 to 110, 195 to 120, 195 to 135, 195 to 160, 260 to 110, 320 to 165, 195 to 250, 320 to 250),
-        WidgetKind.WeeklyMileage to listOf(110 to 110, 110 to 125, 110 to 145, 110 to 160, 110 to 175, 195 to 110, 195 to 120, 260 to 110, 320 to 165, 195 to 250, 320 to 250, 110 to 220, 260 to 130, 260 to 150, 320 to 130),
-        WidgetKind.Fitness to listOf(250 to 110, 250 to 125, 250 to 145, 250 to 150, 250 to 175, 250 to 190, 250 to 205, 250 to 240, 305 to 110, 305 to 120, 305 to 125, 305 to 150, 320 to 150),
+        WidgetKind.Today to listOf(110 to 110, 110 to 160, 110 to 180, 110 to 200, 110 to 220, 200 to 110, 200 to 120, 200 to 150, 200 to 190, 200 to 210, 200 to 230, 210 to 150, 210 to 155, 210 to 235, 260 to 110, 260 to 120),
+        WidgetKind.Recovery to listOf(110 to 110, 110 to 155, 110 to 175, 125 to 145, 125 to 155, 125 to 165, 125 to 175, 125 to 180, 200 to 110, 200 to 145, 200 to 155, 200 to 165, 200 to 180),
+        WidgetKind.LastActivity to listOf(110 to 110, 110 to 115, 110 to 145, 110 to 185, 110 to 230, 165 to 185, 170 to 125, 170 to 160, 175 to 110, 180 to 185, 220 to 110, 220 to 120, 220 to 165, 220 to 185, 250 to 40, 250 to 90),
+        WidgetKind.TrainingLoad to listOf(110 to 110, 110 to 160, 110 to 165, 110 to 175, 110 to 180, 200 to 110, 200 to 115, 200 to 160),
+        WidgetKind.Sleep to listOf(110 to 110, 110 to 120, 110 to 145, 110 to 160, 110 to 165, 110 to 180, 110 to 225, 110 to 240, 200 to 110, 200 to 120, 200 to 155, 200 to 170, 200 to 185, 200 to 190, 200 to 195),
+        WidgetKind.Overview to listOf(110 to 110, 110 to 178, 110 to 236, 110 to 294, 146 to 110, 146 to 178, 146 to 236, 146 to 294, 208 to 110, 208 to 178, 208 to 236, 208 to 294, 270 to 110, 270 to 178, 270 to 236, 270 to 294),
+        WidgetKind.Hrv to listOf(110 to 110, 110 to 145, 110 to 155, 110 to 175, 110 to 180, 110 to 190, 110 to 200, 110 to 205, 110 to 215, 200 to 110, 200 to 120, 200 to 140, 200 to 145, 200 to 155, 200 to 185, 200 to 210),
+        WidgetKind.HeartRate to listOf(110 to 110, 110 to 140, 110 to 145, 110 to 150, 110 to 155, 110 to 165, 110 to 170, 110 to 180, 140 to 110, 200 to 110, 200 to 115, 200 to 145),
+        WidgetKind.Stress to listOf(110 to 110, 110 to 150, 110 to 155, 110 to 180, 110 to 205, 110 to 225, 110 to 240, 200 to 110, 200 to 140, 200 to 150, 200 to 155, 200 to 180),
+        WidgetKind.WeeklyMileage to listOf(110 to 110, 110 to 115, 110 to 145, 110 to 160, 110 to 175, 110 to 180, 110 to 195, 200 to 110, 200 to 115, 200 to 120, 200 to 140),
+        WidgetKind.Fitness to listOf(110 to 110, 110 to 140, 110 to 165, 110 to 190, 110 to 210, 110 to 255, 110 to 305, 155 to 110, 165 to 140, 165 to 160, 165 to 210, 165 to 240, 175 to 190, 300 to 110, 310 to 140, 310 to 160),
     )
 
     /**
-     * Launchers report a widget a little smaller than its cell (padding, rounding, the portrait/landscape min and max rule), so
-     * each size is registered this much below the size its layout rule is evaluated at. A variant is picked as early as is safe,
-     * and the rule is given declared size + MARGIN_DP, which the real cell always reaches within the same tolerance.
+     * Extra dp the layout rule is given beyond the declared size. It is 0: the cell a launcher really gives a widget can equal the declared
+     * size, so a rule evaluated above it overflows (the 2x2 cut-offs found by the widget matrix). A cell that is reported a little under its
+     * true size simply shows the layout one step down, never a cut one.
      */
-    const val MARGIN_DP = 8f
+    const val MARGIN_DP = 0f
 
     fun dp(kind: WidgetKind): Set<DpSize> = byKind.getValue(kind).map { DpSize(it.first.dp, it.second.dp) }.toSet()
 

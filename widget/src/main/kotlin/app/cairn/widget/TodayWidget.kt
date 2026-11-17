@@ -13,6 +13,7 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
+import androidx.glance.text.TextAlign
 import app.cairn.core.model.DistanceUnit
 import kotlinx.coroutines.flow.Flow
 
@@ -62,10 +63,17 @@ private fun Rows(shown: List<Metric>, count: Int, compact: Boolean, emptyHint: B
         // The value is never cut: the label shortens ("RHR") and is dropped only when even that would not fit beside the value.
         // Labels are low priority and never dropped: full, else shortened. The weighted label may clip before the value ever does.
         // Full label, else the short one, else icon only: never an ellipsized stub such as "S…".
-        val label = Layouts.rowLabel(m.label, m.value, availW, scale)
-        MetricLine(label.orEmpty(), m.value, metricIcon(m.id), metricTint(m.id, p), label == null, GlanceModifier.height(20.dp))
+        // A long value ("7 h 41 min · 82") steps down in size before it would be cut; it is never shortened or ellipsized.
+        fun sizeFor(v: String) = listOf(13f, 12f, 11f, 10f).firstOrNull { TextFit.fits(v, it, scale, availW - 24f) }
+        // Even at 10 sp it would be cut: show the bare value ("7h 41m") instead, sized to fit.
+        val value = if (sizeFor(m.value) == null) stripeValue(m.value) else m.value
+        val vsp = sizeFor(value) ?: 10f
+        val label = Layouts.rowLabel(m.label, value, availW, scale)
+        MetricLine(label.orEmpty(), value, metricIcon(m.id), metricTint(m.id, p), label == null, GlanceModifier.height((20f * Layouts.ts(scale)).dp), valueSp = vsp)
     }
 }
+
+private const val MARGIN_SAFE = 4f
 
 private fun metricTint(id: MetricId, p: app.cairn.core.designsystem.Palette): Int = when (id) {
     MetricId.Sleep -> p.stageDeep
@@ -79,11 +87,25 @@ private fun metricTint(id: MetricId, p: app.cairn.core.designsystem.Palette): In
 private fun RingStyle(b: TodayUi, shown: List<Metric>, plan: Layouts.Plan) {
     val (w, _) = widgetSize()
     val rows = plan.count("r")
+    if (!plan.side && plan.heroDp == 0) {
+        Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalAlignment = Alignment.CenterHorizontally) {
+            Txt(b.stepsText ?: "–", plan.heroSp, FontWeight.Bold, hero = true)
+            Spacer(GlanceModifier.height(4.dp))
+            HBar((w - 2 * plan.pad - MARGIN_SAFE).dp, 6.dp, b.stepsFraction, skin.p.accent)
+        }
+        return
+    }
     if (plan.side) {
         Row(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-            StepsRing(b, plan)
+            if (plan.heroDp == 0) {
+                Column(GlanceModifier.width(((w - 2 * plan.pad) * 0.42f).dp)) {
+                    Txt(b.stepsText ?: "–", plan.heroSp, FontWeight.Bold, hero = true)
+                    Spacer(GlanceModifier.height(4.dp))
+                    HBar(((w - 2 * plan.pad) * 0.42f - MARGIN_SAFE).dp, 6.dp, b.stepsFraction, skin.p.accent)
+                }
+            } else StepsRing(b, plan)
             Spacer(GlanceModifier.width(16.dp))
-            Column(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) { Rows(shown, rows, false, true, w - 2 * plan.pad - plan.heroDp - 16f) }
+            Column(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) { Rows(shown, rows, false, true, w - 2 * plan.pad - (if (plan.heroDp == 0) (w - 2 * plan.pad) * 0.42f else plan.heroDp.toFloat()) - 16f) }
         }
     } else {
         Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -116,14 +138,17 @@ private fun StackStyle(b: TodayUi, shown: List<Metric>, plan: Layouts.Plan) {
 private fun StripeStyle(b: TodayUi, shown: List<Metric>, plan: Layouts.Plan) {
     val p = skin.p
     data class Chip(val icon: Int, val tint: Int, val text: String)
-    val chips = (listOf(Chip(R.drawable.ic_w_steps, p.accent, b.stepsText ?: "–")) + shown.map { Chip(metricIcon(it.id), metricTint(it.id, p), it.value) }).take(plan.count("c"))
+    val chips = (listOf(Chip(R.drawable.ic_w_steps, p.accent, b.stepsText ?: "–")) + shown.map { Chip(metricIcon(it.id), metricTint(it.id, p), stripeValue(it.value)) }).take(plan.count("c"))
+    val (sw, _) = widgetSize()
+    val chipW = (sw - 2f * plan.pad) / plan.perRow.coerceAtLeast(1) - 4f
+    val scale = LocalFontScale
     Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
         chips.chunked(plan.perRow).forEach { line ->
             Row(GlanceModifier.fillMaxWidth().height(Layouts.stripeRowDp(LocalFontScale).dp), verticalAlignment = Alignment.CenterVertically) {
                 line.forEach { c ->
                     Column(GlanceModifier.defaultWeight(), horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(c.icon, 18.dp, c.tint)
-                        Txt(c.text, 13f, FontWeight.Bold, maxLines = 1)
+                        Txt(c.text, if (TextFit.fits(c.text, 13f, scale, chipW)) 13f else 11f, FontWeight.Bold, maxLines = 1, align = TextAlign.Center)
                     }
                 }
                 repeat(plan.perRow - line.size) { Spacer(GlanceModifier.defaultWeight()) }
@@ -131,3 +156,6 @@ private fun StripeStyle(b: TodayUi, shown: List<Metric>, plan: Layouts.Plan) {
         }
     }
 }
+
+/** A stripe chip shows the bare value: "7 h 41 min · 82" becomes "7h 41m", "1,820 kcal" becomes "1,820". */
+internal fun stripeValue(v: String): String = v.substringBefore(" \u00b7 ").removeSuffix(" kcal").replace(" h ", "h ").replace(" min", "m")

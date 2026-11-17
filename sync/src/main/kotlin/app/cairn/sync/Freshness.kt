@@ -164,7 +164,7 @@ data class Indicator(
 
 object SyncIndicators {
     /** A requested sync older than this is assumed lost (killed worker), not still running. */
-    val SYNCING_WINDOW: Duration = Duration.ofMinutes(2)
+    val SYNCING_WINDOW: Duration = Duration.ofSeconds(90)
     /** A failed user-requested run is shown for this long. */
     val ERROR_WINDOW: Duration = Duration.ofMinutes(10)
     private val FAILED = setOf(SyncOutcome.FAILED.name, SyncOutcome.NETWORK_ERROR.name, SyncOutcome.NEEDS_SIGN_IN.name)

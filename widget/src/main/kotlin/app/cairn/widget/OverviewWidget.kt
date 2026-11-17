@@ -14,6 +14,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -53,8 +54,10 @@ class OverviewWidget : CairnWidget<OverviewUi>(WidgetKind.Overview) {
         // Height available to the grid: the cell minus padding and the quiet footer.
         val innerH = Layouts.availDp(w, h, LocalFontScale)
         val chosen = cfg.metrics
-        val op = OverviewLayout.plan(chosen.size, inner, innerH)
-        val tiles = OverviewLayout.firstN(chosen, op.shown).map { id -> ui.body.find(id) ?: OverviewItem(id, "–") }
+        val items = chosen.map { id -> ui.body.find(id) ?: OverviewItem(id, "–") }
+        // Fewer tiles beat cut ones: the plan is the largest count whose tiles hold their number and title.
+        val op = OverviewLayout.planFor(items, inner, innerH, LocalFontScale)
+        val tiles = items.take(op.shown)
         WidgetLog.d("overview LocalSize=${w}x$h dp inner=${inner}x$innerH chosen=${chosen.map { it.name }} plan[shown=${op.shown} pattern=${op.pattern} cols=${op.cols} rows=${op.rows} tile=${op.tileW}x${op.tileH}] emitting=${tiles.size} tiles=${tiles.map { it.id.name }} available=${ui.body.items.map { it.id.name }}")
         Framed(ui, kind, plan) { Grid(tiles, op, cfg.shows(Part.Rings)) }
     }
@@ -101,9 +104,9 @@ private fun Grid(tiles: List<OverviewItem>, plan: OverviewPlan, rings: Boolean) 
     when (plan.pattern) {
         OverviewPattern.Single -> Hero(tiles[0], plan, rings)
         OverviewPattern.BigLeft -> Row(GlanceModifier.fillMaxSize()) {
-            tile(0, GlanceModifier.defaultWeight().fillMaxSize())
+            tile(0, GlanceModifier.defaultWeight().fillMaxHeight())
             Spacer(GlanceModifier.width(g))
-            Column(GlanceModifier.defaultWeight().fillMaxSize()) {
+            Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
                 tile(1, GlanceModifier.defaultWeight().fillMaxWidth())
                 Spacer(GlanceModifier.height(g))
                 tile(2, GlanceModifier.defaultWeight().fillMaxWidth())
@@ -113,9 +116,9 @@ private fun Grid(tiles: List<OverviewItem>, plan: OverviewPlan, rings: Boolean) 
             tile(0, GlanceModifier.defaultWeight().fillMaxWidth())
             Spacer(GlanceModifier.height(g))
             Row(GlanceModifier.defaultWeight().fillMaxWidth()) {
-                tile(1, GlanceModifier.defaultWeight().fillMaxSize())
+                tile(1, GlanceModifier.defaultWeight().fillMaxHeight())
                 Spacer(GlanceModifier.width(g))
-                tile(2, GlanceModifier.defaultWeight().fillMaxSize())
+                tile(2, GlanceModifier.defaultWeight().fillMaxHeight())
             }
         }
         OverviewPattern.Grid -> {
@@ -128,7 +131,7 @@ private fun Grid(tiles: List<OverviewItem>, plan: OverviewPlan, rings: Boolean) 
                     Row(GlanceModifier.defaultWeight().fillMaxWidth()) {
                         for (i in starts[r] until starts[r] + n) {
                             if (i > starts[r]) Spacer(GlanceModifier.width(g))
-                            tile(i, GlanceModifier.defaultWeight().fillMaxSize())
+                            tile(i, GlanceModifier.defaultWeight().fillMaxHeight())
                         }
                     }
                 }
@@ -156,16 +159,15 @@ private fun Tile(item: OverviewItem, plan: OverviewPlan, rings: Boolean, modifie
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Header directly above the value, the pair centred in the tile: no stretched gap between them.
-        Column(GlanceModifier.defaultWeight().fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+        Column(GlanceModifier.defaultWeight().fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(metricIconFor(item.id), 12.dp, accent)
-                Spacer(GlanceModifier.width(4.dp))
-                Txt(item.id.label, 10f, FontWeight.Medium, title, maxLines = 1)
+                if (tw >= OverviewLayout.ICON_MIN_TILE_W) { Icon(metricIconFor(item.id), 12.dp, accent); Spacer(GlanceModifier.width(4.dp)) }
+                Txt(OverviewLayout.title(item.id, plan.tileW, scale), 10f, FontWeight.Medium, title, maxLines = 1)
             }
             Spacer(GlanceModifier.height(4.dp))
             Row(verticalAlignment = Alignment.Bottom) {
                 Txt(item.number, sp, FontWeight.Bold, hero = true)
-                if (item.unit.isNotEmpty()) { Spacer(GlanceModifier.width(2.dp)); Txt(item.unit, unitSp, FontWeight.Normal, p.inkSub) }
+                if (item.unit.isNotEmpty() && unitSp > 0f) { Spacer(GlanceModifier.width(2.dp)); Txt(item.unit, unitSp, FontWeight.Normal, p.inkSub) }
             }
             if (trendRoom) {
                 val d = LocalContext.current.resources.displayMetrics.density
@@ -194,10 +196,15 @@ private fun Hero(item: OverviewItem, plan: OverviewPlan, rings: Boolean) {
     val accent = metricAccent(p, item)
     val tw = plan.tileW; val th = plan.tileH
     val graphic = (th - 24f).coerceAtLeast(0f)
-    val ring = if (rings && item.fraction != null) minOf(graphic, tw * 0.46f).takeIf { it >= 40f } ?: 0f else 0f
-    val trendW = if (rings && ring == 0f && item.trend.size >= 2) minOf(tw * 0.42f, 160f) else 0f
-    val reserve = maxOf(ring, trendW).let { if (it > 0f) it + 8f else 0f }
-    val (sp, unitSp) = OverviewLayout.valueSizes(item.number, item.unit, tw, th, scale, reserve, maxSp = 72f)
+    var ring = if (rings && item.fraction != null) minOf(graphic, tw * 0.46f).takeIf { it >= 40f } ?: 0f else 0f
+    var trendW = if (rings && ring == 0f && item.trend.size >= 2) minOf(tw * 0.42f, 160f) else 0f
+    var reserve = maxOf(ring, trendW).let { if (it > 0f) it + 8f else 0f }
+    var (sp, unitSp) = OverviewLayout.valueSizes(item.number, item.unit, tw, th, scale, reserve, maxSp = 72f)
+    // The number and its unit are never cut: when they do not fit beside the graphic even at the smallest size, the graphic is dropped.
+    if (reserve > 0f && (unitSp == 0f && item.unit.isNotEmpty() || !OverviewLayout.valueFits(item.number, item.unit, sp, tw - reserve, scale))) {
+        ring = 0f; trendW = 0f; reserve = 0f
+        val v = OverviewLayout.valueSizes(item.number, item.unit, tw, th, scale, 0f, maxSp = 72f); sp = v.first; unitSp = v.second
+    }
     Column(GlanceModifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(metricIconFor(item.id), 14.dp, accent)
@@ -207,7 +214,7 @@ private fun Hero(item: OverviewItem, plan: OverviewPlan, rings: Boolean) {
         Row(GlanceModifier.defaultWeight().fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.Bottom) {
                 Txt(item.number, sp, FontWeight.Bold, hero = true)
-                if (item.unit.isNotEmpty()) { Spacer(GlanceModifier.width(3.dp)); Txt(item.unit, unitSp, FontWeight.Normal, p.inkSub) }
+                if (item.unit.isNotEmpty() && unitSp > 0f) { Spacer(GlanceModifier.width(3.dp)); Txt(item.unit, unitSp, FontWeight.Normal, p.inkSub) }
             }
             if (ring > 0f) Ring(item.fraction ?: 0f, ring.dp, (ring / 7f).coerceIn(5f, 12f).dp, accent) {}
             else if (trendW > 0f) {

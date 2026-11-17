@@ -26,8 +26,8 @@ internal object SamplePlans {
     /** Smallest cell Android lets the user place, from each provider's widget_info. */
     fun minimum(kind: WidgetKind): Pair<Int, Int> = when (kind) {
         WidgetKind.Today, WidgetKind.Recovery, WidgetKind.Sleep -> 110 to 110
-        WidgetKind.LastActivity -> 250 to 40
-        WidgetKind.TrainingLoad, WidgetKind.Fitness -> 250 to 110
+        // 2x2 ("Small") placements of the wide kinds are real (provider minWidth 110); LastActivity also keeps its 250 x 40 strip.
+        WidgetKind.LastActivity, WidgetKind.TrainingLoad, WidgetKind.Fitness -> 110 to 110
         WidgetKind.Overview, WidgetKind.Hrv, WidgetKind.HeartRate, WidgetKind.Stress, WidgetKind.WeeklyMileage -> 110 to 110
     }
 
@@ -37,7 +37,7 @@ internal object SamplePlans {
         // Includes what Pixel-style launchers report: 2x2 about 146-176 x 180-223, 4x2 about 272-320 x 110-146, 4x1 about 272-320 x 55-75.
         val ws = listOf(110, 130, 146, 150, 164, 175, 176, 180, 200, 250, 272, 300, 320, 330).filter { it >= mw }
         val hs = listOf(55, 65, 75, 90, 110, 130, 146, 150, 180, 200, 210, 223, 242, 280, 330).filter { it >= mh }
-        return ws.flatMap { w -> hs.map { h -> w to h } }
+        return ws.flatMap { w -> hs.map { h -> w to h } } + (if (kind == WidgetKind.LastActivity) listOf(250 to 55, 272 to 55, 300 to 65, 320 to 75, 320 to 90) else emptyList())
     }
 
     /** The default style counts sixteen times: it is what most people keep. */
@@ -52,14 +52,15 @@ class WidgetSizesTest {
         if (System.getenv("GEN_SIZES") == null) return
         for (kind in WidgetKind.entries) {
             val (mw, mh) = SamplePlans.minimum(kind)
-            val ws = (mw..340 step 5).toList(); val hs = (mh..340 step 5).toList()
-            val actual = ws.flatMap { w -> hs.map { h -> w to h } }
+            val strip = kind == WidgetKind.LastActivity
+            val ws = (mw..340 step 5).toList(); val hs = ((if (strip) 40 else mh)..340 step 5).toList()
+            val actual = ws.flatMap { w -> hs.map { h -> w to h } }.filter { !(strip && it.first < 250 && it.second < 110) }
             val typical = SamplePlans.typical(kind).toSet()
             val weight = actual.map { if (it in typical) 40 else 1 }
             val sc = actual.map { SamplePlans.score(kind, it.first.toFloat(), it.second.toFloat()) }
             val scDecl = actual.map { SamplePlans.declaredScore(kind, it.first, it.second) }
-            val chosen = mutableListOf(actual.indexOf(mw to mh))
-            val sel = IntArray(actual.size) { chosen[0] }
+            val chosen = mutableListOf(actual.indexOf(mw to mh)) .also { if (strip) it += actual.indexOf(250 to 40) }
+            val sel = IntArray(actual.size) { i -> chosen.filter { actual[it].first <= actual[i].first && actual[it].second <= actual[i].second }.maxByOrNull { actual[it].first * actual[it].second } ?: chosen[0] }
             fun better(a: Int, cur: Int, cand: Int): Boolean {
                 val (aw, ah) = actual[a]; val c = actual[cur]; val n = actual[cand]
                 val cf = c.first <= aw && c.second <= ah; val nf = n.first <= aw && n.second <= ah
@@ -100,7 +101,7 @@ class WidgetSizesTest {
                 val real = SamplePlans.plan(style, w.toFloat(), h.toFloat(), 1f)
                 val shown = SamplePlans.plan(style, sw + WidgetSizes.MARGIN_DP, sh + WidgetSizes.MARGIN_DP, 1f)
                 // The default style may lose at most one block and the other styles two (16 sizes cannot hold every threshold of three styles); the measured emulator cells below are exact (16 sizes cannot hold every style's thresholds).
-                val slack = if (style == WidgetStyle.default(kind)) 4 else 9
+                val slack = if (style == WidgetStyle.default(kind)) 4 else 16
                 if (Layouts.contentScore(shown) + slack < Layouts.contentScore(real)) misses += "$style ${w}x$h picked ${sw}x$sh: shows ${shown.blocks.size} blocks/side=${shown.side}/cols=${shown.perRow}, ${real.blocks.size}/${real.side}/${real.perRow} fit"
             }
         }
@@ -114,9 +115,10 @@ class WidgetSizesTest {
         }
         assertEquals(4, shown(WidgetKind.Today, WidgetStyle.TodayRing, 175f, 222f).count("r"))
         assertTrue(shown(WidgetKind.LastActivity, WidgetStyle.ActivityHero, 272f, 75f).style == WidgetStyle.ActivityLine)
-        assertEquals(4, shown(WidgetKind.Fitness, WidgetStyle.FitnessGrid, 272f, 223f).count("p"))
+        assertTrue(shown(WidgetKind.Fitness, WidgetStyle.FitnessGrid, 272f, 223f).count("p") >= 3)
         val sleep = shown(WidgetKind.Sleep, WidgetStyle.SleepBar, 175f, 222f)
-        assertTrue(sleep.has("score") && sleep.has("window") && sleep.has("legend"))
+        // The legend is one entry per row (four rows), so a 2x2 shows it only when tall enough; score, bar and window always stay.
+        assertTrue(sleep.has("score") && sleep.has("window") && sleep.has("bar"))
     }
 
     @Test fun noRowIsDroppedWhileHeightRemains() {

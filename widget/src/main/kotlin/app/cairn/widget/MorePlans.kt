@@ -16,7 +16,7 @@ internal object MorePlans {
 
     /** Height of a pill of one or two lines, with the gap above it. */
     fun pillDp(text: String, availW: Float, fs: Float): Float {
-        val one = text.isNotEmpty() && TextFit.widthDp(text, 12f, fs) * 1.08f + 24f <= availW
+        val one = text.isNotEmpty() && (TextFit.widthDp(text, 12f, fs) * 1.08f + 24f <= availW || TextFit.widthDp(text, 10f, fs) * 1.08f + 24f <= availW)
         return 14f + 15f * Layouts.ts(fs) * (if (one) 1 else 2)
     }
 

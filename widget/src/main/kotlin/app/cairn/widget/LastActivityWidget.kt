@@ -38,7 +38,7 @@ class LastActivityWidget : CairnWidget<ActivityUi>(WidgetKind.LastActivity) {
         val values = listOfNotNull(b.distance) + stats.map { it.second }
         val (w0, h0) = widgetSize()
         val inner0 = w0 - 2f * Layouts.pad(app.cairn.core.designsystem.SizeClass.of(w0, h0), h0)
-        val lineStyle = cfg.style == WidgetStyle.ActivityLine || (h0 < 90f && cfg.style != WidgetStyle.ActivityGrid)
+        val lineStyle = Layouts.effectiveStyle(cfg.style, w0, h0) == WidgetStyle.ActivityLine
         // One-liner text: the hero value first, then every available stat that fits the line at a legible size.
         val rest = if (b.distance != null) stats.map { it.second } else stats.filter { it.first != "Time" }.map { it.second }
         val allParts = listOfNotNull(b.distance ?: b.duration) + rest
@@ -81,7 +81,7 @@ private fun HeroStyle(b: ActivityUi, stats: List<Pair<String, String>>, plan: La
         if (plan.has("header")) Header(b)
         Txt(b.distance ?: b.duration ?: "–", plan.heroSp, FontWeight.Bold, hero = true)
         shown.take(rows * plan.perRow).chunked(plan.perRow).forEach { line ->
-            Row(GlanceModifier.fillMaxWidth()) { line.forEach { Txt(it.second, 13f, FontWeight.Medium, modifier = GlanceModifier.defaultWeight()) } }
+            Row(GlanceModifier.fillMaxWidth()) { line.forEach { Txt(it.second, if (plan.perRow >= 3) 11f else 13f, FontWeight.Medium, modifier = GlanceModifier.defaultWeight()) } }
         }
     }
 }

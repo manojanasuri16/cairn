@@ -54,6 +54,9 @@ object OverviewMapper {
         return t to ""
     }
 
+    /** "7 h 41 min" becomes "7h 41m": a tile is narrow and the header already says Sleep. */
+    fun compactDuration(text: String): String = text.replace(" h ", "h ").replace(" min", "m")
+
     /** Builds the Overview data from the per-widget results; each stat shows only when its source has data. */
     fun build(
         today: WidgetUi<TodayUi>, sleep: WidgetUi<SleepUi>, recovery: WidgetUi<RecoveryUi>,
@@ -68,7 +71,7 @@ object OverviewMapper {
         }
         (sleep as? WidgetUi.Content)?.let { c ->
             footers += c.footer
-            items += OverviewItem(OverviewId.Sleep, c.body.durationText, "", (c.body.minutes / 480f).coerceIn(0f, 1f))
+            items += OverviewItem(OverviewId.Sleep, compactDuration(c.body.durationText), "", (c.body.minutes / 480f).coerceIn(0f, 1f))
             c.body.score?.let { items += OverviewItem(OverviewId.SleepScore, it.toString(), "", (it / 100f).coerceIn(0f, 1f)) }
         }
         (recovery as? WidgetUi.Content)?.let { c ->
@@ -156,11 +159,12 @@ object OverviewLayout {
      * The plan the widget really uses for a launcher cell of [cellW] x [cellH]: Responsive picks the largest listed size that fits
      * the cell, and the content area is that size less padding and the footer. The configuration preview uses the same rule.
      */
-    fun planForCell(count: Int, cellW: Float, cellH: Float, fontScale: Float, sizes: List<Pair<Int, Int>>): OverviewPlan {
+    fun planForCell(count: Int, cellW: Float, cellH: Float, fontScale: Float, sizes: List<Pair<Int, Int>>, items: List<OverviewItem>? = null): OverviewPlan {
         val (sw, sh) = WidgetSizes.pick(sizes, cellW, cellH)
         val ew = sw + WidgetSizes.MARGIN_DP; val eh = sh + WidgetSizes.MARGIN_DP
         val pad = Layouts.pad(app.cairn.core.designsystem.SizeClass.of(ew, eh), eh)
-        return plan(count, ew - 2f * pad, Layouts.availDp(ew, eh, fontScale))
+        // With the stats' real text the plan also drops tiles whose number or title would not fit (what the widget itself does).
+        return if (items != null) planFor(items, ew - 2f * pad, Layouts.availDp(ew, eh, fontScale), fontScale) else plan(count, ew - 2f * pad, Layouts.availDp(ew, eh, fontScale))
     }
 
     /** Smallest tile of a pattern: its width and height. Rows split evenly, so every tile fills its cell exactly. */
@@ -202,12 +206,19 @@ object OverviewLayout {
     fun valueSizes(number: String, unit: String, tileW: Float, tileH: Float, fontScale: Float, ringReserve: Float = 0f, maxSp: Float = 56f): Pair<Float, Float> {
         val availW = tileW - 2f * PAD - ringReserve
         val maxByHeight = (tileH * 0.36f / (1.2f * Layouts.ts(fontScale))).coerceIn(14f, maxSp)
-        val floor = TextFit.minSp(fontScale, 14f, Layouts.HERO_CAP)
+        val floor = TextFit.minSp(fontScale, if (tileW > 150f) 14f else TILE_MIN_SP, Layouts.HERO_CAP)
         var sp = maxByHeight
-        fun width(s: Float) = TextFit.widthDp(number, s, fontScale, Layouts.HERO_CAP) + (if (unit.isEmpty()) 0f else 2f + TextFit.widthDp(unit, unitSp(s), fontScale, Layouts.HERO_CAP))
+        fun width(s: Float) = 1.1f * (TextFit.widthDp(number, s, fontScale, Layouts.HERO_CAP) + (if (unit.isEmpty()) 0f else 16f + TextFit.widthDp(unit, unitSp(s), fontScale, Layouts.HERO_CAP)))
         while (sp > floor && width(sp) > availW) sp -= 1f
-        return maxOf(sp, minOf(floor, maxByHeight)) to unitSp(sp)
+        sp = maxOf(sp, minOf(floor, maxByHeight))
+        if (width(sp) <= availW) return sp to unitSp(sp)
+        // Still too wide at the floor: the unit is dropped (the header already names the stat).
+        return sp to 0f
     }
+
+    /** True when [number] and [unit] at [sp] fit [availW] dp (with the same safety margin valueSizes uses). */
+    fun valueFits(number: String, unit: String, sp: Float, availW: Float, fontScale: Float): Boolean =
+        1.1f * (TextFit.widthDp(number, sp, fontScale, Layouts.HERO_CAP) + (if (unit.isEmpty()) 0f else 16f + TextFit.widthDp(unit, unitSp(sp), fontScale, Layouts.HERO_CAP))) <= availW
 
     fun unitSp(valueSp: Float): Float = maxOf(10f, valueSp * 0.42f)
 
@@ -215,11 +226,41 @@ object OverviewLayout {
     fun ringSize(number: String, unit: String, tileW: Float, tileH: Float, fontScale: Float): Float {
         val d = minOf(tileH - 2f * PAD - 16f, tileW * 0.36f)
         if (d < 32f) return 0f
-        val (sp, _) = valueSizes(number, unit, tileW, tileH, fontScale, ringReserve = d + 6f)
+        val (sp, u) = valueSizes(number, unit, tileW, tileH, fontScale, ringReserve = d + 6f)
+        if (u == 0f && unit.isNotEmpty()) return 0f
         val floor = TextFit.minSp(fontScale, 14f, Layouts.HERO_CAP)
-        val fits = TextFit.widthDp(number, sp, fontScale, Layouts.HERO_CAP) + (if (unit.isEmpty()) 0f else 2f + TextFit.widthDp(unit, unitSp(sp), fontScale, Layouts.HERO_CAP)) <= tileW - 2f * PAD - d - 6f
+        val fits = TextFit.widthDp(number, sp, fontScale, Layouts.HERO_CAP) + (if (unit.isEmpty()) 0f else 16f + TextFit.widthDp(unit, unitSp(sp), fontScale, Layouts.HERO_CAP)) <= tileW - 2f * PAD - d - 6f
         return if (fits || sp > floor) d else 0f
     }
 
-    const val PAD = 8f
+    const val PAD = 4f
+    /** Smallest effective number size in a multi-stat tile; a lone stat keeps 14. */
+    const val TILE_MIN_SP = 11f
+
+    /** The plan the widget draws: the largest count of [items] (in order) whose tiles hold their number and title (fewer tiles beat cut ones). */
+    fun planFor(items: List<OverviewItem>, w: Float, h: Float, fontScale: Float): OverviewPlan {
+        var last = plan(items.size, w, h)
+        for (k in items.size downTo 1) {
+            val cand = plan(k, w, h)
+            last = cand
+            if (valuesFit(items, cand, fontScale)) return cand
+        }
+        return last
+    }
+
+    /** True when every tile of [plan] can hold its stat: the number at the legible floor, and the title (full or short form) beside its icon. */
+    fun valuesFit(items: List<OverviewItem>, plan: OverviewPlan, fontScale: Float): Boolean {
+        val floor = TextFit.minSp(fontScale, TILE_MIN_SP, Layouts.HERO_CAP)
+        return items.take(plan.shown).all { (
+            TextFit.widthDp(it.number, floor, fontScale, Layouts.HERO_CAP) <= plan.tileW - 2f * PAD &&
+                (plan.pattern == OverviewPattern.Single || TextFit.fits(Layouts.shortLabel(it.id.label), 10f, fontScale, titleRoom(plan.tileW)))) }
+    }
+
+    /** Width left for a tile's title: a narrow tile (under 70 dp) drops the icon so the name keeps the whole line. */
+    fun titleRoom(tileW: Float): Float = tileW - 2f * PAD - (if (tileW >= ICON_MIN_TILE_W) 16f else 0f) - 2f
+    const val ICON_MIN_TILE_W = 70f
+
+    /** Title for a tile: the full label when it fits beside the icon, else its short form. */
+    fun title(id: OverviewId, tileW: Float, fontScale: Float): String =
+        if (TextFit.fits(id.label, 10f, fontScale, titleRoom(tileW) + 6f)) id.label else Layouts.shortLabel(id.label)
 }

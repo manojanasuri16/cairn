@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <img src="appdrop/screenshots/00-widgets-home.png" width="19%" alt="Widgets home with a Your widgets list and Edit buttons">
+  <img src="appdrop/screenshots/00-widgets-home.png" width="19%" alt="Widgets home with the gallery of every widget">
   <img src="appdrop/screenshots/01-today.png" width="19%" alt="Today screen with steps, activity, heart rate, resting HR, stress and sleep">
   <img src="appdrop/screenshots/02-recovery.png" width="19%" alt="Training status and a Recovery card">
   <img src="appdrop/screenshots/03-activities.png" width="19%" alt="Activities grouped by month">
@@ -69,7 +69,7 @@ Cairn reads from COROS's official MCP server (and optionally Health Connect), ca
 
 **The app**
 
-- Widget-first: the home tab is **Widgets**, a gallery of every widget with a live preview, plus a "Your widgets" list (with Edit) for the ones already on your home screen. Its menu holds the default look and the tap targets. Then Today, Activities and Fitness; Settings is in the top bar. Widget setup is no longer in Settings.
+- Widget-first: the home tab is **Widgets**, a gallery of every widget with a live preview (2x2, 4x2 and 4x3 shown at the real size). Change a widget you already placed by long-pressing it on your home screen and choosing Reconfigure. Its menu holds the default look and the tap targets. Then Today, Activities and Fitness; Settings is in the top bar. Widget setup is no longer in Settings.
 - Workouts show a sport icon (run, walk, cycle, swim, strength, cardio, yoga, snow, ball sports, or a generic figure) and lead with distance, or with the duration when there is none (strength, cardio), then only the figures that exist (heart rate, calories, pace for distance sports).
 - Press and hold any card (Recovery, Sleep, a run, a month header...) in Today, Activities or Fitness for **Add to home screen** or **Open in COROS**.
 - Named and ordered like the COROS app (see below).

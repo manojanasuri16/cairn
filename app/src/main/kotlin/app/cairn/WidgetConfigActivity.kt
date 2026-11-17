@@ -85,7 +85,7 @@ import kotlinx.coroutines.launch
  */
 class WidgetConfigActivity : ComponentActivity() {
     companion object {
-        /** Set by "Your widgets" > Edit: skip the just-pinned shortcuts and always show the editor. */
+        /** Skip the just-pinned shortcuts and always show the editor. */
         const val EXTRA_EDIT = "cairn.edit"
     }
 
@@ -153,8 +153,10 @@ class WidgetConfigActivity : ComponentActivity() {
 private fun ConfigScreen(graph: AppGraph, kind: WidgetKind, id: Int, onDone: (WidgetConfig) -> Unit, onCancel: () -> Unit) {
     val settings = graph.appSettings.widgetSettings
     val context = androidx.compose.ui.platform.LocalContext.current
-    var loaded by remember { mutableStateOf<WidgetConfig?>(null) }
+    // Saved across rotation / dark mode: storage is read only while there is nothing restored, so unsaved edits are never overwritten.
+    var loaded by androidx.compose.runtime.saveable.rememberSaveable(id, stateSaver = androidx.compose.runtime.saveable.Saver<WidgetConfig?, String>(save = { it?.encode() }, restore = { WidgetConfig.decode(it, kind) })) { mutableStateOf<WidgetConfig?>(null) }
     LaunchedEffect(id) {
+        if (loaded != null) return@LaunchedEffect
         loaded = settings.configNow(id, kind)
         app.cairn.widget.WidgetLog.d("config loaded kind=$kind id=$id key=wcfg_$id metrics=${loaded?.metrics?.map { it.name }} style=${loaded?.style}")
     }
@@ -163,17 +165,18 @@ private fun ConfigScreen(graph: AppGraph, kind: WidgetKind, id: Int, onDone: (Wi
     val tapTarget by graph.appSettings.tapTarget(kind).collectAsStateWithLifecycle(initialValue = TapTarget.CorosHome)
     val scope = rememberCoroutineScope()
     val cfg = loaded
-    var editTap by remember { mutableStateOf(false) }
+    var editTap by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     // The preview starts at the size this widget was placed at; the size section only changes the preview here.
     val placed = remember(id) { app.cairn.widget.WidgetVariants.sizeOf(AppWidgetManager.getInstance(context).getAppWidgetInfo(id)?.provider?.className) ?: app.cairn.widget.WidgetVariants.suggested(kind) }
-    var size by remember { mutableStateOf(placed) }
+    var sizeName by androidx.compose.runtime.saveable.rememberSaveable(id) { mutableStateOf(placed.name) }
+    val size = app.cairn.widget.WidgetSize.parse(sizeName) ?: placed
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         if (cfg == null) return@Surface
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Text("${kind.label} widget", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs))
             WidgetCustomizer(
-                kind, cfg, { loaded = it }, appearance, size, { size = it },
+                kind, cfg, { loaded = it }, appearance, size, { sizeName = it.name },
                 "This only changes the preview. Resize the widget on your home screen by long-pressing it.",
                 tapTarget, { editTap = true }, Modifier.weight(1f), appUnit = display.unit,
                 bottom = {

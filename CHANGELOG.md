@@ -9,6 +9,18 @@
 
 All notable changes to Cairn are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Fixed
+- Widgets look right at 2x2, 4x2 and 4x3: Last activity, Training load and Fitness have real 2x2 layouts (no one-liner under 250 dp wide), Overview tiles share the width equally, the HRV range bar draws bar, band and marker in one bitmap, the Sleep legend is one entry per row with a taller stage bar, and Today / Overview values step down in size instead of being cut.
+- The sync button is 40 x 40 dp (footer 40 dp; 4x1 strips keep 28 dp).
+- Widgets redraw without network on font scale, dark mode, locale, time zone, date and clock changes and every 15 minutes (freshness dot and age keep moving offline); a stuck "Syncing..." clears after 90 seconds.
+- The widget editor keeps unsaved edits across rotation and dark mode changes.
+- Low-opacity cards keep their text at 4.5:1 over both black and white wallpapers where any ink can.
+
+### Removed
+- The "Your widgets" list on the Widgets home. Long-press a placed widget on the home screen and choose Reconfigure to edit it.
+
 ## [1.5.0] - 2026-11-16
 
 ### Added

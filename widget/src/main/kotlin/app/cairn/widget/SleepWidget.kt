@@ -62,32 +62,24 @@ fun stageColor(p: Palette, s: SleepStage): Int = when (s) {
 private fun dpPx(v: Dp): Int = (v.value * LocalContext.current.resources.displayMetrics.density).toInt().coerceAtLeast(1)
 
 @Composable
-private fun StageBar(stages: List<StageSlice>, width: Dp) {
+private fun StageBar(stages: List<StageSlice>, width: Dp, height: Dp = 8.dp) {
     val p = skin.p
-    val bmp = Gfx.stageBar(dpPx(width), dpPx(8.dp), stages.map { it.minutes }, stages.map { stageColor(p, it.stage) })
-    Image(ImageProvider(bmp), contentDescription = null, modifier = GlanceModifier.size(width, 8.dp))
+    val bmp = Gfx.stageBar(dpPx(width), dpPx(height), stages.map { it.minutes }, stages.map { stageColor(p, it.stage) })
+    Image(ImageProvider(bmp), contentDescription = null, modifier = GlanceModifier.size(width, height))
 }
 
 @Composable
 private fun Legend(stages: List<StageSlice>, withNames: Boolean) {
     val p = skin.p
-    val (w, _) = widgetSize()
     val scale = LocalFontScale
-    val texts = stages.map { if (withNames) it.text else Fmt.duration(it.minutes) }
-    // Entries wrap onto more lines rather than cutting a duration.
-    val lines = Layouts.legendLines(texts, w - 2f * Layouts.pad(app.cairn.core.designsystem.SizeClass.of(w, widgetSize().second), widgetSize().second), scale)
-    val starts = lines.runningFold(0) { acc, line -> acc + line.size }
+    // One entry per row: dot, stage name (when asked and it fits) and the duration, so nothing wraps into a second column.
     Column(GlanceModifier.fillMaxWidth()) {
-        lines.forEachIndexed { li, line ->
-            Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                for (k in line.indices) {
-                    val i = starts[li] + k
-                    val s = stages[i]; val txt = texts[i]
-                    Box(GlanceModifier.size(7.dp).background(cp(stageColor(p, s.stage))).cornerRadius(3.dp)) {}
-                    Spacer(GlanceModifier.width(3.dp))
-                    Txt(txt, 10f, color = p.inkSub)
-                    Spacer(GlanceModifier.width(10.dp))
-                }
+        stages.forEach { s ->
+            Row(GlanceModifier.fillMaxWidth().height((14f * Layouts.ts(scale)).dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(GlanceModifier.size(7.dp).background(cp(stageColor(p, s.stage))).cornerRadius(3.dp)) {}
+                Spacer(GlanceModifier.width(4.dp))
+                if (withNames) Txt(s.stage.label, 10f, color = p.inkSub, modifier = GlanceModifier.defaultWeight()) else Spacer(GlanceModifier.defaultWeight())
+                Txt(Fmt.duration(s.minutes), 10f, FontWeight.Medium, p.inkSub)
             }
         }
     }
@@ -117,14 +109,14 @@ private fun BarStyle(b: SleepUi, plan: Layouts.Plan) {
         }
         if (stages != null && plan.has("bar")) {
             Spacer(GlanceModifier.height(6.dp))
-            StageBar(stages, barW)
+            StageBar(stages, barW, plan.tileDp.coerceAtLeast(8f).dp)
             if (plan.has("legend") && cfg.shows(Part.Stages)) {
                 Spacer(GlanceModifier.height(4.dp))
-                Legend(stages, withNames = w >= 300f)
+                Legend(stages, withNames = true)
                 if (plan.has("note")) b.stageNote?.let { Sub(it, 10f) }
             }
         }
-        if (!plan.side) window?.let { Spacer(GlanceModifier.height(2.dp)); Sub(it, 12f) }
+        if (!plan.side) window?.let { Spacer(GlanceModifier.height(2.dp)); FitSub(it, 12f, w - 2 * plan.pad) }
     }
 }
 
@@ -136,28 +128,31 @@ private fun RingStyle(b: SleepUi, plan: Layouts.Plan) {
     val numeral = b.score?.toString() ?: b.durationText
     val ring: @Composable () -> Unit = {
         Ring(fraction, plan.heroDp.dp, Layouts.ringStroke(plan.heroDp).dp, p.stageDeep) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Without a score the duration is the hero and is drawn beside or under the ring (it is too wide for the ring's interior).
+            if (b.score != null || !plan.has("dur")) Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Txt(numeral, plan.heroSp, FontWeight.Bold, hero = true)
                 if (plan.heroDp >= 80) Sub(if (b.score != null) "score" else "slept", 10f)
             }
         }
     }
     val window = if (cfg.shows(Part.Window)) b.window else null
+    val (w, _) = widgetSize()
+    val colW = w - 2 * plan.pad - plan.heroDp - 16f
     if (plan.side) {
         Row(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             ring()
             Spacer(GlanceModifier.width(16.dp))
             Column(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
-                if (plan.has("dur")) Txt(b.durationText, 22f, FontWeight.Bold, hero = true)
-                if (plan.has("window")) window?.let { Sub(it, 12f) }
+                if (plan.has("dur")) Txt(b.durationText, TextFit.fitSp(b.durationText, 22f, 14f, colW, LocalFontScale, Layouts.HERO_CAP), FontWeight.Bold, hero = true)
+                if (plan.has("window")) window?.let { FitSub(it, 12f, colW) }
                 if (plan.has("legend") && cfg.shows(Part.Stages)) b.stages?.let { Spacer(GlanceModifier.height(4.dp)); Legend(it.take(3), false) }
             }
         }
     } else {
         Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalAlignment = Alignment.CenterHorizontally) {
             ring()
-            if (plan.has("dur")) Txt(b.durationText, 13f, FontWeight.Bold, align = TextAlign.Center)
-            if (plan.has("window")) window?.let { Sub(it, 11f, align = TextAlign.Center) }
+            if (plan.has("dur")) Txt(b.durationText, TextFit.fitSp(b.durationText, 14f, 14f, w - 2 * plan.pad, LocalFontScale), FontWeight.Bold, hero = true, align = TextAlign.Center)
+            if (plan.has("window")) window?.let { FitSub(it, 11f, w - 2 * plan.pad, TextAlign.Center) }
         }
     }
 }
@@ -172,19 +167,22 @@ private fun TimelineStyle(b: SleepUi, plan: Layouts.Plan) {
     val scale = LocalFontScale
     val labelW = maxOf(44f, stages.maxOfOrNull { TextFit.widthDp(it.stage.label, 11f, scale) + 4f } ?: 0f)
     val valueW = maxOf(48f, stages.maxOfOrNull { TextFit.widthDp(Fmt.duration(it.minutes), 11f, scale) + 4f } ?: 0f)
-    val barW = (w - 2 * plan.pad - labelW - valueW - 8f).coerceAtLeast(40f)
+    val barRoom = w - 2 * plan.pad - labelW - valueW - 8f
+    val barW = barRoom.coerceAtLeast(0f)
     Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Txt(b.durationText, plan.heroSp, FontWeight.Bold, hero = true, modifier = GlanceModifier.defaultWeight())
             if (w >= 200f && cfg.shows(Part.Score)) b.scoreText?.let { Txt(it, 12f, FontWeight.Bold) }
         }
-        if (plan.has("axis") && cfg.shows(Part.Window)) b.window?.let { Sub(it, 11f) }
+        if (plan.has("axis") && cfg.shows(Part.Window)) b.window?.let { FitSub(it, 11f, w - 2 * plan.pad) }
         if (cfg.shows(Part.Stages)) stages.take(plan.count("l")).forEach { s ->
-            Row(GlanceModifier.fillMaxWidth().height(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                Txt(s.stage.label, 11f, color = p.inkSub, modifier = GlanceModifier.width(labelW.dp))
-                HBarColor(barW.dp, 8.dp, s.minutes / total.toFloat(), stageColor(p, s.stage))
+            Row(GlanceModifier.fillMaxWidth().height((18f * Layouts.ts(LocalFontScale)).dp), verticalAlignment = Alignment.CenterVertically) {
+                // No room for the bar (a 2x2): the label takes the slack and the duration keeps its own width; nothing is cut.
+                val bar = barW >= 24f
+                Txt(s.stage.label, 11f, color = p.inkSub, modifier = if (bar) GlanceModifier.width(labelW.dp) else GlanceModifier.defaultWeight())
+                if (bar) HBarColor(barW.dp, 8.dp, s.minutes / total.toFloat(), stageColor(p, s.stage))
                 Spacer(GlanceModifier.width(8.dp))
-                Txt(Fmt.duration(s.minutes), 11f, FontWeight.Medium, modifier = GlanceModifier.width(valueW.dp))
+                Txt(if (bar) Fmt.duration(s.minutes) else stripeValue(Fmt.duration(s.minutes)), 11f, FontWeight.Medium, modifier = if (bar) GlanceModifier.width(valueW.dp) else GlanceModifier)
             }
         }
     }

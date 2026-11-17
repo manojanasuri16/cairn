@@ -20,18 +20,19 @@ object Layouts {
 
     fun ts(fontScale: Float): Float = fontScale.coerceIn(1f, TEXT_CAP)
 
-    /** Very short cells (a 4x1 strip) get tighter padding so a single line still fits with the footer. */
-    fun pad(sizeClass: SizeClass, h: Float): Int = if (h < 64f) 6 else if (h < 90f) 8 else pad(sizeClass)
+    /** Short cells (a 4x1 strip, a 2x1 / 4x2 row of 110 to 130 dp) get tighter padding so the content still fits above the 40 dp footer. */
+    fun pad(sizeClass: SizeClass, h: Float): Int = if (h < 64f) 6 else if (h < 130f) 8 else pad(sizeClass)
 
     /** One padding for every regular cell, so layout thresholds do not shift with the size class. */
     fun pad(sizeClass: SizeClass): Int = WidgetTokens.PAD_COMPACT + 2
 
     /** Height the footer takes: 11sp text (capped) plus its padding. */
-    fun footerDp(fontScale: Float): Float = maxOf(FooterRules.HEIGHT_DP, 10f + 11f * 1.25f * ts(fontScale))
+    fun footerDp(fontScale: Float, cellH: Float = Float.MAX_VALUE): Float = maxOf(FooterRules.heightDp(cellH), 10f + 11f * 1.25f * ts(fontScale))
 
     fun availDp(w: Float, h: Float, fontScale: Float): Float {
         val p = pad(SizeClass.of(w, h), h)
-        return (h - 2 * p - footerDp(fontScale)).coerceAtLeast(0f)
+        // Two paddings are deducted although the body only has one: the other is a safety band for the block costs, which are estimates.
+        return (h - (if (h < 90f) 1 else 2) * p - footerDp(fontScale, h)).coerceAtLeast(0f)
     }
 
     fun heroSp(sizeClass: SizeClass, fontScale: Float): Float =
@@ -98,7 +99,7 @@ object Layouts {
 
     /** Shortened forms for metric row labels, used before a label is dropped. */
     fun shortLabel(label: String): String = when (label) {
-        "Resting HR" -> "RHR"; "Recovery" -> "Rec"; "Calories" -> "Cal"; "Heart rate" -> "HR"; "Distance" -> "Dist"; "Half marathon" -> "HM"; "Marathon" -> "M"; else -> label
+        "Resting HR" -> "RHR"; "Threshold pace" -> "Threshold"; "Threshold" -> "Thr"; "Recovery" -> "Rec"; "Calories" -> "Cal"; "Heart rate" -> "HR"; "Distance" -> "Dist"; "Half marathon" -> "HM"; "Marathon" -> "M"; else -> label
     }
 
     /** The label to draw in front of [value] on a row [availW] dp wide: full, else shortened, else null (the value alone is kept whole). */
@@ -172,12 +173,20 @@ object Layouts {
 
     fun ringStroke(ringDp: Int): Float = if (ringDp < 64) 6f else if (ringDp < 90) 8f else 10f
 
+    /** The style actually drawn: Last activity's one-liner exists only in a wide, short strip (>= 250 dp wide); a 2x2 always gets a square layout. */
+    fun effectiveStyle(requested: WidgetStyle, w: Float, h: Float): WidgetStyle = when {
+        requested.kind != WidgetKind.LastActivity -> requested
+        w < 250f -> if (requested == WidgetStyle.ActivityLine) WidgetStyle.ActivityHero else requested
+        h < 90f && requested != WidgetStyle.ActivityGrid -> WidgetStyle.ActivityLine
+        else -> requested
+    }
+
     /** [chars] is the length of the longest text drawn inside a ring or gauge (so it never overflows). */
     fun plan(requested: WidgetStyle, w: Float, h: Float, fontScale: Float, chars: Int = 6, heroText: String = "", values: List<String> = emptyList()): Plan {
         val sc = SizeClass.of(w, h)
         val p = pad(sc, h)
         // A one-row strip cannot hold a hero card: every Last activity style becomes the one-liner.
-        val style = if (requested.kind == WidgetKind.LastActivity && h < 90f && requested != WidgetStyle.ActivityGrid) WidgetStyle.ActivityLine else requested
+        val style = effectiveStyle(requested, w, h)
         if (style.kind in MorePlans.kinds) return MorePlans.plan(style, w, h, fontScale, chars, heroText, values)
         val avail = availDp(w, h, fontScale)
         val t = ts(fontScale)
@@ -199,9 +208,13 @@ object Layouts {
                 if (side) {
                     val ring = minOf(avail, inner * 0.42f, 200f).coerceAtLeast(minOf(48f, avail)).toInt()
                     val rows = (avail / (20f * t)).toInt().coerceIn(1, MAX_ROWS)
+                    // A ring under 64 dp cannot hold its numeral: the numeral stands over a thin bar instead (heroDp 0).
+                    if (ring < 64) return make(true, 0, hero, rows("r", rows, 20f * t).map { it.id }.toSet(), maxOf(heroLineDp(hero, fontScale) + 12f, rows * 20f * t).coerceAtMost(avail))
                     make(true, ring, ringNumeralSp(ring, ringStroke(ring), chars), rows("r", rows, 20f * t).map { it.id }.toSet(), maxOf(ring.toFloat(), rows * 20f * t))
                 } else {
                     val (ring, rows) = fitStack(avail, 20f * t, MAX_ROWS, 6f, 64f, 200f, inner)
+                    // Too short for a ring that holds its numeral (a 110 x 110 cell): the numeral stands alone over a thin progress bar.
+                    if (ring < 64) return make(false, 0, hero, setOf("bar"), heroLineDp(hero, fontScale) + 12f)
                     make(false, ring, ringNumeralSp(ring, ringStroke(ring), chars), rows("r", rows, 0f).map { it.id }.toSet(), ring + rows * 20f * t + if (rows > 0) 6f else 0f)
                 }
             }
@@ -255,7 +268,7 @@ object Layouts {
             }
 
             WidgetStyle.ActivityHero -> {
-                val perRow = listOf(3, 2, 1).filter { it <= (if (w >= 220f) 3 else 2) }.firstOrNull { c -> values.all { TextFit.fits(it, 13f, fontScale, inner / c - 4f) } } ?: 1
+                val perRow = listOf(3, 2, 1).filter { it <= (if (w >= 220f) 3 else 2) }.firstOrNull { c -> values.all { TextFit.fits(it, if (c >= 3) 11f else 13f, fontScale, inner / c - 4f) } } ?: 1
                 val heroCost = heroLineDp(hero, fontScale)
                 val bl = listOf(Block("header", 16f * t), Block("s1", 18f * t), Block("s2", 18f * t))
                 val b = budget(avail - heroCost, bl)
@@ -299,10 +312,14 @@ object Layouts {
                     val chart = (avail - 14f).coerceIn(34f, 130f).toInt()
                     make(true, chart, hero, b + "label", maxOf(chart + 14f, heroCost + 14f * t))
                 } else {
-                    val b = budget(avail - heroCost - 40f, listOf(Block("comment", 18f * t), Block("vo2", 18f * t)))
-                    val used = heroCost + b.size * 18f * t
-                    val chart = (avail - used - 12f - 12f).coerceIn(28f, 120f).toInt()
-                    make(false, chart, hero, b, used + chart + 12f)
+                    // Narrow (2x2): the comment pill sits under the ratio (it does not fit beside it) and costs a full pill height.
+                    val commentDp = (if (w < 160f) 30f else 18f) * t
+                    val b = budget(avail - heroCost - 40f, listOf(Block("comment", commentDp), Block("vo2", 18f * t)))
+                    val used = heroCost + (if (b.contains("comment")) commentDp else 0f) + (if (b.contains("vo2")) 18f * t else 0f)
+                    // Below 28 dp of room the chart is dropped (heroDp 0) rather than cut off.
+                    val room = avail - used - 12f - 12f
+                    val chart = if (room >= 28f) room.coerceAtMost(120f).toInt() else 0
+                    make(false, chart, hero, b, used + (if (chart > 0) chart + 12f else 0f))
                 }
             }
             WidgetStyle.LoadDial -> {
@@ -318,13 +335,17 @@ object Layouts {
             }
 
             WidgetStyle.SleepBar -> {
-                val legendN = if (values.isEmpty()) 1 else legendLines(values, inner, fontScale).size
+                // One legend entry per row (stage, duration): never a two-column wrap that leaves a dead band below.
+                val legendN = if (values.isEmpty()) 1 else values.size
                 val side = w >= 200f
                 val heroCost = heroLineDp(hero, fontScale)
-                val bl = if (side) listOf(Block("score", 0f), Block("window", 0f), Block("bar", 16f), Block("legend", 16f * t * legendN), Block("note", 14f * t))
-                else listOf(Block("score", 16f * t), Block("bar", 16f), Block("window", 16f * t), Block("legend", 16f * t * legendN), Block("note", 14f * t))
+                val bl = if (side) listOf(Block("score", 0f), Block("window", 0f), Block("bar", 22f), Block("legend", 14f * t * legendN + 4f), Block("note", 14f * t))
+                else listOf(Block("score", 16f * t), Block("bar", 22f), Block("window", 16f * t + 2f), Block("legend", 14f * t * legendN + 4f), Block("note", 14f * t))
                 val b = budget(avail - heroCost - (if (side) 0f else 14f * t), bl)
-                make(side, 0, hero, b, heroCost + bl.filter { it.id in b }.sumOf { it.dp.toDouble() }.toFloat())
+                val used = heroCost + bl.filter { it.id in b }.sumOf { it.dp.toDouble() }.toFloat()
+                // Spare height goes to a taller stage bar (8 to 32 dp) so no band stays empty.
+                val barDp = if ("bar" in b) (12f + ((avail - used - (if (side) 0f else 14f * t) - 6f) / 2f).coerceIn(0f, 20f)) else 12f
+                make(side, 0, hero, b, used, tileDp = barDp)
             }
             WidgetStyle.SleepRing -> {
                 val side = w >= 200f

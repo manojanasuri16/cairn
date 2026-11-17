@@ -53,7 +53,7 @@ object Samples {
         OverviewUi(
             listOf(
                 OverviewItem(OverviewId.Steps, "8,432", "steps", 0.84f),
-                OverviewItem(OverviewId.Sleep, "7 h 41 min", "", 0.96f),
+                OverviewItem(OverviewId.Sleep, "7h 41m", "", 0.96f),
                 OverviewItem(OverviewId.Recovery, "82", "%", 0.82f),
                 OverviewItem(OverviewId.RestingHr, "52", "bpm"),
                 OverviewItem(OverviewId.LoadRatio, "112%", "", null, 1.12, listOf(0.4f, 0.65f, 0.3f, 0.8f, 0.55f, 1f, 0.7f)),

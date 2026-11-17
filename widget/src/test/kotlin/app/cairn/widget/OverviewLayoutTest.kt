@@ -43,10 +43,12 @@ class OverviewLayoutTest {
     @Test fun valuesAndUnitsFitTheirTileAtEveryFontScale() {
         for ((number, unit) in values) for (tw in listOf(72f, 90f, 120f, 160f, 330f)) for (th in listOf(52f, 80f, 120f, 200f)) for (s in listOf(1f, 1.3f, 2f)) {
             val (sp, usp) = OverviewLayout.valueSizes(number, unit, tw, th, s)
-            val width = TextFit.widthDp(number, sp, s, Layouts.HERO_CAP) + (if (unit.isEmpty()) 0f else 2f + TextFit.widthDp(unit, usp, s, Layouts.HERO_CAP))
-            assertTrue("'$number $unit' ${tw}x$th x$s at $sp needs $width", width <= tw - 2 * OverviewLayout.PAD || sp * TextFit.effectiveScale(s, Layouts.HERO_CAP) <= 14.01f)
-            assertTrue(sp * TextFit.effectiveScale(s, Layouts.HERO_CAP) >= 13.9f || sp >= 14f)
-            assertTrue(usp >= 10f)
+            // The unit is dropped (usp 0) when it cannot sit beside the number; the number itself never goes below the tile floor.
+            val width = TextFit.widthDp(number, sp, s, Layouts.HERO_CAP) + (if (unit.isEmpty() || usp == 0f) 0f else 16f + TextFit.widthDp(unit, usp, s, Layouts.HERO_CAP))
+            val floorEff = if (tw > 150f) 14.01f else OverviewLayout.TILE_MIN_SP + 0.01f
+            assertTrue("'$number $unit' ${tw}x$th x$s at $sp needs $width", width <= tw - 2 * OverviewLayout.PAD || sp * TextFit.effectiveScale(s, Layouts.HERO_CAP) <= floorEff)
+            assertTrue(sp * TextFit.effectiveScale(s, Layouts.HERO_CAP) >= OverviewLayout.TILE_MIN_SP - 0.1f || sp >= 14f)
+            assertTrue(usp == 0f || usp >= 10f)
         }
         // A bigger tile gets a bigger number.
         assertTrue(OverviewLayout.valueSizes("8,432", "steps", 330f, 200f, 1f).first > OverviewLayout.valueSizes("8,432", "steps", 100f, 60f, 1f).first)
@@ -134,7 +136,7 @@ class OverviewLayoutTest {
             val content = 12f * 1.2f + 4f + sp * 1.2f
             assertTrue("$n ${w}x$h tile ${p.tileH} cannot hold $content", p.tileH >= content + 2 * OverviewLayout.PAD - 0.5f)
             // The number grows with the tile, so a taller tile is filled by a bigger number, not by empty space.
-            assertTrue(sp >= 14f)
+            assertTrue(sp >= OverviewLayout.TILE_MIN_SP)
         }
         assertTrue(OverviewLayout.valueSizes("82", "%", 120f, 120f, 1f).first > OverviewLayout.valueSizes("82", "%", 120f, 60f, 1f).first)
     }
@@ -147,7 +149,7 @@ class OverviewLayoutTest {
         }
         for (w in listOf(272f, 300f, 320f)) for (h in listOf(110f, 130f, 146f)) assertEquals("4x2 cell reported ${w}x$h", 4, OverviewLayout.planForCell(4, w, h, 1f, sizes).shown)
         for (w in listOf(272f, 320f)) for (h in listOf(55f, 75f)) assertTrue(OverviewLayout.planForCell(4, w, h, 1f, sizes).shown >= 1)
-        // The size a variant is registered at never exceeds the size its rule assumes (rule size = registered + margin).
-        assertTrue(WidgetSizes.MARGIN_DP > 0f)
+        // The rule is evaluated at the registered size itself (no margin): a cell equal to the declared size must not overflow.
+        assertEquals(0f, WidgetSizes.MARGIN_DP, 0f)
     }
 }

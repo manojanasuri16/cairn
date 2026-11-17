@@ -209,7 +209,7 @@ object Gfx {
             val b = bmp(wPx, hPx)
             val c = Canvas(b)
             val p = paint()
-            val trackH = b.height * 0.5f
+            val trackH = b.height * 0.42f
             val top = (b.height - trackH) / 2f
             p.color = track
             c.drawRoundRect(RectF(0f, top, b.width.toFloat(), top + trackH), trackH / 2f, trackH / 2f, p)
@@ -219,12 +219,16 @@ object Gfx {
                 val r = (b.width * band.second.coerceIn(0f, 1f)).coerceAtLeast(l + trackH)
                 c.drawRoundRect(RectF(l, top, r.coerceAtMost(b.width.toFloat()), top + trackH), trackH / 2f, trackH / 2f, p)
             }
-            val pinW = (b.height * 0.26f).coerceAtLeast(4f)
+            // The marker is a thin rounded line, only a little taller than the bar (the same vertical centre), with a hairline halo so it reads over the band.
+            val over = (b.height * 0.18f).coerceAtLeast(2f)
+            val pinW = (trackH * 0.34f).coerceAtLeast(3f)
+            val halo = (pinW * 0.4f).coerceAtLeast(1.5f)
             val cx = (b.width * marker.coerceIn(0f, 1f)).coerceIn(pinW, b.width - pinW)
+            val mt = top - over; val mb = top + trackH + over
             p.color = ring
-            c.drawRoundRect(RectF(cx - pinW * 0.5f - 2f, 0f, cx + pinW * 0.5f + 2f, b.height.toFloat()), pinW, pinW, p)
+            c.drawRoundRect(RectF(cx - pinW / 2f - halo, mt - halo, cx + pinW / 2f + halo, mb + halo), pinW, pinW, p)
             p.color = markerColor
-            c.drawRoundRect(RectF(cx - pinW * 0.5f, 2f, cx + pinW * 0.5f, b.height - 2f), pinW, pinW, p)
+            c.drawRoundRect(RectF(cx - pinW / 2f, mt, cx + pinW / 2f, mb), pinW / 2f, pinW / 2f, p)
             b
         }
 
